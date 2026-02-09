@@ -3,6 +3,7 @@ package com.pcwms.backend.controller;
 import com.pcwms.backend.dto.request.LoginRequest;
 import com.pcwms.backend.dto.request.SignupRequest;
 import com.pcwms.backend.dto.response.JwtResponse;
+import com.pcwms.backend.dto.response.ResponseObject;
 import com.pcwms.backend.entity.Role;
 import com.pcwms.backend.entity.User;
 import com.pcwms.backend.repository.RoleRepository;
@@ -68,7 +69,7 @@ public class AuthController {
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
             return ResponseEntity
                     .badRequest()
-                    .body("Error: Username is already taken!");
+                    .body(new ResponseObject("FAILED", "Error: Username is already taken!", null));
         }
 
         // 2. Tìm Role trong DB (Nếu không thấy thì báo lỗi)
@@ -84,6 +85,8 @@ public class AuthController {
 
         userRepository.save(user);
 
-        return ResponseEntity.ok("User registered successfully!");
+        return ResponseEntity.ok(
+                new ResponseObject("SUCCESS", "User registered successfully!", user)
+        );
     }
 }
