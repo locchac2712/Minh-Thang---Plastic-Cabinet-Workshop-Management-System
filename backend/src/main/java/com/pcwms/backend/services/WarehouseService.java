@@ -36,7 +36,7 @@ public class WarehouseService {
         // 2. Tạo Phiếu Kho Mẹ
         WarehouseTransaction transaction = new WarehouseTransaction();
         transaction.setType(TransactionType.IMPORT); // Đây là phiếu NHẬP
-        transaction.setCreatedDate(LocalDateTime.now());
+        transaction.setDate(LocalDateTime.now());
         transaction.setStaff(staff); // Ai là người nhập?
 
         // Nếu Entity của bạn đang có cột referenceId thì mở comment dòng dưới:
@@ -87,7 +87,7 @@ public class WarehouseService {
         // 2. Tạo Phiếu Kho Mẹ
         WarehouseTransaction transaction = new WarehouseTransaction();
         transaction.setType(TransactionType.EXPORT); // Đây là phiếu XUẤT
-        transaction.setCreatedDate(LocalDateTime.now());
+        transaction.setDate(LocalDateTime.now());
         transaction.setStaff(staff); 
         transaction.setReferenceId(request.getReferenceId());
 

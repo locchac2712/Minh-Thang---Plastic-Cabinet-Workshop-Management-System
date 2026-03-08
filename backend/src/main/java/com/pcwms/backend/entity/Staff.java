@@ -27,6 +27,9 @@ public class Staff {
     @Column(name= "empoyee_id",unique = true)
     private String employeeId; // Mã nhân viên duy nhất
 
+    @Column(name= "phone_number")
+    private String phoneNumber;
+
     @OneToMany(mappedBy = "staff")
     private List<WarehouseTransaction> warehouseTransactions;
 }

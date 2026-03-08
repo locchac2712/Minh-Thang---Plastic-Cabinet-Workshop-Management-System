@@ -23,6 +23,9 @@ public class Product {
     @Column(name = "selling_price")
     private BigDecimal sellingPrice;
 
+    @Column(name = "current_stock", nullable = false)
+    private Integer currentStock = 0;
+
     // --- CÁC MỐI QUAN HỆ ---
 
     // 1. Quan hệ với Sales Order Details (included in)

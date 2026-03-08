@@ -4,10 +4,9 @@ import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
-@Table(name = "sales_orders") // Tên bảng số nhiều theo ERD
+@Table(name = "sales_orders")
 @Data
 public class SalesOrder {
 
@@ -15,31 +14,28 @@ public class SalesOrder {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // KHÓA NGOẠI: Khách hàng nào đặt?
+    // Khóa ngoại 1: Nối với Customer (Bắt buộc phải có)
     @ManyToOne
     @JoinColumn(name = "customer_id", referencedColumnName = "id", nullable = false)
     private Customer customer;
 
-    @Column(name = "created_date")
-    private LocalDateTime createdDate; // Ngày tạo đơn
+    // 👉 Khóa ngoại 2 (MỚI THÊM): Nối với Báo giá
+    // (Lưu ý: Không để nullable = false, vì khách quen có thể lên đơn thẳng không cần báo giá)
+    @ManyToOne
+    @JoinColumn(name = "quotation_id", referencedColumnName = "id")
+    private Quotation quotation;
 
-    // Trạng thái đơn: NEW, CONFIRMED, PRODUCING, COMPLETED, CANCELLED
-    @Column(name = "status")
+    // 👉 KHÔI PHỤC LẠI: Ngày tạo đơn (Để kế toán còn biết đường chốt sổ)
+    @Column(name = "created_date", nullable = false)
+    private LocalDateTime createdDate;
+
+    // Các cột cơ bản theo ERD
+    @Column(name = "status", nullable = false)
     private String status;
 
-    // Trạng thái thanh toán: UNPAID, PARTIAL, PAID
-    @Column(name = "payment_status")
+    @Column(name = "payment_status", nullable = false)
     private String paymentStatus;
 
-    @Column(name = "total_amount")
-    private BigDecimal totalAmount; // Tổng tiền đơn hàng
-
-    // --- QUAN HỆ CHỜ SẴN ---
-    // 1 Đơn hàng có nhiều chi tiết
-    @OneToMany(mappedBy = "salesOrder")
-    private List<SalesOrderDetail> details;
-
-    // 1 Đơn hàng sinh ra nhiều lệnh sản xuất
-    @OneToMany(mappedBy = "salesOrder")
-    private List<ManufactureOrder> manufactureOrders;
+    @Column(name = "total_amount", nullable = false)
+    private BigDecimal totalAmount;
 }

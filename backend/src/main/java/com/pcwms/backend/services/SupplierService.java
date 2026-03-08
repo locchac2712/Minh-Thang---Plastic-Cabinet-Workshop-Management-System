@@ -1,7 +1,7 @@
 package com.pcwms.backend.services;
 
 import com.pcwms.backend.entity.Supplier;
-import com.pcwms.backend.repository.SuppilerRepository;
+import com.pcwms.backend.repository.SupplierRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -9,39 +9,36 @@ import java.util.List;
 
 @Service
 public class SupplierService {
+
     @Autowired
-    private SuppilerRepository supplierRepository;
+    private SupplierRepository supplierRepository;
 
-    // lay danh sach supplier
-    public List<Supplier> getAllSuppiler() {
-        return  supplierRepository.findAll();
+    public List<Supplier> getAllSuppliers() {
+        return supplierRepository.findAll();
     }
 
-    // lay 1 supplier
-    public Supplier findById(Long id) {
-        return supplierRepository.findById(id).
-                orElseThrow(()-> new RuntimeException("Không tìm tháy nhà cung cấp với ID: " + id));
+    public Supplier getSupplierById(Long id) {
+        return supplierRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Nhà cung cấp với ID: " + id));
     }
 
-    // create supplier
     public Supplier createSupplier(Supplier supplier) {
-        if(supplierRepository.findById(supplier.getId()).isPresent()) {
-            throw new RuntimeException("Nhà cung cấp đã tồn tại.");
+        if (supplierRepository.existsByName(supplier.getName())) {
+            throw new RuntimeException("Tên nhà cung cấp đã tồn tại trong hệ thống!");
         }
         return supplierRepository.save(supplier);
     }
 
-    // update supplier info
-    public Supplier updateSupplier(Long id,Supplier supplier) {
-        Supplier supplier1 = findById(id);
-        supplier1.setName(supplier.getName());
-        supplier1.setContactInfo(supplier.getContactInfo());
-        return supplierRepository.save(supplier1);
+    public Supplier updateSupplier(Long id, Supplier supplierDetails) {
+        Supplier existing = getSupplierById(id);
+        existing.setName(supplierDetails.getName());
+        existing.setContactInfo(supplierDetails.getContactInfo());
+        return supplierRepository.save(existing);
     }
 
-    //delete supplier
     public void deleteSupplier(Long id) {
-        Supplier supplier1 = findById(id);
-        supplierRepository.delete(supplier1);
+        Supplier supplier = getSupplierById(id);
+        // Lưu ý: Nếu NCC đã có lịch sử cung cấp (trong bảng SupplierMaterial), bạn nên cân nhắc đổi sang Xóa mềm (Soft Delete) sau này.
+        supplierRepository.delete(supplier);
     }
 }

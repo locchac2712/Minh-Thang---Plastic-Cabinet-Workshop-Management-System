@@ -1,15 +1,34 @@
 package com.pcwms.backend.dto.request;
 
-import lombok.Data;
-
+import com.pcwms.backend.entity.TransactionType;
 import java.util.List;
 
-@Data
 public class WarehouseTransactionRequest {
-    private String referenceId; // Số tham chiếu (có thể là mã đơn hàng, mã phiếu nhập kho, v.v.)
+
+    private TransactionType type;
+    private Long staffId;
+    private String referenceId;
     private List<TransactionDetailRequest> details;
 
     public WarehouseTransactionRequest() {
+    }
+
+    // --- GETTER & SETTER CHO TỪNG BIẾN (CHUẨN 100%) ---
+
+    public TransactionType getType() {
+        return type;
+    }
+
+    public void setType(TransactionType type) {
+        this.type = type;
+    }
+
+    public Long getStaffId() {
+        return staffId;
+    }
+
+    public void setStaffId(Long staffId) {
+        this.staffId = staffId;
     }
 
     public String getReferenceId() {

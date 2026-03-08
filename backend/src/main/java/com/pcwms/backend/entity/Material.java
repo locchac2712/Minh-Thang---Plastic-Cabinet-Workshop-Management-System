@@ -1,36 +1,35 @@
 package com.pcwms.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
-
 import java.util.List;
 
 @Entity
-@Table(name = "materials") // Theo hình ERD tên bảng là số nhiều
+@Table(name = "materials")
 @Data
 public class Material {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", nullable = false)
     private String name;
+    private String sku;      // Mã kho (Stock Keeping Unit)
+    private String unit;     // Đơn vị tính (Kg, mét, cái...)
 
-    @Column(name = "unit")
-    private String unit; // Ví dụ: kg, mét, cái
+    private Double price;    // Giá nhập gần nhất
 
-    @Column(name = "min_stock_level")
-    private Integer minStockLevel;
+    private Integer currentStock; // Tồn kho hiện tại
 
-    @Column(name = "current_stock")
-    private Integer currentStock;
+    // 👉 TRƯỜNG MỚI: Ngưỡng báo động
+    private Integer minStockLevel = 0;
 
-    // --- CÁC MỐI QUAN HỆ  ---
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    private Boolean active = true; // Trạng thái sử dụng
 
     @OneToMany(mappedBy = "material")
+    @JsonIgnore
     private List<SupplierMaterial> supplierMaterials;
-
-    @OneToMany(mappedBy = "material")
-    private List<BillOfMaterialDetail> bomDetails;
 }

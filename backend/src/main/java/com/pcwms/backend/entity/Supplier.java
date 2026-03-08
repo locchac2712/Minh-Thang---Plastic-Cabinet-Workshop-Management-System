@@ -1,5 +1,6 @@
 package com.pcwms.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.persistence.Table;
 import lombok.Data;
@@ -23,9 +24,6 @@ public class Supplier {
     // --- QUAN HỆ (Mapping ngược) ---
     // Một nhà cung cấp có thể cung cấp nhiều nguyên liệu
     @OneToMany(mappedBy = "supplier")
+    @JsonIgnore
     private List<SupplierMaterial> supplierMaterials;
-
-    // Một nhà cung cấp có thể nhận nhiều hóa đơn mua hàng (Purchase Invoice)
-    //@OneToMany(mappedBy = "supplier")
-    //private List<PurchaseInvoice> purchaseInvoices;
 }
