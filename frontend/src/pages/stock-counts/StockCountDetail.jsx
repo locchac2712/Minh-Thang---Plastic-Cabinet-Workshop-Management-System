@@ -101,7 +101,7 @@ export default function StockCountDetail() {
               const diffCls = diff < 0 ? 'text-red-600' : diff > 0 ? 'text-blue-600' : 'text-gray-500'
               return (
                 <tr key={idx} className={`${rowCls} hover:bg-purple-50/30 transition-colors`}>
-                  <Td>{it.rawMaterial?.name || '—'}</Td>
+                  <Td>{it.materialName || '—'}</Td>
                   <Td className="text-right text-gray-500">{fmt(it.systemQuantity ?? 0)}</Td>
                   <Td className="text-right font-medium">{fmt(it.actualQuantity ?? 0)}</Td>
                   <Td className={`text-right font-semibold ${diffCls}`}>

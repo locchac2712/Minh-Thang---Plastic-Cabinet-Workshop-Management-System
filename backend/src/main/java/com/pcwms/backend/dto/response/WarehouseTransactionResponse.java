@@ -15,5 +15,6 @@ public class WarehouseTransactionResponse {
     private String referenceId; // Mã chứng từ (Mã đơn hàng/Lệnh sx)
     private LocalDateTime date;
     private String staffName; // Tên ông thủ kho xuất hàng
+    private String warehouseName; // Tên kho
     private List<TransactionDetailResponse> details; // Danh sách hàng xuất
 }

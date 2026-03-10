@@ -36,12 +36,7 @@ export default function SupplierDetail() {
 
       <DetailGrid items={[
         { label: 'Tên nhà cung cấp', value: supplier.name },
-        { label: 'Mã', value: supplier.code },
-        { label: 'Người liên hệ', value: supplier.contactPerson },
-        { label: 'Số điện thoại', value: supplier.phone },
-        { label: 'Email', value: supplier.email },
-        { label: 'Trạng thái', value: <Badge variant={supplier.active ? 'green' : 'gray'}>{supplier.active ? 'Hoạt động' : 'Ngưng'}</Badge> },
-        { label: 'Địa chỉ', value: supplier.address },
+        { label: 'Thông tin liên hệ', value: supplier.contactInfo },
       ]} />
     </DashboardLayout>
   )

@@ -35,19 +35,11 @@ export default function SupplierList() {
       </PageHeader>
 
       {loading ? <Loading /> : suppliers.length === 0 ? <EmptyState message="Không có nhà cung cấp nào" /> : (
-        <Table headers={['Mã', 'Tên', 'Người liên hệ', 'SĐT', 'Email', 'Trạng thái', 'Thao tác']}>
+        <Table headers={['Tên', 'Thông tin liên hệ', 'Thao tác']}>
           {suppliers.map((s) => (
             <tr key={s.id} className="hover:bg-gray-50/50">
-              <Td className="font-mono text-gray-600">{s.code}</Td>
               <Td className="font-medium text-gray-900">{s.name}</Td>
-              <Td>{s.contactPerson || '—'}</Td>
-              <Td>{s.phone || '—'}</Td>
-              <Td>{s.email || '—'}</Td>
-              <Td>
-                <Badge variant={s.active ? 'green' : 'gray'}>
-                  {s.active ? 'Hoạt động' : 'Ngưng'}
-                </Badge>
-              </Td>
+              <Td>{s.contactInfo || '—'}</Td>
               <Td>
                 <div className="flex gap-1">
                   <ActionLink to={`/suppliers/${s.id}`} icon={Icons.eye} title="Xem" />

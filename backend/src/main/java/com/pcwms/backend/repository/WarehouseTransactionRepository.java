@@ -16,6 +16,9 @@ public interface WarehouseTransactionRepository extends JpaRepository<WarehouseT
     // 1. Lấy danh sách phân trang (Không tìm kiếm)
     Page<WarehouseTransaction> findByType(TransactionType type, Pageable pageable);
 
+    // 1b. Lấy danh sách không phân trang
+    List<WarehouseTransaction> findAllByTypeOrderByIdDesc(TransactionType type);
+
     // 2. Lấy danh sách phân trang + Tìm kiếm theo Mã chứng từ (Reference ID) hoặc Tên thủ kho
     @Query("SELECT w FROM WarehouseTransaction w WHERE w.type = :type " +
             "AND (LOWER(w.referenceId) LIKE LOWER(CONCAT('%', :keyword, '%')) " +

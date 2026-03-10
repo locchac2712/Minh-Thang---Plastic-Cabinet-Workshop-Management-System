@@ -136,10 +136,10 @@ export const workOrderApi = {
 };
 
 export const stockApi = {
-  getTransactions: (params) => api.get('/stock/transactions', { params }),
-  stockIn: (d) => api.post('/stock/in', d),
-  stockOut: (d) => api.post('/stock/out', d),
-  adjust: (d) => api.post('/stock/adjustment', d),
+  getTransactions: (params) => api.get('/warehouse/transactions', { params }),
+  stockIn: (d) => api.post('/warehouse/import', d),
+  stockOut: (d) => api.post('/warehouse/export', d),
+  adjust: (d) => api.post('/warehouse/adjustment', d),
   getInventory: (params) => api.get('/stock/inventory', { params }),
   getInventoryById: (id) => api.get(`/stock/inventory/${id}`),
 };

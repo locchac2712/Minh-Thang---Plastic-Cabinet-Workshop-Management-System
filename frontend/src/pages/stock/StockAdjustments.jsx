@@ -21,8 +21,22 @@ export default function StockAdjustments() {
   const fetchTransactions = async () => {
     try {
       const { data } = await stockApi.getTransactions({ type: 'ADJUSTMENT' })
-      const items = Array.isArray(data) ? data : data?.data || []
-      setTransactions(items)
+      const txData = Array.isArray(data) ? data : data?.data || []
+      const mappedData = txData.map(tx => {
+        const detail = tx.details && tx.details[0] ? tx.details[0] : {};
+        const isMaterial = detail.itemType === 'MATERIAL';
+        return {
+          id: tx.id,
+          transactionCode: tx.referenceId || `TX-${tx.id}`,
+          rawMaterial: isMaterial ? { name: detail.itemName } : null,
+          quantity: detail.quantity || 0,
+          reason: tx.referenceId,
+          createdAt: tx.date,
+          warehouse: { name: tx.warehouseName || 'Kho chính' },
+          createdBy: { fullName: tx.staffName || '—' }
+        };
+      });
+      setTransactions(mappedData)
     } catch {
       setTransactions([])
     }
@@ -69,11 +83,15 @@ export default function StockAdjustments() {
     try {
       setSubmitting(true)
       await stockApi.adjust({
-        warehouse: { id: form.warehouseId },
-        rawMaterial: { id: form.rawMaterialId },
-        quantity: Math.abs(qty),
-        reference: 'ADJUSTMENT',
-        reason: form.reason.trim(),
+        type: 'ADJUSTMENT',
+        warehouseId: form.warehouseId ? Number(form.warehouseId) : null,
+        referenceId: form.reason.trim(),
+        details: [
+          {
+            materialId: Number(form.rawMaterialId),
+            quantity: qty
+          }
+        ]
       })
       setSuccess('Điều chỉnh tồn kho thành công!')
       setForm({ warehouseId: '', rawMaterialId: '', quantity: '', reason: '' })

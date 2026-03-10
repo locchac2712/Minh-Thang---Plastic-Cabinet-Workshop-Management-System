@@ -42,8 +42,9 @@ import WorkOrderForm from './pages/work-orders/WorkOrderForm'
 import WorkOrderDetail from './pages/work-orders/WorkOrderDetail'
 import InventoryList from './pages/inventory/InventoryList'
 import InventoryDetail from './pages/inventory/InventoryDetail'
-import StockIn from './pages/stock/StockIn'
-import StockOut from './pages/stock/StockOut'
+import StockForm from './pages/stock/StockForm'
+import StockInList from './pages/stock/StockInList'
+import StockOutList from './pages/stock/StockOutList'
 import StockCountList from './pages/stock-counts/StockCountList'
 import StockCountForm from './pages/stock-counts/StockCountForm'
 import StockCountDetail from './pages/stock-counts/StockCountDetail'
@@ -78,6 +79,7 @@ const ROLES = {
 }
 
 const ALL = [ROLES.ADMIN, ROLES.DIRECTOR, ROLES.SALES_STAFF, ROLES.SALES_MANAGER, ROLES.WAREHOUSE_MANAGER, ROLES.PRODUCTION_MANAGER]
+const PRODUCT_ROLES = [ROLES.ADMIN, ROLES.DIRECTOR, ROLES.SALES_STAFF, ROLES.SALES_MANAGER, ROLES.PRODUCTION_MANAGER]
 const SALES = [ROLES.ADMIN, ROLES.DIRECTOR, ROLES.SALES_STAFF, ROLES.SALES_MANAGER]
 const WH = [ROLES.ADMIN, ROLES.WAREHOUSE_MANAGER]
 const PROD = [ROLES.ADMIN, ROLES.PRODUCTION_MANAGER]
@@ -135,21 +137,20 @@ export default function App() {
 
         <Route path="/dashboard" element={<RequireRole allow={ALL}><Dashboard /></RequireRole>} />
 
-        <Route path="/products" element={<RequireRole allow={ALL}><ProductList /></RequireRole>} />
-        <Route path="/products/new" element={<RequireRole allow={ALL}><ProductForm /></RequireRole>} />
-        <Route path="/products/:id" element={<RequireRole allow={ALL}><ProductDetail /></RequireRole>} />
-        <Route path="/products/:id/edit" element={<RequireRole allow={ALL}><ProductForm /></RequireRole>} />
+        <Route path="/products" element={<RequireRole allow={PRODUCT_ROLES}><ProductList /></RequireRole>} />
+        <Route path="/products/new" element={<RequireRole allow={PRODUCT_ROLES}><ProductForm /></RequireRole>} />
+        <Route path="/products/:id" element={<RequireRole allow={PRODUCT_ROLES}><ProductDetail /></RequireRole>} />
+        <Route path="/products/:id/edit" element={<RequireRole allow={PRODUCT_ROLES}><ProductForm /></RequireRole>} />
 
         <Route path="/suppliers" element={<RequireRole allow={[ROLES.ADMIN, ROLES.WAREHOUSE_MANAGER, ROLES.DIRECTOR]}><SupplierList /></RequireRole>} />
         <Route path="/suppliers/new" element={<RequireRole allow={[ROLES.ADMIN, ROLES.WAREHOUSE_MANAGER, ROLES.DIRECTOR]}><SupplierForm /></RequireRole>} />
         <Route path="/suppliers/:id" element={<RequireRole allow={[ROLES.ADMIN, ROLES.WAREHOUSE_MANAGER, ROLES.DIRECTOR]}><SupplierDetail /></RequireRole>} />
         <Route path="/suppliers/:id/edit" element={<RequireRole allow={[ROLES.ADMIN, ROLES.WAREHOUSE_MANAGER, ROLES.DIRECTOR]}><SupplierForm /></RequireRole>} />
 
-        <Route path="/warehouses" element={<RequireRole allow={WH}><WarehouseList /></RequireRole>} />
-        <Route path="/warehouses/new" element={<RequireRole allow={WH}><WarehouseForm /></RequireRole>} />
-        <Route path="/warehouses/:id" element={<RequireRole allow={WH}><WarehouseDetail /></RequireRole>} />
-        <Route path="/warehouses/:id/edit" element={<RequireRole allow={WH}><WarehouseForm /></RequireRole>} />
-
+        <Route path="/warehouses" element={<RequireRole allow={[ROLES.ADMIN, ROLES.WAREHOUSE_MANAGER]}><WarehouseList /></RequireRole>} />
+        <Route path="/warehouses/new" element={<RequireRole allow={[ROLES.ADMIN, ROLES.WAREHOUSE_MANAGER]}><WarehouseForm /></RequireRole>} />
+        <Route path="/warehouses/:id" element={<RequireRole allow={[ROLES.ADMIN, ROLES.WAREHOUSE_MANAGER]}><WarehouseDetail /></RequireRole>} />
+        <Route path="/warehouses/:id/edit" element={<RequireRole allow={[ROLES.ADMIN, ROLES.WAREHOUSE_MANAGER]}><WarehouseForm /></RequireRole>} />
         <Route path="/materials" element={<RequireRole allow={[ROLES.ADMIN, ROLES.PRODUCTION_MANAGER, ROLES.WAREHOUSE_MANAGER]}><RawMaterialList /></RequireRole>} />
         <Route path="/materials/new" element={<RequireRole allow={[ROLES.ADMIN, ROLES.PRODUCTION_MANAGER, ROLES.WAREHOUSE_MANAGER]}><RawMaterialForm /></RequireRole>} />
         <Route path="/materials/:id" element={<RequireRole allow={[ROLES.ADMIN, ROLES.PRODUCTION_MANAGER, ROLES.WAREHOUSE_MANAGER]}><RawMaterialDetail /></RequireRole>} />
@@ -159,7 +160,6 @@ export default function App() {
         <Route path="/boms/new" element={<RequireRole allow={[ROLES.ADMIN, ROLES.PRODUCTION_MANAGER, ROLES.DIRECTOR, ROLES.WAREHOUSE_MANAGER]}><BomForm /></RequireRole>} />
         <Route path="/boms/:id" element={<RequireRole allow={[ROLES.ADMIN, ROLES.PRODUCTION_MANAGER, ROLES.DIRECTOR, ROLES.WAREHOUSE_MANAGER]}><BomDetail /></RequireRole>} />
         <Route path="/boms/:id/edit" element={<RequireRole allow={[ROLES.ADMIN, ROLES.PRODUCTION_MANAGER, ROLES.DIRECTOR, ROLES.WAREHOUSE_MANAGER]}><BomForm /></RequireRole>} />
-
         <Route path="/roles" element={<RequireRole allow={ADM_DIR}><RoleList /></RequireRole>} />
         <Route path="/roles/:role" element={<RequireRole allow={ADM_DIR}><RoleDetail /></RequireRole>} />
 
@@ -192,8 +192,9 @@ export default function App() {
         <Route path="/inventory" element={<RequireRole allow={WH}><InventoryList /></RequireRole>} />
         <Route path="/inventory/:id" element={<RequireRole allow={WH}><InventoryDetail /></RequireRole>} />
 
-        <Route path="/stock/in" element={<RequireRole allow={WH}><StockIn /></RequireRole>} />
-        <Route path="/stock/out" element={<RequireRole allow={WH}><StockOut /></RequireRole>} />
+        <Route path="/stock/in" element={<RequireRole allow={WH}><StockInList /></RequireRole>} />
+        <Route path="/stock/out" element={<RequireRole allow={WH}><StockOutList /></RequireRole>} />
+        <Route path="/stock/form" element={<RequireRole allow={WH}><StockForm /></RequireRole>} />
         <Route path="/stock/adjustments" element={<RequireRole allow={WH}><StockAdjustments /></RequireRole>} />
 
         <Route path="/stock-counts" element={<RequireRole allow={WH}><StockCountList /></RequireRole>} />

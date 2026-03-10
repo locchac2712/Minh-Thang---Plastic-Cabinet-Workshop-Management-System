@@ -65,11 +65,10 @@ export function FilterTabs({ tabs, active, onChange }) {
     <div className="flex flex-wrap gap-2 mb-6 animate-fade-in-up delay-100">
       {tabs.map(tab => (
         <button key={tab.value} onClick={() => onChange(tab.value)}
-          className={`px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 ${
-            active === tab.value
+          className={`px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 ${active === tab.value
               ? 'bg-gray-900 text-white shadow-lg shadow-gray-900/10'
               : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-sm'
-          }`}>
+            }`}>
           {tab.label}
         </button>
       ))}
@@ -136,13 +135,13 @@ export function TextArea({ label, ...props }) {
   )
 }
 
-export function Select({ label, options = [], value, onChange, placeholder = 'Chọn...', ...props }) {
+export function Select({ label, options = [], value, onChange, hidePlaceholder = false, placeholder = 'Chọn...', ...props }) {
   return (
     <div>
       {label && <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>}
       <select value={value} onChange={onChange} {...props}
         className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all shadow-sm">
-        <option value="">{placeholder}</option>
+        {!hidePlaceholder && <option value="">{placeholder}</option>}
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     </div>

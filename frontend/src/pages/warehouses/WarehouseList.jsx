@@ -41,13 +41,12 @@ export default function WarehouseList() {
       </PageHeader>
 
       {loading ? <Loading /> : warehouses.length === 0 ? <EmptyState message="Không có kho hàng nào" /> : (
-        <Table headers={['Mã', 'Tên', 'Vị trí', 'Sức chứa', 'Trạng thái', 'Thao tác']}>
+        <Table headers={['Mã', 'Tên', 'Vị trí', 'Trạng thái', 'Thao tác']}>
           {warehouses.map((w) => (
             <tr key={w.id} className="hover:bg-gray-50/50">
               <Td className="font-mono text-gray-600">{w.code}</Td>
               <Td className="font-medium text-gray-900">{w.name}</Td>
               <Td>{w.location || '—'}</Td>
-              <Td>{fmt(w.capacity)}</Td>
               <Td>
                 <Badge variant={w.active ? 'green' : 'gray'}>
                   {w.active ? 'Hoạt động' : 'Ngưng'}

@@ -10,7 +10,7 @@ export default function WarehouseForm() {
   const isEdit = Boolean(id)
 
   const [form, setForm] = useState({
-    name: '', code: '', location: '', address: '', capacity: '',
+    name: '', code: '', location: '', address: '',
   })
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(isEdit)
@@ -24,8 +24,7 @@ export default function WarehouseForm() {
           name: w.name || '',
           code: w.code || '',
           location: w.location || '',
-          address: w.address || '',
-          capacity: w.capacity ?? '',
+          address: w.address || ''
         })
       }).catch(() => navigate('/warehouses')).finally(() => setLoading(false))
     }
@@ -40,14 +39,10 @@ export default function WarehouseForm() {
     setSaving(true)
     setError('')
     try {
-      const payload = {
-        ...form,
-        capacity: form.capacity ? Number(form.capacity) : null,
-      }
       if (isEdit) {
-        await warehouseApi.update(id, payload)
+        await warehouseApi.update(id, form)
       } else {
-        await warehouseApi.create(payload)
+        await warehouseApi.create(form)
       }
       navigate('/warehouses')
     } catch (err) {
@@ -76,9 +71,8 @@ export default function WarehouseForm() {
             <Field label="Mã kho" name="code" value={form.code} onChange={handleChange} required />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 gap-5">
             <Field label="Vị trí" name="location" value={form.location} onChange={handleChange} />
-            <Field label="Sức chứa" name="capacity" type="number" value={form.capacity} onChange={handleChange} />
           </div>
 
           <TextArea label="Địa chỉ" name="address" value={form.address} onChange={handleChange} />

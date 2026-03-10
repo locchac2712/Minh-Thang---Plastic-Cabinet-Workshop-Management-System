@@ -10,7 +10,7 @@ export default function SupplierForm() {
   const isEdit = Boolean(id)
 
   const [form, setForm] = useState({
-    name: '', code: '', contactPerson: '', phone: '', email: '', address: '',
+    name: '', contactInfo: ''
   })
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(isEdit)
@@ -22,11 +22,7 @@ export default function SupplierForm() {
         const s = res.data.data
         setForm({
           name: s.name || '',
-          code: s.code || '',
-          contactPerson: s.contactPerson || '',
-          phone: s.phone || '',
-          email: s.email || '',
-          address: s.address || '',
+          contactInfo: s.contactInfo || ''
         })
       }).catch(() => navigate('/suppliers')).finally(() => setLoading(false))
     }
@@ -68,19 +64,11 @@ export default function SupplierForm() {
       <Alert type="error" message={error} />
       <Card className="p-6 max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 gap-5">
             <Field label="Tên nhà cung cấp" name="name" value={form.name} onChange={handleChange} required />
-            <Field label="Mã" name="code" value={form.code} onChange={handleChange} required />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <Field label="Người liên hệ" name="contactPerson" value={form.contactPerson} onChange={handleChange} />
-            <Field label="Số điện thoại" name="phone" value={form.phone} onChange={handleChange} />
-          </div>
-
-          <Field label="Email" name="email" type="email" value={form.email} onChange={handleChange} />
-
-          <TextArea label="Địa chỉ" name="address" value={form.address} onChange={handleChange} />
+          <TextArea label="Thông tin liên hệ" name="contactInfo" value={form.contactInfo} onChange={handleChange} />
 
           <div className="flex gap-3 pt-2">
             <Btn type="submit" disabled={saving}>

@@ -15,6 +15,7 @@ public class TransactionDetail {
     // Thuộc về phiếu kho nào?
     @ManyToOne
     @JoinColumn(name = "warehouse_transaction_id", referencedColumnName = "id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private WarehouseTransaction warehouseTransaction;
 
     // Nếu là giao dịch Nguyên vật liệu (Mua hàng, Xuất sản xuất)
@@ -46,9 +47,10 @@ public class TransactionDetail {
             throw new RuntimeException("Lỗi Logic: Một dòng chi tiết không thể chứa CẢ Nguyên vật liệu LẪN Thành phẩm cùng lúc!");
         }
 
-        // Bắt luôn cả lỗi số lượng âm hoặc bằng 0
-        if (this.quantity == null || this.quantity <= 0) {
-            throw new RuntimeException("Lỗi Logic: Số lượng xuất/nhập kho phải lớn hơn 0!");
+        // Lỗi logic nếu số lượng bằng 0 (Điều chỉnh phải khác 0, nhập/xuất phải > 0)
+        // Nhưng ở class entity này ta chỉ check chung là khác 0. Các logic nghiệp vụ sẽ kiểm tra việc > 0.
+        if (this.quantity == null || this.quantity == 0) {
+            throw new RuntimeException("Lỗi Logic: Số lượng xuất/nhập/tồn kho phải khác 0!");
         }
     }
 }

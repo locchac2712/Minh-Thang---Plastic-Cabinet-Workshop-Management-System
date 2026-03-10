@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
-import { PageHeader, Card, Field, TextArea, Select, Btn, Alert, Loading, Icons } from '../../components/ui'
+import { PageHeader, Card, Field, TextArea, Select, Btn, Alert, Loading, Table, Td } from '../../components/ui'
 import { stockCountApi, materialApi, warehouseApi } from '../../services/api'
 
 export default function StockCountForm() {
@@ -17,6 +17,19 @@ export default function StockCountForm() {
     notes: '',
   })
   const [items, setItems] = useState([])
+
+  const handleWarehouseChange = (wid) => {
+    setForm({ ...form, warehouseId: wid })
+    const filteredMats = materials.filter(m => !wid || m.warehouse?.id === Number(wid))
+    setItems(filteredMats.map(m => ({
+      materialId: m.id,
+      name: m.name,
+      sku: m.sku,
+      systemQuantity: m.quantity ?? 0,
+      actualQuantity: m.quantity ?? 0,
+      notes: ''
+    })))
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,49 +49,19 @@ export default function StockCountForm() {
     fetchData()
   }, [])
 
-  const addItem = () => {
-    setItems([...items, { rawMaterialId: '', systemQuantity: 0, actualQuantity: '', notes: '' }])
-  }
-
-  const updateItem = (index, field, value) => {
-    const updated = [...items]
-    updated[index] = { ...updated[index], [field]: value }
-
-    if (field === 'rawMaterialId') {
-      const mat = materials.find((m) => m.id === Number(value))
-      updated[index].systemQuantity = mat?.quantity ?? 0
-    }
-
-    setItems(updated)
-  }
-
-  const removeItem = (index) => {
-    setItems(items.filter((_, i) => i !== index))
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.warehouseId || !form.countDate) {
       setError('Vui lòng chọn kho và ngày kiểm kê.')
       return
     }
-    if (items.length === 0) {
-      setError('Vui lòng thêm ít nhất một vật tư để kiểm kê.')
-      return
-    }
     try {
       setSubmitting(true)
       await stockCountApi.create({
-        warehouse: { id: form.warehouseId },
+        warehouseId: Number(form.warehouseId),
         countDate: form.countDate,
         notes: form.notes,
-        items: items.map((it) => ({
-          rawMaterial: { id: Number(it.rawMaterialId) },
-          systemQuantity: it.systemQuantity,
-          actualQuantity: Number(it.actualQuantity) || 0,
-          difference: (Number(it.actualQuantity) || 0) - it.systemQuantity,
-          notes: it.notes,
-        })),
+        items: items
       })
       navigate('/stock-counts')
     } catch {
@@ -109,7 +92,7 @@ export default function StockCountForm() {
             <Select
               label={<>Kho <span className="text-red-500">*</span></>}
               value={form.warehouseId}
-              onChange={(e) => setForm({ ...form, warehouseId: e.target.value })}
+              onChange={(e) => handleWarehouseChange(e.target.value)}
               options={warehouses.map((w) => ({ value: w.id, label: w.name }))}
               placeholder="Chọn kho"
             />
@@ -122,77 +105,52 @@ export default function StockCountForm() {
           </div>
         </Card>
 
-        <Card className="p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">Danh sách vật tư kiểm kê</h2>
-            <Btn type="button" onClick={addItem}>
-              {Icons.plus} Thêm vật tư
-            </Btn>
-          </div>
-
-          {items.length === 0 ? (
-            <div className="py-8 text-center text-sm text-gray-400">
-              Chưa có vật tư nào. Nhấn "Thêm vật tư" để bắt đầu.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {items.map((item, idx) => {
-                const diff = (Number(item.actualQuantity) || 0) - item.systemQuantity
-                const diffColor = diff < 0 ? 'text-red-600' : diff > 0 ? 'text-blue-600' : 'text-gray-500'
-                return (
-                  <div key={idx} className="border border-gray-100 rounded-2xl p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                      <div className="md:col-span-4">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Nguyên vật liệu</label>
-                        <select value={item.rawMaterialId} onChange={(e) => updateItem(idx, 'rawMaterialId', e.target.value)}
-                          className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all">
-                          <option value="">Chọn NVL</option>
-                          {materials.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.sku})</option>)}
-                        </select>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">SL hệ thống</label>
-                        <input type="number" value={item.systemQuantity} readOnly
-                          className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm bg-gray-50 text-gray-500" />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">SL thực tế</label>
-                        <input type="number" value={item.actualQuantity} onChange={(e) => updateItem(idx, 'actualQuantity', e.target.value)}
-                          placeholder="0"
-                          className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all" />
-                      </div>
-                      <div className="md:col-span-1">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Lệch</label>
-                        <p className={`px-4 py-3 text-sm font-semibold ${diffColor}`}>
-                          {diff > 0 ? '+' : ''}{diff}
-                        </p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Ghi chú</label>
-                        <input type="text" value={item.notes} onChange={(e) => updateItem(idx, 'notes', e.target.value)}
-                          placeholder="Ghi chú"
-                          className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all" />
-                      </div>
-                      <div className="md:col-span-1 flex justify-center">
-                        <button type="button" onClick={() => removeItem(idx)}
-                          className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all">
-                          {Icons.trash}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </Card>
+        {form.warehouseId && items.length > 0 && (
+          <Card className="p-6 mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Nhập số lượng thực tế</h2>
+            <Table headers={['Vật tư', 'Tồn kho HT', 'Tồn thực tế', 'Ghi chú']}>
+              {items.map((it, idx) => (
+                <tr key={it.materialId} className="hover:bg-purple-50/30">
+                  <Td>{it.name} <span className="text-xs text-gray-400">({it.sku})</span></Td>
+                  <Td className="text-gray-500 font-medium">{it.systemQuantity}</Td>
+                  <Td>
+                    <input
+                      type="number"
+                      className="w-24 border-gray-300 rounded focus:ring-purple-500 focus:border-purple-500"
+                      value={it.actualQuantity}
+                      onChange={(e) => {
+                        const newItems = [...items]
+                        newItems[idx].actualQuantity = Number(e.target.value)
+                        setItems(newItems)
+                      }}
+                      min="0"
+                    />
+                  </Td>
+                  <Td>
+                    <input
+                      type="text"
+                      className="w-full border-gray-300 rounded focus:ring-purple-500 focus:border-purple-500 inline-block px-3 py-1 text-sm bg-white border"
+                      value={it.notes}
+                      onChange={(e) => {
+                        const newItems = [...items]
+                        newItems[idx].notes = e.target.value
+                        setItems(newItems)
+                      }}
+                      placeholder="Ghi chú chênh lệch..."
+                    />
+                  </Td>
+                </tr>
+              ))}
+            </Table>
+          </Card>
+        )}
 
         <div className="flex items-center gap-3">
           <Btn type="submit" disabled={submitting}>
-            {submitting ? 'Đang lưu...' : 'Lưu phiếu kiểm kê'}
+            {submitting ? 'Đang lưu...' : 'Lưu thông tin'}
           </Btn>
           <Btn variant="secondary" type="button" onClick={() => navigate('/stock-counts')}>
-            Hủy
+            Hủy bỏ
           </Btn>
         </div>
       </form>

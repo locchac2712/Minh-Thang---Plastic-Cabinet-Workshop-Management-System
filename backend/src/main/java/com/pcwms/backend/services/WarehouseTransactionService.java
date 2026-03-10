@@ -70,6 +70,7 @@ public class WarehouseTransactionService {
                     transaction.getReferenceId(),
                     transaction.getDate(),
                     transaction.getStaff() != null ? transaction.getStaff().getFullname() : "N/A",
+                    transaction.getWarehouse() != null ? transaction.getWarehouse().getName() : "Kho chính",
                     detailResponses
             );
         });
