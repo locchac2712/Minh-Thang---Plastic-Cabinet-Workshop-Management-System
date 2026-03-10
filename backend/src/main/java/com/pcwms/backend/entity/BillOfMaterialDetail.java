@@ -1,11 +1,15 @@
 package com.pcwms.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "bom_details")
-@Data
+@Getter
+@Setter // 👉 Sửa 1: Bỏ @Data, dùng Getter/Setter
 public class BillOfMaterialDetail {
 
     @Id
@@ -13,16 +17,18 @@ public class BillOfMaterialDetail {
     private Long id;
 
     // Thuộc về BOM nào?
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY) // 👉 Tối ưu hiệu năng
     @JoinColumn(name = "bom_id", referencedColumnName = "id", nullable = false)
+    @JsonIgnore // 👉 Sửa 2: Bùa chống lặp JSON
     private BillOfMaterial billOfMaterial;
 
     // Cần nguyên liệu gì?
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "materials_id", referencedColumnName = "id", nullable = false)
     private Material material;
 
     // Số lượng bao nhiêu?
-    @Column(name = "quantity_required", nullable = false)
-    private Double quantityRequired;
+    // 👉 Sửa 3: Dùng BigDecimal, precision 10, scale 4 (VD: 999999.9999)
+    @Column(name = "quantity_required", nullable = false, precision = 10, scale = 4)
+    private BigDecimal quantityRequired;
 }

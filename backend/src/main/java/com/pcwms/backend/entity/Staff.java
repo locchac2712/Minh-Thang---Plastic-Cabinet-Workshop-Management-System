@@ -31,6 +31,5 @@ public class Staff {
     private String phoneNumber;
 
     @OneToMany(mappedBy = "staff")
-    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<WarehouseTransaction> warehouseTransactions;
 }

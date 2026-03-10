@@ -43,6 +43,10 @@ public class DatabaseSeeder implements CommandLineRunner {
     @Autowired
     private SupplierMaterialRepository supplierMaterialRepository;
 
+    // 👉 BỔ SUNG: Kho chứa Định mức (BOM)
+    @Autowired
+    private BillOfMaterialRepository billOfMaterialRepository;
+
     @Override
     public void run(String... args) throws Exception {
         System.out.println("=== BẮT ĐẦU KIỂM TRA & TẠO DỮ LIỆU MẪU ===");
@@ -84,7 +88,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             System.out.println("-> Đã tạo 2 Khách hàng CRM mẫu.");
         }
 
-        // 4. 👉 CẬP NHẬT: TẠO VẬT TƯ & THÀNH PHẨM (Bơm nhiều Data để test cảnh báo)
+        // 4. TẠO VẬT TƯ & THÀNH PHẨM (Bơm nhiều Data để test cảnh báo)
         if (materialRepository.count() == 0) {
             // Nhóm 1: Vật tư dồi dào (An toàn - Xanh)
             Material m1 = new Material();
@@ -148,6 +152,8 @@ public class DatabaseSeeder implements CommandLineRunner {
             p1.setSku("SP-BAN-001");
             p1.setSellingPrice(new BigDecimal("1500000"));
             p1.setCurrentStock(15);
+            p1.setUnit("Cái");
+            p1.setDescription("Bàn làm việc mặt gỗ sồi nguyên khối");
             productRepository.save(p1);
 
             System.out.println("-> Đã tạo 1 Thành phẩm mẫu.");
@@ -177,6 +183,62 @@ public class DatabaseSeeder implements CommandLineRunner {
             }
 
             System.out.println("-> Đã tạo Nhà cung cấp và nối với Gỗ Sồi Nga thành công!");
+        }
+
+// 👉 4.2 TẠO ĐỊNH MỨC SẢN XUẤT (BOM) MẪU
+        if (billOfMaterialRepository.count() == 0) {
+            Product banLamViec = productRepository.findAll().stream()
+                    .filter(p -> p.getSku().equals("SP-BAN-001")).findFirst().orElse(null);
+
+            Material goSoi = materialRepository.findAll().stream()
+                    .filter(m -> m.getSku().equals("MAT-WOOD-001")).findFirst().orElse(null);
+
+            Material dinhOc = materialRepository.findAll().stream()
+                    .filter(m -> m.getSku().equals("MAT-IRON-002")).findFirst().orElse(null);
+
+            Material keoDan = materialRepository.findAll().stream()
+                    .filter(m -> m.getSku().equals("MAT-GLUE-004")).findFirst().orElse(null);
+
+            if (banLamViec != null && goSoi != null && dinhOc != null && keoDan != null) {
+
+                // ==========================================
+                // 🛑 BOM SỐ 1: ĐÃ DUYỆT (Dùng để test chặn Edit)
+                // ==========================================
+                BillOfMaterial bom1 = new BillOfMaterial();
+                bom1.setProduct(banLamViec);
+                bom1.setVersion("1.0");
+                bom1.setIsActive(true);
+
+                BillOfMaterialDetail detail1 = new BillOfMaterialDetail();
+                detail1.setMaterial(goSoi);
+                detail1.setQuantityRequired(new BigDecimal("0.5000"));
+                bom1.addBomDetail(detail1);
+
+                BillOfMaterialDetail detail2 = new BillOfMaterialDetail();
+                detail2.setMaterial(dinhOc);
+                detail2.setQuantityRequired(new BigDecimal("20.0000"));
+                bom1.addBomDetail(detail2);
+
+                billOfMaterialRepository.save(bom1);
+
+                // ==========================================
+                // 🟢 BOM SỐ 2: BẢN NHÁP (Dùng để test Edit thành công và Approve)
+                // ==========================================
+                BillOfMaterial bom2 = new BillOfMaterial();
+                bom2.setProduct(banLamViec);
+                bom2.setVersion("2.0-DRAFT");
+                bom2.setIsActive(true);
+
+                // Bản nháp này mới chỉ có Gỗ, chưa có Đinh và Keo
+                BillOfMaterialDetail detail2_1 = new BillOfMaterialDetail();
+                detail2_1.setMaterial(goSoi);
+                detail2_1.setQuantityRequired(new BigDecimal("0.4500")); // Thử giảm gỗ xuống
+                bom2.addBomDetail(detail2_1);
+
+                billOfMaterialRepository.save(bom2);
+
+                System.out.println("-> Đã tạo 2 Định mức (1 Đã duyệt, 1 Bản nháp) cho Bàn Gỗ Sồi thành công!");
+            }
         }
 
         // 5. TẠO PHIẾU KHO MẪU ĐỂ TEST API (BẢN NÂNG CẤP NHIỀU DATA)

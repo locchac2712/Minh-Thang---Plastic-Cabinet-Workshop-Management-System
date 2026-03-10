@@ -7,14 +7,13 @@ public class WarehouseTransactionRequest {
 
     private TransactionType type;
     private Long staffId;
-    private Long warehouseId;
     private String referenceId;
     private List<TransactionDetailRequest> details;
 
     public WarehouseTransactionRequest() {
     }
 
-    
+    // --- GETTER & SETTER CHO TỪNG BIẾN (CHUẨN 100%) ---
 
     public TransactionType getType() {
         return type;
@@ -30,14 +29,6 @@ public class WarehouseTransactionRequest {
 
     public void setStaffId(Long staffId) {
         this.staffId = staffId;
-    }
-
-    public Long getWarehouseId() {
-        return warehouseId;
-    }
-
-    public void setWarehouseId(Long warehouseId) {
-        this.warehouseId = warehouseId;
     }
 
     public String getReferenceId() {

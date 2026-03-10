@@ -44,10 +44,6 @@ public class WarehouseTransaction {
     @JoinColumn(name = "staff_id", referencedColumnName = "id", nullable = false)
     private Staff staff;
 
-    @ManyToOne
-    @JoinColumn(name = "warehouse_id", referencedColumnName = "id")
-    private Warehouse warehouse;
-
     // Một phiếu có nhiều dòng chi tiết
     @OneToMany(mappedBy = "warehouseTransaction", cascade = CascadeType.ALL)
     private List<TransactionDetail> details;

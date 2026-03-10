@@ -26,9 +26,6 @@ public class WarehouseService {
     @Autowired
     private StaffRepository staffRepository;
 
-    @Autowired
-    private com.pcwms.backend.repository.WarehouseRepository warehouseRepository;
-
     @Transactional
     public WarehouseTransaction importMaterials(WarehouseTransactionRequest request, Long currentUserId) {
 
@@ -41,12 +38,6 @@ public class WarehouseService {
         transaction.setType(TransactionType.IMPORT); // Đây là phiếu NHẬP
         transaction.setDate(LocalDateTime.now());
         transaction.setStaff(staff); // Ai là người nhập?
-
-        if (request.getWarehouseId() != null) {
-            Warehouse w = warehouseRepository.findById(request.getWarehouseId())
-                    .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Kho hàng hợp lệ!"));
-            transaction.setWarehouse(w);
-        }
 
         // Nếu Entity của bạn đang có cột referenceId thì mở comment dòng dưới:
         transaction.setReferenceId(request.getReferenceId());
@@ -98,13 +89,6 @@ public class WarehouseService {
         transaction.setType(TransactionType.EXPORT); // Đây là phiếu XUẤT
         transaction.setDate(LocalDateTime.now());
         transaction.setStaff(staff); 
-        
-        if (request.getWarehouseId() != null) {
-            Warehouse w = warehouseRepository.findById(request.getWarehouseId())
-                    .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Kho hàng hợp lệ!"));
-            transaction.setWarehouse(w);
-        }
-
         transaction.setReferenceId(request.getReferenceId());
 
         List<TransactionDetail> details = new ArrayList<>();
@@ -134,59 +118,6 @@ public class WarehouseService {
             materialRepository.save(material); // Lưu thay đổi tồn kho
 
             // C. Ghi chú lại vào Chi tiết phiếu
-            TransactionDetail detail = new TransactionDetail();
-            detail.setWarehouseTransaction(transaction);
-            detail.setMaterial(material);
-            detail.setQuantity(item.getQuantity());
-
-            details.add(detail);
-        }
-        transaction.setDetails(details);
-        return transactionRepository.save(transaction);
-    }
-
-    @Transactional
-    public WarehouseTransaction adjustMaterials(WarehouseTransactionRequest request, Long currentUserId) {
-        Staff staff = staffRepository.findByUserId(currentUserId)
-                .orElseThrow(() -> new RuntimeException("Lỗi: Tài khoản của bạn chưa được liên kết với hồ sơ Nhân viên (Staff)!"));
-
-        WarehouseTransaction transaction = new WarehouseTransaction();
-        transaction.setType(TransactionType.ADJUSTMENT);
-        transaction.setDate(LocalDateTime.now());
-        transaction.setStaff(staff);
-        
-        if (request.getWarehouseId() != null) {
-            Warehouse w = warehouseRepository.findById(request.getWarehouseId())
-                    .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Kho hàng hợp lệ!"));
-            transaction.setWarehouse(w);
-        }
-
-        transaction.setReferenceId(request.getReferenceId());
-        List<TransactionDetail> details = new ArrayList<>();
-
-        for (TransactionDetailRequest item : request.getDetails()) {
-            if (item.getMaterialId() == null) {
-                throw new RuntimeException("Lỗi: Không có ID cấu kiện/vật tư!");
-            }
-            if (item.getQuantity() == 0) {
-                throw new RuntimeException("Số lượng điều chỉnh phải khác 0!");
-            }
-
-            Material material = materialRepository.findById(item.getMaterialId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy Nguyên vật liệu với ID: " + item.getMaterialId()));
-
-            int currentStock = material.getCurrentStock() == null ? 0 : material.getCurrentStock();
-            
-            // Số lượng điều chỉnh có thể âm (Subtract) hoặc dương (Add)
-            int newStock = currentStock + item.getQuantity();
-
-            if (newStock < 0) {
-                throw new RuntimeException("Lỗi: Bạn đang điều chỉnh giảm nhiều hơn số tồn kho hiện tại (" + currentStock + ")!");
-            }
-
-            material.setCurrentStock(newStock);
-            materialRepository.save(material);
-
             TransactionDetail detail = new TransactionDetail();
             detail.setWarehouseTransaction(transaction);
             detail.setMaterial(material);

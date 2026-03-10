@@ -1,29 +1,45 @@
 package com.pcwms.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "bill_of_materials")
-@Data
+@Getter
+@Setter
 public class BillOfMaterial {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Mỗi BOM gắn chặt với 1 Sản phẩm
-    @ManyToOne
-    @JoinColumn(name = "product_id", referencedColumnName = "id", nullable = false)
+    // 👉 THÊM LẠI TRƯỜNG VERSION: Phân biệt các phiên bản công thức của cùng 1 sản phẩm
+    @Column(name = "version", nullable = false)
+    private String version;
+
+//    @Column(name = "is_approved", nullable = false)
+//    private Boolean isApproved = false;
+
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
+    // 1. Quan hệ N-1 với Product (Thành phẩm)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    @JsonIgnore
     private Product product;
 
-    @Column(name = "is_approved")
-    private Boolean isApproved = false; // Đã duyệt chưa
+    // 2. Quan hệ 1-N với BillOfMaterialDetail (Chi tiết BOM)
+    @OneToMany(mappedBy = "billOfMaterial", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BillOfMaterialDetail> bomDetails = new ArrayList<>();
 
-    @Column(name = "is_active")
-    private Boolean isActive = true; // Có đang dùng không
-
-    @OneToMany(mappedBy = "billOfMaterial")
-    private List<BillOfMaterialDetail> bomDetails;
+    public void addBomDetail(BillOfMaterialDetail detail) {
+        bomDetails.add(detail);
+        detail.setBillOfMaterial(this);
+    }
 }

@@ -7,8 +7,11 @@ import com.pcwms.backend.entity.User;
 import com.pcwms.backend.repository.StaffRepository;
 import com.pcwms.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class UserService {
@@ -18,6 +21,8 @@ public class UserService {
 
     @Autowired
     private StaffRepository staffRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     // ===============================================
     // 1. HÀM LẤY THÔNG TIN ĐỂ HIỂN THỊ LÊN FORM
@@ -61,5 +66,40 @@ public class UserService {
             staff.setPhoneNumber(request.getPhoneNumber());
         }
         staffRepository.save(staff);
+    }
+
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
+    }
+
+    public User createUser(User user) {
+        if (userRepository.existsByUsername(user.getUsername())) {
+            throw new RuntimeException("Tai khoản đã tồn tại. Vui lòng chọn một tên đăng nhập khác.");
+        }
+        return userRepository.save(user);
+    }
+
+    public User updateUser(Long id, User userDetails) {
+        if (!userRepository.existsByUsername(userDetails.getUsername())) {
+            throw new RuntimeException("Không tìm thấy người dùng với tên đăng nhập: " + userDetails.getUsername());
+        }
+        User existingUser = getUserById(id);
+        existingUser.setUsername(userDetails.getUsername());
+        existingUser.setEmail(userDetails.getEmail());
+        existingUser.setIsActive(userDetails.getIsActive());
+        existingUser.setPassword(passwordEncoder.encode(userDetails.getPassword()));
+        existingUser.setRole(userDetails.getRole());
+        // Cập nhật các trường khác nếu cần
+        return userRepository.save(existingUser);
+    }
+
+    public void deleteUser(Long id) {
+        User user = getUserById(id);
+        userRepository.delete(user);
     }
 }
