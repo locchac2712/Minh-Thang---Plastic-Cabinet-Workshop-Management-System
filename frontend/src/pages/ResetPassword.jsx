@@ -1,108 +1,141 @@
-import { useState, useEffect } from 'react'
-import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import AuthLayout from '../components/AuthLayout'
 import { authApi } from '../services/api'
 
 export default function ResetPassword() {
-  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const token = searchParams.get('token')
+  const location = useLocation()
+  const email = location.state?.email || ''
 
-  const [form, setForm] = useState({ newPassword: '', confirmPassword: '' })
+  const [form, setForm] = useState({ token: '', newPassword: '', confirmPassword: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [validating, setValidating] = useState(true)
-  const [tokenValid, setTokenValid] = useState(false)
-  const [tokenError, setTokenError] = useState('')
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({ token: '', newPassword: '', confirmPassword: '' })
   const [success, setSuccess] = useState(false)
+  const [resendingOtp, setResendingOtp] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState('')
 
-  const passwordRegex = /^(?=.*[A-Z])(?=.*\d)\S{8,}$/
+  // Validation Rules
   const hasMinLength = form.newPassword.length >= 8
   const hasUppercase = /[A-Z]/.test(form.newPassword)
+  const hasLowercase = /[a-z]/.test(form.newPassword)
   const hasNumber = /\d/.test(form.newPassword)
-  const hasNoSpaces = !/\s/.test(form.newPassword)
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(form.newPassword)
+  const hasNoSpaces = !/\s/.test(form.newPassword) && form.newPassword.length > 0
+
   const passwordsMatch = form.newPassword === form.confirmPassword && form.confirmPassword !== ''
-  const isFormValid = passwordRegex.test(form.newPassword) && passwordsMatch
 
-  useEffect(() => {
-    if (!token) {
-      setValidating(false)
-      setTokenError('Không tìm thấy token. Vui lòng yêu cầu link mới.')
-      return
-    }
+  const isPasswordValid =
+    hasMinLength &&
+    hasUppercase &&
+    hasLowercase &&
+    hasNumber &&
+    hasSpecialChar &&
+    hasNoSpaces
 
-    authApi.validateToken(token)
-      .then(() => { setTokenValid(true) })
-      .catch((err) => { setTokenError(err.response?.data?.message || 'Token không hợp lệ') })
-      .finally(() => { setValidating(false) })
-  }, [token])
+  // Điều kiện submit
+  const isFormValid = isPasswordValid && passwordsMatch && form.token.trim().length > 0
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setForm(prev => ({ ...prev, [name]: value }))
     setError('')
+    setFieldErrors(prev => ({ ...prev, [name]: '' }))
+  }
+
+  const handleTokenKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      // Enter key functionality removed as validate-token does not exist on backend
+    }
+  }
+
+  const handleResendOtp = async () => {
+    if (!email) {
+      setError('Không tìm thấy email để gửi lại mã. Vui lòng quay lại màn hình Quên mật khẩu.')
+      return
+    }
+
+    setResendingOtp(true)
+    setError('')
+    setResendSuccess('')
+    setFieldErrors(prev => ({ ...prev, token: '' }))
+    try {
+      await authApi.forgotPassword({ email })
+      setResendSuccess('Đã gửi lại mã OTP thành công!')
+      setTimeout(() => setResendSuccess(''), 5000)
+    } catch (err) {
+      setError(err.response?.data?.message || err.response?.data || 'Không thể gửi lại mã OTP. Vui lòng thử lại sau.')
+    } finally {
+      setResendingOtp(false)
+    }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    let hasError = false
+    const newFieldErrors = { token: '', newPassword: '', confirmPassword: '' }
+
+    if (!form.token.trim()) {
+      newFieldErrors.token = 'Vui lòng nhập mã OTP'
+      hasError = true
+    }
+
+    if (!form.newPassword) {
+      newFieldErrors.newPassword = 'Vui lòng nhập mật khẩu mới'
+      hasError = true
+    } else if (!isPasswordValid) {
+      newFieldErrors.newPassword = 'Mật khẩu chưa đáp ứng đủ yêu cầu'
+      hasError = true
+    }
+
+    if (!form.confirmPassword) {
+      newFieldErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu'
+      hasError = true
+    } else if (!passwordsMatch) {
+      newFieldErrors.confirmPassword = 'Mật khẩu xác nhận không trùng khớp'
+      hasError = true
+    }
+
+    if (hasError) {
+      setFieldErrors(newFieldErrors)
+      return
+    }
+
     setError('')
     setLoading(true)
 
     try {
       const { data } = await authApi.resetPassword({
-        token,
+        token: form.token.trim(),
         newPassword: form.newPassword,
         confirmPassword: form.confirmPassword,
       })
 
-      if (data.success) {
+      if (data?.success || (typeof data === 'string' && data.includes('thành công')) || data) {
         setSuccess(true)
         setTimeout(() => navigate('/login'), 3000)
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Đã xảy ra lỗi. Vui lòng thử lại.')
+      let errorMsg = err.response?.data?.message || err.response?.data || '';
+      if (typeof errorMsg === 'string') {
+        // Loại bỏ "Lỗi: " và "(quá 15 phút)" từ thông báo của Backend
+        errorMsg = errorMsg.replace(/^Lỗi:\s*/i, '').replace(/\s*\(quá\s+15\s+phút\)/i, '');
+      }
+      const strMsg = typeof errorMsg === 'string' ? errorMsg.toLowerCase() : '';
+
+      if (strMsg.includes('hết hạn') || strMsg.includes('không hợp lệ')) {
+        setFieldErrors(prev => ({ ...prev, token: errorMsg || 'Mã OTP không hợp lệ hoặc đã hết hạn.' }))
+      } else {
+        setError(errorMsg || 'Đã xảy ra lỗi. Vui lòng kiểm tra lại.')
+      }
     } finally {
       setLoading(false)
     }
-  }
-
-  if (validating) {
-    return (
-      <AuthLayout>
-        <div className="flex flex-col items-center justify-center py-16">
-          <svg className="w-8 h-8 animate-spin-slow text-gray-400 mb-4" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-          </svg>
-          <p className="text-gray-500 text-sm">Đang xác thực token...</p>
-        </div>
-      </AuthLayout>
-    )
-  }
-
-  if (tokenError) {
-    return (
-      <AuthLayout>
-        <div className="text-center py-8 animate-fade-in-up">
-          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-3">Không thể đặt lại mật khẩu</h2>
-          <p className="text-gray-500 mb-8">{tokenError}</p>
-          <Link
-            to="/forgot-password"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium
-                       hover:bg-gray-800 transition-all shadow-lg shadow-gray-900/10"
-          >
-            Yêu cầu link mới
-          </Link>
-        </div>
-      </AuthLayout>
-    )
   }
 
   if (success) {
@@ -137,7 +170,7 @@ export default function ResetPassword() {
             Đặt lại mật khẩu
           </h1>
           <p className="text-gray-500">
-            Tạo mật khẩu mới cho tài khoản của bạn
+            Nhập mã OTP từ email và tạo mật khẩu mới
           </p>
         </div>
 
@@ -150,7 +183,54 @@ export default function ResetPassword() {
           </div>
         )}
 
+        {resendSuccess && (
+          <div className="mb-6 p-4 rounded-2xl bg-green-50 border border-green-100 flex items-start gap-3 animate-fade-in-up">
+            <svg className="w-5 h-5 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm text-green-700">{resendSuccess}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Token (OTP) */}
+          <div>
+            <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-2">
+              Mã OTP
+            </label>
+            <div className="relative">
+              <input
+                id="token"
+                name="token"
+                type="text"
+                value={form.token}
+                onChange={handleChange}
+                onKeyDown={handleTokenKeyDown}
+                placeholder="Nhập mã OTP"
+                className={`w-full bg-white border rounded-xl px-4 py-3.5 pr-12 text-sm placeholder:text-gray-400 focus:outline-none transition-all ${fieldErrors.token
+                  ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-red-600'
+                  : 'border-gray-200 focus:border-gray-900 focus:ring-1 focus:ring-gray-900'
+                  }`}
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resendingOtp}
+                  title="Gửi lại mã OTP"
+                  className="p-1 text-gray-400 hover:text-gray-900 transition-colors disabled:opacity-50"
+                >
+                  <svg className={`w-5 h-5 ${resendingOtp ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            {fieldErrors.token && (
+              <p className="mt-1.5 text-sm text-red-500">{fieldErrors.token}</p>
+            )}
+          </div>
+
           {/* New Password */}
           <div>
             <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
@@ -164,14 +244,15 @@ export default function ResetPassword() {
                 value={form.newPassword}
                 onChange={handleChange}
                 placeholder="Nhập mật khẩu mới"
-                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 pr-12 text-sm
-                           placeholder:text-gray-400 focus:outline-none focus:border-gray-900
-                           focus:ring-1 focus:ring-gray-900 transition-all"
+                className={`w-full bg-white border rounded-xl px-4 py-3.5 pr-12 text-sm placeholder:text-gray-400 focus:outline-none transition-all ${fieldErrors.newPassword
+                  ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-red-600'
+                  : 'border-gray-200 focus:border-gray-900 focus:ring-1 focus:ring-gray-900'
+                  }`}
               />
-              <button
-                type="button"
+              <div
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                onMouseDown={(e) => e.preventDefault()}
               >
                 {showPassword ? (
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -183,18 +264,21 @@ export default function ResetPassword() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 )}
-              </button>
+              </div>
             </div>
+            {fieldErrors.newPassword && (
+              <p className="mt-1.5 text-sm text-red-500">{fieldErrors.newPassword}</p>
+            )}
 
             {/* Password Requirements */}
-            {form.newPassword && (
-              <div className="mt-3 space-y-1.5">
-                <Requirement met={hasMinLength} text="Tối thiểu 8 ký tự" />
-                <Requirement met={hasUppercase} text="Có ít nhất 1 chữ hoa" />
-                <Requirement met={hasNumber} text="Có ít nhất 1 số" />
-                <Requirement met={hasNoSpaces} text="Không chứa khoảng trắng" />
-              </div>
-            )}
+            <div className="mt-3 space-y-1.5 grid grid-cols-2 gap-x-2">
+              <Requirement met={hasMinLength} text="Ít nhất 8 ký tự" />
+              <Requirement met={hasUppercase} text="Ít nhất 1 chữ hoa" />
+              <Requirement met={hasLowercase} text="Ít nhất 1 chữ thường" />
+              <Requirement met={hasNumber} text="Ít nhất 1 số" />
+              <Requirement met={hasSpecialChar} text="Ít nhất 1 ký tự đặc biệt" />
+              <Requirement met={hasNoSpaces} text="Không khoảng trắng" />
+            </div>
           </div>
 
           {/* Confirm Password */}
@@ -210,14 +294,15 @@ export default function ResetPassword() {
                 value={form.confirmPassword}
                 onChange={handleChange}
                 placeholder="Nhập lại mật khẩu mới"
-                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 pr-12 text-sm
-                           placeholder:text-gray-400 focus:outline-none focus:border-gray-900
-                           focus:ring-1 focus:ring-gray-900 transition-all"
+                className={`w-full bg-white border rounded-xl px-4 py-3.5 pr-12 text-sm placeholder:text-gray-400 focus:outline-none transition-all ${fieldErrors.confirmPassword
+                  ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-red-600'
+                  : 'border-gray-200 focus:border-gray-900 focus:ring-1 focus:ring-gray-900'
+                  }`}
               />
-              <button
-                type="button"
+              <div
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                 onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                onMouseDown={(e) => e.preventDefault()}
               >
                 {showConfirm ? (
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -229,10 +314,10 @@ export default function ResetPassword() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 )}
-              </button>
+              </div>
             </div>
-            {form.confirmPassword && !passwordsMatch && (
-              <p className="mt-2 text-xs text-red-500">Mật khẩu xác nhận không trùng khớp</p>
+            {fieldErrors.confirmPassword && (
+              <p className="mt-1.5 text-sm text-red-500">{fieldErrors.confirmPassword}</p>
             )}
           </div>
 
@@ -246,7 +331,7 @@ export default function ResetPassword() {
             </Link>
             <button
               type="submit"
-              disabled={!isFormValid || loading}
+              disabled={loading}
               className="flex-1 py-3.5 bg-gray-900 text-white rounded-xl text-sm font-medium
                          hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed
                          transition-all shadow-lg shadow-gray-900/10 flex items-center justify-center gap-2"
@@ -274,11 +359,11 @@ function Requirement({ met, text }) {
   return (
     <div className="flex items-center gap-2">
       {met ? (
-        <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ) : (
-        <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       )}
