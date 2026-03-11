@@ -51,7 +51,7 @@ public class BomService {
         BillOfMaterial bom = new BillOfMaterial();
         bom.setProduct(product);
         bom.setVersion(request.getVersion());
-        bom.setIsApproved(false);
+//        bom.setIsApproved(false);
         bom.setIsActive(true);
 
         // 3. Kiểm tra list Vật tư rỗng
@@ -107,10 +107,10 @@ public class BomService {
         BillOfMaterial bom = bomRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Định mức (BOM) với ID: " + id));
 
-        // 2. 🚨 LUẬT THÉP: Đã duyệt thì cấm sửa!
-        if (bom.getIsApproved()) {
-            throw new RuntimeException("Định mức này đã được duyệt, KHÔNG THỂ chỉnh sửa! Vui lòng Hủy duyệt trước.");
-        }
+        // 2. LUẬT THÉP: Đã duyệt thì cấm sửa!
+//        if (bom.getIsApproved()) {
+//            throw new RuntimeException("Định mức này đã được duyệt, KHÔNG THỂ chỉnh sửa! Vui lòng Hủy duyệt trước.");
+//        }
 
         // 3. Cập nhật thông tin Header
         bom.setVersion(request.getVersion());

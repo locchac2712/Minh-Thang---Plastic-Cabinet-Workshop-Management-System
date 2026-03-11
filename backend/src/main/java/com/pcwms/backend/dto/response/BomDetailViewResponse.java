@@ -33,7 +33,7 @@ public class BomDetailViewResponse {
             this.productName = bom.getProduct().getName();
             this.productSku = bom.getProduct().getSku();
         }
-        this.isApproved = bom.getIsApproved();
+//        this.isApproved = bom.getIsApproved();
         this.isActive = bom.getIsActive();
 
         // Tự động quét list vật tư Entity và biến thành DTO

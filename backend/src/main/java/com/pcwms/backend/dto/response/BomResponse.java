@@ -16,7 +16,7 @@ public class BomResponse {
     private Long productId;
     private String productName;
     private String productSku;
-    private Boolean isApproved;
+//    private Boolean isApproved;
     private Boolean isActive;
 
     public BomResponse(BillOfMaterial bom) {
@@ -29,7 +29,7 @@ public class BomResponse {
             this.productName = bom.getProduct().getName();
             this.productSku = bom.getProduct().getSku();
         }
-        this.isApproved = bom.getIsApproved();
+//        this.isApproved = bom.getIsApproved();
         this.isActive = bom.getIsActive();
     }
 }

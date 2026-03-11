@@ -22,8 +22,8 @@ public class BillOfMaterial {
     @Column(name = "version", nullable = false)
     private String version;
 
-    @Column(name = "is_approved", nullable = false)
-    private Boolean isApproved = false;
+//    @Column(name = "is_approved", nullable = false)
+//    private Boolean isApproved = false;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
