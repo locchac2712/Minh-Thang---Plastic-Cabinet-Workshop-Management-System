@@ -49,11 +49,38 @@
 }
 
 .sidebar-footer {
-  padding: 16px 20px 4px;
+  padding: 12px 10px 4px;
   border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.sidebar-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.06);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--danger);
 }
 
 .sidebar-version {
   font-size: 11px;
   color: var(--text-muted);
+  padding: 0 4px 4px;
 }

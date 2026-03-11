@@ -26,6 +26,16 @@ public class Product {
     @Column(name = "current_stock", nullable = false)
     private Integer currentStock = 0;
 
+    @Column(name = "unit" , nullable = false)
+    private String unit;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private ProductStatus status = ProductStatus.DRAFT;
+
     // --- CÁC MỐI QUAN HỆ ---
 
     // 1. Quan hệ với Sales Order Details (included in)

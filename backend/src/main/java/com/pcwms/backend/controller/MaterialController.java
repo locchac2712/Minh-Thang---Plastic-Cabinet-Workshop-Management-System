@@ -40,7 +40,7 @@ public class MaterialController {
 
     // 2. Tạo mới: Chặn Admin/Director/WarehouseManager
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or someHasRole('WAREHOUSE_MANAGER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or HasRole('WAREHOUSE_MANAGER')") // Production Manager cũng có thể tạo mới vật tư
     public ResponseEntity<ResponseObject> createMaterial(@RequestBody Material material) {
         return ResponseEntity.ok(
                 new ResponseObject("SUCCESS", "Khởi tạo vật tư thành công", materialService.createMaterial(material))
@@ -49,7 +49,7 @@ public class MaterialController {
 
     // 3. Cập nhật thông tin (Bao gồm cả ngưỡng an toàn minStockLevel)
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('WAREHOUSE_MANAGER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('WAREHOUSE_MANAGER') or hasRole('PRODUCTION_MANAGER')")
     public ResponseEntity<ResponseObject> updateMaterial(@PathVariable Long id, @RequestBody Material material) {
         return ResponseEntity.ok(
                 new ResponseObject("SUCCESS", "Cập nhật vật tư thành công", materialService.updateMaterial(id, material))
