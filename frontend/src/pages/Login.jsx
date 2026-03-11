@@ -5,26 +5,44 @@ import { authApi } from '../services/api'
 
 export default function Login() {
   const navigate = useNavigate()
-  const [form, setForm] = useState({ email: '', password: '', rememberMe: false })
+  const [form, setForm] = useState({ username: '', password: '', rememberMe: false })
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({ username: '', password: '' })
   const [success, setSuccess] = useState('')
-
-  const disabled = !form.email.trim() || !form.password.trim() || form.password.length < 6
 
   const set = (e) => {
     const { name, value, type, checked } = e.target
     setForm(p => ({ ...p, [name]: type === 'checkbox' ? checked : value }))
     setError('')
+    setFieldErrors(prev => ({ ...prev, [name]: '' }))
   }
 
   const submit = async (e) => {
     e.preventDefault()
+    
+    let hasError = false
+    const newFieldErrors = { username: '', password: '' }
+
+    if (!form.username.trim()) {
+      newFieldErrors.username = 'Vui lòng nhập Tên đăng nhập'
+      hasError = true
+    }
+    if (!form.password.trim()) {
+      newFieldErrors.password = 'Vui lòng nhập Mật khẩu'
+      hasError = true
+    }
+
+    if (hasError) {
+      setFieldErrors(newFieldErrors)
+      return
+    }
+
     setError(''); setLoading(true)
     try {
-      const { data } = await authApi.login({ username: form.email.trim(), password: form.password })
-      if (data.status === 'SUCCESS') {
+      const { data } = await authApi.login({ username: form.username.trim(), password: form.password })
+      if (data.status === 'SUCCESS' || data.data?.token) {
         const s = form.rememberMe ? localStorage : sessionStorage
         s.setItem('token', data.data.token)
         s.setItem('user', JSON.stringify(data.data))
@@ -32,7 +50,12 @@ export default function Login() {
         setTimeout(() => navigate('/dashboard'), 600)
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Đã xảy ra lỗi. Vui lòng thử lại.')
+      const errorMsg = err.response?.data?.message || err.response?.data || '';
+      if (errorMsg.includes('Lock') || errorMsg.includes('khóa')) {
+        setError('Tài khoản của bạn đang bị khóa')
+      } else {
+        setError('Tên đăng nhập sai hoặc mật khẩu sai')
+      }
     } finally { setLoading(false) }
   }
 
@@ -61,17 +84,28 @@ export default function Login() {
 
         <form onSubmit={submit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-            <input name="email" type="text" maxLength={100} value={form.email} onChange={set} placeholder="you@company.com"
-              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm placeholder:text-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all shadow-sm" />
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên đăng nhập</label>
+            <input name="username" type="text" maxLength={100} value={form.username} onChange={set} placeholder="Nhập tên đăng nhập"
+              className={`w-full bg-white border rounded-xl px-4 py-3 text-sm placeholder:text-gray-400 focus:outline-none transition-all shadow-sm ${
+                fieldErrors.username 
+                  ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100 text-red-600' 
+                  : 'border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100'
+              }`} />
+            {fieldErrors.username && (
+              <p className="mt-1.5 text-sm text-red-500">{fieldErrors.username}</p>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu</label>
             <div className="relative">
               <input name="password" type={showPw ? 'text' : 'password'} value={form.password} onChange={set} placeholder="••••••••"
-                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 pr-12 text-sm placeholder:text-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all shadow-sm" />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors">
+                className={`w-full bg-white border rounded-xl px-4 py-3 pr-12 text-sm placeholder:text-gray-400 focus:outline-none transition-all shadow-sm ${
+                  fieldErrors.password 
+                    ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100 text-red-600' 
+                    : 'border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100'
+                }`} />
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-[calc(50%+0px)] p-1 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer" onMouseDown={(e) => e.preventDefault()}>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   {showPw
                     ? <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
@@ -79,6 +113,9 @@ export default function Login() {
                 </svg>
               </button>
             </div>
+            {fieldErrors.password && (
+              <p className="mt-1.5 text-sm text-red-500">{fieldErrors.password}</p>
+            )}
           </div>
 
           <div className="flex items-center justify-between">
@@ -92,7 +129,7 @@ export default function Login() {
             </Link>
           </div>
 
-          <button type="submit" disabled={disabled || loading}
+          <button type="submit" disabled={loading}
             className="group w-full inline-flex items-center justify-between bg-black text-white pl-6 pr-2 py-2.5 rounded-full text-sm font-medium shadow-lg shadow-black/10 transition-all hover:scale-[1.01] hover:shadow-xl active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
             <span>{loading ? 'Đang xác thực...' : 'Đăng nhập'}</span>
             <div className={`w-9 h-9 rounded-full ${loading ? 'bg-gray-700' : 'bg-gray-800 group-hover:bg-gray-700'} flex items-center justify-center transition-colors`}>
@@ -106,7 +143,7 @@ export default function Login() {
         </form>
 
         <p className="text-center text-xs text-gray-400 mt-8">
-          © 2026 Minh Thang Factory. All rights reserved.
+          © 2026 Minh Thắng Workshop. All rights reserved.
         </p>
       </div>
     </AuthLayout>
