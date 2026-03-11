@@ -7,6 +7,7 @@ import com.pcwms.backend.entity.User;
 import com.pcwms.backend.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -41,6 +42,7 @@ public class UserController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
     public ResponseEntity<?> createUser(@RequestBody User user) {
         return ResponseEntity.ok(
                 new ResponseObject("SUCCESS", "Thêm user thành công", userService.createUser(user))
@@ -48,6 +50,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User user) {
         return ResponseEntity.ok(
                 new ResponseObject("SUCCESS", "Cập nhật user thành công", userService.updateUser(id, user))
@@ -55,6 +58,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.ok(
