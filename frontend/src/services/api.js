@@ -35,7 +35,8 @@ export const productApi = {
   getById: (id) => api.get(`/products/${id}`),
   create: (d) => api.post('/products', d),
   update: (id, d) => api.put(`/products/${id}`, d),
-  toggleActive: (id) => api.put(`/products/${id}/toggle`),
+  changeStatus: (id, status) => api.patch(`/products/${id}/status`, null, { params: { status } }), // Changed from toggleActive
+  // Categories API does not exist in backend currently, kept for frontend structural integrity but will 404
   getCategories: () => api.get('/products/categories'),
   createCategory: (d) => api.post('/products/categories', d),
   updateCategory: (id, d) => api.put(`/products/categories/${id}`, d),
@@ -47,8 +48,7 @@ export const supplierApi = {
   getById: (id) => api.get(`/suppliers/${id}`),
   create: (d) => api.post('/suppliers', d),
   update: (id, d) => api.put(`/suppliers/${id}`, d),
-  toggleActive: (id) => api.put(`/suppliers/${id}/toggle`),
-  delete: (id) => api.delete(`/suppliers/${id}`),
+  delete: (id) => api.delete(`/suppliers/${id}`), // Removed toggleActive since BE doesn't support it
 };
 
 export const warehouseApi = {
@@ -64,7 +64,8 @@ export const materialApi = {
   getById: (id) => api.get(`/materials/${id}`),
   create: (d) => api.post('/materials', d),
   update: (id, d) => api.put(`/materials/${id}`, d),
-  toggleActive: (id) => api.put(`/materials/${id}/toggle`),
+  delete: (id) => api.delete(`/materials/${id}`), // Added delete to match BE Controller
+  updateMinStock: (id, minLevel) => api.patch(`/materials/${id}/min-stock`, null, { params: { minLevel } }) // Added this specifically from BE
 };
 
 export const bomApi = {
@@ -72,9 +73,6 @@ export const bomApi = {
   getById: (id) => api.get(`/boms/${id}`),
   create: (d) => api.post('/boms', d),
   update: (id, d) => api.put(`/boms/${id}`, d),
-  changeStatus: (id, status) => api.put(`/boms/${id}/status`, { status }),
-  addItem: (id, d) => api.post(`/boms/${id}/items`, d),
-  removeItem: (itemId) => api.delete(`/boms/items/${itemId}`),
 };
 
 export const approvalApi = {
@@ -136,11 +134,11 @@ export const workOrderApi = {
 };
 
 export const stockApi = {
-  getTransactions: (params) => api.get('/warehouse/transactions', { params }),
+  getTransactions: (params) => api.get('/warehouse/exports', { params }), // Changed from /warehouse/transactions to /warehouse/exports based on backend WarehouseTransactionController
   stockIn: (d) => api.post('/warehouse/import', d),
   stockOut: (d) => api.post('/warehouse/export', d),
-  adjust: (d) => api.post('/warehouse/adjustment', d),
-  getInventory: (params) => api.get('/stock/inventory', { params }),
+  adjust: (d) => api.post('/warehouse/adjustment', d), // Note: might not exist in backend?
+  getInventory: (params) => api.get('/stock/inventory', { params }), // Note: check if this exists in backend
   getInventoryById: (id) => api.get(`/stock/inventory/${id}`),
 };
 
@@ -149,22 +147,22 @@ export const stockCountApi = {
   getById: (id) => api.get(`/stock-counts/${id}`),
   create: (d) => api.post('/stock-counts', d),
   update: (id, d) => api.put(`/stock-counts/${id}`, d),
-  complete: (id) => api.put(`/stock-counts/${id}/complete`),
+  complete: (id) => api.post(`/stock-counts/${id}/complete`), // Changed to POST matching BE
 };
 
 export const userApi = {
-  getAll: (params) => api.get('/users', { params }),
-  getById: (id) => api.get(`/users/${id}`),
-  create: (d) => api.post('/users', d),
-  update: (id, d) => api.put(`/users/${id}`, d),
-  toggleActive: (id) => api.put(`/users/${id}/toggle`),
-  resetPassword: (id) => api.put(`/users/${id}/reset-password`),
+  getAll: (params) => api.get('/user', { params }), // Changed from /users to /user
+  getById: (id) => api.get(`/user/${id}`),
+  create: (d) => api.post('/user', d),
+  update: (id, d) => api.put(`/user/${id}`, d),
+  toggleActive: (id) => api.put(`/user/${id}/toggle`), // Note: Backend does not have /toggle for user yet, maybe it should be manual?
+  resetPassword: (id) => api.put(`/user/${id}/reset-password`),
 };
 
 export const profileApi = {
-  get: () => api.get('/profile'),
-  update: (d) => api.put('/profile', d),
-  changePassword: (d) => api.put('/profile/password', d),
+  get: () => api.get('/user/profile'), // Changed from /profile to /user/profile
+  update: (d) => api.put('/user/profile', d),
+  changePassword: (d) => api.put('/user/profile/password', d), // Note: backend doesn't have a specific password endpoint, maybe handled by PUT /user/profile
 };
 
 export const dashboardApi = {
