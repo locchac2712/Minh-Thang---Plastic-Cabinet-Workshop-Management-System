@@ -77,27 +77,37 @@ public class AuthController {
         }
     }
 
-
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+    public ResponseEntity<ResponseObject> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         try {
             String message = authService.forgotPassword(request.getEmail());
-            return ResponseEntity.ok(message);
+            // Trả về JSON chuẩn chỉ
+            return ResponseEntity.ok(
+                    new ResponseObject("SUCCESS", message, null)
+            );
         } catch (Exception e) {
-            // Nếu không tìm thấy email, ném lỗi 400 về cho React hiện thông báo đỏ
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", e.getMessage(), null)
+            );
         }
     }
 
+    // ==========================================
+    // API Đặt Lại Mật Khẩu (Xác nhận OTP)
+    // ==========================================
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+    public ResponseEntity<ResponseObject> resetPassword(@RequestBody ResetPasswordRequest request) {
         try {
-            authService.resetPassword(request.getToken(), request.getNewPassword());
-            return ResponseEntity.ok("Mật khẩu của bạn đã được thay đổi thành công!");
-        } catch (Exception e) {
-            // Nếu token sai hoặc hết hạn, báo lỗi
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+            // Đã đổi thành request.getOtp()
+            authService.resetPassword(request.getOtp(), request.getNewPassword());
 
+            return ResponseEntity.ok(
+                    new ResponseObject("SUCCESS", "Mật khẩu của bạn đã được thay đổi thành công!", null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", e.getMessage(), null)
+            );
+        }
     }
 }

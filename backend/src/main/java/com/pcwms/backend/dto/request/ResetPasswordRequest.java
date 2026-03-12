@@ -1,15 +1,16 @@
 package com.pcwms.backend.dto.request;
 
 public class ResetPasswordRequest {
-    private String token;
+    private String otp;
     private String newPassword;
 
-    public String getToken() {
-        return token;
+
+    public String getOtp() {
+        return otp;
     }
 
-    public void setToken(String token) {
-        this.token = token;
+    public void setOtp(String otp) {
+        this.otp = otp;
     }
 
     public String getNewPassword() {

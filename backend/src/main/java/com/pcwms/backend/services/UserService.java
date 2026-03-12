@@ -2,6 +2,7 @@ package com.pcwms.backend.services;
 
 import com.pcwms.backend.dto.request.UpdateProfileRequest;
 import com.pcwms.backend.dto.response.UserProfileResponse;
+import com.pcwms.backend.dto.response.UserResponseDTO;
 import com.pcwms.backend.entity.Staff;
 import com.pcwms.backend.entity.User;
 import com.pcwms.backend.repository.StaffRepository;
@@ -101,5 +102,28 @@ public class UserService {
     public void deleteUser(Long id) {
         User user = getUserById(id);
         userRepository.delete(user);
+    }
+
+
+    public UserResponseDTO lockUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
+        if(!user.getIsActive()) {
+            throw new RuntimeException("Tài khoản đã bị khóa trước đó.");
+        }
+        user.setIsActive(false);
+        User save1 = userRepository.save(user);
+        return UserResponseDTO.fromEntity(save1);
+    }
+
+    public UserResponseDTO unlockUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
+        if(user.getIsActive()) {
+            throw new RuntimeException("Tài khoản đã được kích hoạt trước đó.");
+        }
+        user.setIsActive(true);
+        User save1 = userRepository.save(user);
+        return UserResponseDTO.fromEntity(save1);
     }
 }

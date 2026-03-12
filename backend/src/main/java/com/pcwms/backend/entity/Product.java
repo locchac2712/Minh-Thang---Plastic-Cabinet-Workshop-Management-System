@@ -36,6 +36,10 @@ public class Product {
     @Column(name = "status", nullable = false)
     private ProductStatus status = ProductStatus.DRAFT;
 
+    // 👉 Thêm cột lưu đường dẫn ảnh của Sản phẩm
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    private String imageUrl;
+
     // --- CÁC MỐI QUAN HỆ ---
 
     // 1. Quan hệ với Sales Order Details (included in)

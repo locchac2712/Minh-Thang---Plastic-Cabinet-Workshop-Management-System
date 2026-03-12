@@ -1,4 +1,4 @@
-package com.pcwms.backend.security.services; // Giữ nguyên package theo cấu trúc thư mục của bạn
+package com.pcwms.backend.security.services;
 
 import com.pcwms.backend.entity.User;
 import com.pcwms.backend.repository.UserRepository;
@@ -8,10 +8,10 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
-@Service // Bắt buộc phải có annotation này để Spring Boot biết đây là Service
+@Service
 public class AuthService {
 
     @Autowired
@@ -23,6 +23,13 @@ public class AuthService {
     @Autowired
     private JavaMailSender mailSender;
 
+    // 👉 HÀM HỖ TRỢ: SINH MÃ OTP 6 SỐ BẢO MẬT CAO
+    private String generate6DigitOTP() {
+        SecureRandom random = new SecureRandom();
+        int num = random.nextInt(1000000); // Sinh số ngẫu nhiên từ 0 đến 999999
+        return String.format("%06d", num); // Ép format luôn đủ 6 chữ số (VD: 004567)
+    }
+
     // ==========================================
     // 1. HÀM XỬ LÝ: GỬI YÊU CẦU QUÊN MẬT KHẨU
     // ==========================================
@@ -31,25 +38,25 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy tài khoản với email này!"));
 
-        // 2. Sinh ra 1 đoạn mã Token ngẫu nhiên (VD: 550e8400-e29b-41d4-a716-446655440000)
-        String token = UUID.randomUUID().toString();
+        // 2. Sinh ra mã OTP 6 số thay vì UUID
+        String otp = generate6DigitOTP();
 
-        // 3. Lưu mã Token đó vào người dùng này, kèm theo thời hạn 15 phút
-        user.setResetToken(token);
-        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
+        // 3. Lưu mã OTP đó vào người dùng này, kèm theo thời hạn rút xuống còn 5 PHÚT (Bảo mật cao)
+        user.setResetToken(otp);
+        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(5));
         userRepository.save(user); // Lưu xuống DB
 
-       //   TẠO VÀ GỬI EMAIL THẬT
+        // 4. TẠO VÀ GỬI EMAIL THẬT
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(email);
-            message.setSubject("[PCWMS Hệ thống] - Yêu cầu khôi phục mật khẩu");
+            message.setSubject("[PCWMS] - Mã OTP khôi phục mật khẩu");
             message.setText("Chào bạn,\n\n"
                     + "Hệ thống vừa nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.\n"
-                    + "Vui lòng copy mã Token dưới đây và dán vào ứng dụng để đổi mật khẩu mới:\n\n"
-                    + "MÃ TOKEN: " + token + "\n\n"
-                    + "⚠️ Lưu ý: Mã xác nhận này sẽ hết hạn trong vòng 15 phút.\n"
-                    + "Nếu bạn không yêu cầu đổi mật khẩu, vui lòng bỏ qua email này.\n\n"
+                    + "Vui lòng sử dụng mã OTP gồm 6 chữ số dưới đây để xác thực:\n\n"
+                    + "MÃ OTP: " + otp + "\n\n"
+                    + "⚠️ Lưu ý: Mã xác nhận này sẽ hết hạn trong vòng 5 phút.\n"
+                    + "Tuyệt đối không chia sẻ mã này cho bất kỳ ai. Nếu bạn không yêu cầu đổi mật khẩu, vui lòng bỏ qua email này.\n\n"
                     + "Trân trọng,\nBan Quản Trị Hệ Thống.");
 
             mailSender.send(message); // Bấm nút gửi!
@@ -58,35 +65,38 @@ public class AuthService {
             System.out.println("Lỗi gửi mail: " + e.getMessage());
             throw new RuntimeException("Lỗi: Không thể gửi email, vui lòng kiểm tra lại cấu hình hệ thống!");
         }
-        return "Thành công! Một email chứa mã khôi phục đã được gửi đến hòm thư của bạn.";
 
-        // 4. In tạm ra màn hình Console để lát nữa copy test trên Postman
-//        System.out.println("========== MÃ TOKEN QUÊN MẬT KHẨU ==========");
-//        System.out.println("Email yêu cầu: " + email);
-//        System.out.println("Mã Token sinh ra: " + token);
-//        System.out.println("Hạn sử dụng: 15 phút");
-//        System.out.println("============================================");
-//
-//        return "Đã tạo mã Token thành công. (Vui lòng kiểm tra Console của máy chủ để lấy mã)";
+        // Log tạm ra màn hình Console để test API mượt mà không cần check mail liên tục
+        System.out.println("========== MÃ OTP QUÊN MẬT KHẨU ==========");
+        System.out.println("Email yêu cầu: " + email);
+        System.out.println("Mã OTP sinh ra: " + otp);
+        System.out.println("Hạn sử dụng: 5 phút");
+        System.out.println("==========================================");
+
+        return "Thành công! Một email chứa mã OTP 6 số đã được gửi đến hòm thư của bạn.";
     }
 
     // ==========================================
     // 2. HÀM XỬ LÝ: ĐẶT LẠI MẬT KHẨU MỚI
     // ==========================================
-    public void resetPassword(String token, String newPassword) {
-        // 1. Tìm user dựa trên cái mã Token mà Frontend gửi lên
-        User user = userRepository.findByResetToken(token)
-                .orElseThrow(() -> new RuntimeException("Lỗi: Mã xác nhận không hợp lệ hoặc không tồn tại!"));
+    public void resetPassword(String otp, String newPassword) {
+        // 1. Tìm user dựa trên cái mã OTP mà Frontend gửi lên
+        User user = userRepository.findByResetToken(otp)
+                .orElseThrow(() -> new RuntimeException("Lỗi: Mã OTP không hợp lệ hoặc không tồn tại!"));
 
-        // 2. Kiểm tra xem mã đó có bị quá hạn 15 phút chưa?
+        // 2. Kiểm tra xem mã đó có bị quá hạn 5 phút chưa?
         if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Lỗi: Mã xác nhận đã hết hạn (quá 15 phút)! Vui lòng yêu cầu mã mới.");
+            // Nếu hết hạn thì xóa luôn mã OTP đó đi cho sạch sẽ
+            user.setResetToken(null);
+            user.setResetTokenExpiry(null);
+            userRepository.save(user);
+            throw new RuntimeException("Lỗi: Mã OTP đã hết hạn (quá 5 phút)! Vui lòng yêu cầu gửi lại mã mới.");
         }
 
         // 3. Mã hóa cái mật khẩu mới và lưu đè vào DB
         user.setPassword(passwordEncoder.encode(newPassword));
 
-        // 4. Dọn dẹp: Xóa cái mã Token đi để user không dùng lại cái mã này được nữa (Bảo mật 1 lần)
+        // 4. Dọn dẹp: Xóa cái mã OTP đi để user không dùng lại cái mã này được nữa (Bảo mật 1 lần)
         user.setResetToken(null);
         user.setResetTokenExpiry(null);
         userRepository.save(user);

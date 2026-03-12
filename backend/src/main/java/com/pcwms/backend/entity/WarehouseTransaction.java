@@ -19,10 +19,6 @@ public class WarehouseTransaction {
     private TransactionType type;
 
     @ManyToOne
-    @JoinColumn(name = "warehouse_id")
-    private Warehouse warehouse;
-
-    @ManyToOne
     @JoinColumn(name = "manufacture_order_id")
     private ManufactureOrder manufactureOrder;
 

@@ -154,6 +154,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             p1.setCurrentStock(15);
             p1.setUnit("Cái");
             p1.setDescription("Bàn làm việc mặt gỗ sồi nguyên khối");
+            p1.setImageUrl("https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?q=80&w=800&auto=format&fit=crop");
             productRepository.save(p1);
 
             System.out.println("-> Đã tạo 1 Thành phẩm mẫu.");
@@ -207,6 +208,7 @@ public class DatabaseSeeder implements CommandLineRunner {
                 BillOfMaterial bom1 = new BillOfMaterial();
                 bom1.setProduct(banLamViec);
                 bom1.setVersion("1.0");
+                bom1.setIsApproved(true); // Đã duyệt
                 bom1.setIsActive(true);
 
                 BillOfMaterialDetail detail1 = new BillOfMaterialDetail();
@@ -227,6 +229,7 @@ public class DatabaseSeeder implements CommandLineRunner {
                 BillOfMaterial bom2 = new BillOfMaterial();
                 bom2.setProduct(banLamViec);
                 bom2.setVersion("2.0-DRAFT");
+                bom2.setIsApproved(false); // 👉 CHƯA DUYỆT (Được phép Edit)
                 bom2.setIsActive(true);
 
                 // Bản nháp này mới chỉ có Gỗ, chưa có Đinh và Keo
