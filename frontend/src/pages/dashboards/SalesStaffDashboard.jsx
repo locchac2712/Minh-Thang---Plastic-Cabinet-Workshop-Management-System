@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { Card, StatCard, Table, Td, Badge, Loading, LinkBtn, fmtCurrency, fmtDate, fmt } from '../../components/ui'
-import { dashboardApi } from '../../services/api'
+import dashboardService from '../../services/dashboardService'
 
 const ORDER_STATUS = {
   PENDING: { label: 'Chờ xử lý', variant: 'yellow' },
@@ -26,8 +26,8 @@ export default function SalesStaffDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    dashboardApi.getSalesStaff().then(({ data }) => {
-      setStats(data.data)
+    dashboardService.getSalesStaff().then((data) => {
+      setStats(data)
     }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 

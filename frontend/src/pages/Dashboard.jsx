@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../components/DashboardLayout'
 import { StatCard, Card, Table, Td, Badge, Loading, fmtCurrency, fmt } from '../components/ui'
-import { dashboardApi, salesOrderApi, productionOrderApi } from '../services/api'
+import salesOrderService from '../services/salesOrderService'
+import productionOrderService from '../services/productionOrderService'
+import dashboardService from '../services/dashboardService'
 
 const ORDER_BADGE = {
   PENDING: { variant: 'yellow', label: 'Chờ xử lý' },
@@ -27,16 +29,14 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, ordersRes, prodRes] = await Promise.all([
-          dashboardApi.getStats(),
-          salesOrderApi.getAll(),
-          productionOrderApi.getAll({ status: 'IN_PROGRESS' }),
+        const [statsData, ordersData, prodData] = await Promise.all([
+          dashboardService.getStats(),
+          salesOrderService.getAll(),
+          productionOrderService.getAll({ status: 'IN_PROGRESS' }),
         ])
-        setStats(statsRes.data.data || statsRes.data)
-        const orderData = Array.isArray(ordersRes.data) ? ordersRes.data : ordersRes.data?.data || []
-        setRecentOrders(orderData.slice(0, 5))
-        const prodData = Array.isArray(prodRes.data) ? prodRes.data : prodRes.data?.data || []
-        setProdOrders(prodData.slice(0, 5))
+        setStats(statsData)
+        setRecentOrders(Array.isArray(ordersData) ? ordersData.slice(0, 5) : [])
+        setProdOrders(Array.isArray(prodData) ? prodData.slice(0, 5) : [])
       } catch {
         setStats(null)
       } finally {

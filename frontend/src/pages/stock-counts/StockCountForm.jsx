@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, Field, TextArea, Select, Btn, Alert, Loading, Table, Td } from '../../components/ui'
-import { stockCountApi, materialApi, warehouseApi } from '../../services/api'
+import warehouseService from '../../services/warehouseService'
+import stockCountService from '../../services/stockCountService'
+import materialService from '../../services/materialService'
 
 export default function StockCountForm() {
   const navigate = useNavigate()
@@ -34,12 +36,12 @@ export default function StockCountForm() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [whRes, matRes] = await Promise.all([
-          warehouseApi.getAll(),
-          materialApi.getAll(),
+        const [whData, matData] = await Promise.all([
+          warehouseService.getAll(),
+          materialService.getAll(),
         ])
-        setWarehouses(whRes.data.data || [])
-        setMaterials(matRes.data.data || [])
+        setWarehouses(whData || [])
+        setMaterials(matData || [])
       } catch {
         /* ignore */
       } finally {
@@ -57,7 +59,7 @@ export default function StockCountForm() {
     }
     try {
       setSubmitting(true)
-      await stockCountApi.create({
+      await stockCountService.create({
         warehouseId: Number(form.warehouseId),
         countDate: form.countDate,
         notes: form.notes,

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, DetailGrid, Badge, LinkBtn, Icons, Loading, fmtCurrency } from '../../components/ui'
-import { productApi } from '../../services/api'
+import productService from '../../services/productService'
 
 export default function ProductDetail() {
   const { id } = useParams()
@@ -11,8 +11,8 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    productApi.getById(id)
-      .then((res) => setProduct(res.data.data))
+    productService.getById(id)
+      .then((data) => setProduct(data))
       .catch(() => navigate('/products'))
       .finally(() => setLoading(false))
   }, [id, navigate])

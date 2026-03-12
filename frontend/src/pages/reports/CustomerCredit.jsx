@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { StatCard, Table, Td, Badge, Loading, PageHeader, fmt, fmtCurrency } from '../../components/ui'
-import { customerApi } from '../../services/api'
+import customerService from '../../services/customerService'
 
 function getCreditStatus(customer) {
   const { creditLimit = 0, currentBalance = 0 } = customer
@@ -17,9 +17,8 @@ export default function CustomerCredit() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data } = await customerApi.getAll()
-        const items = Array.isArray(data) ? data : data?.data || []
-        setCustomers(items)
+        const data = await customerService.getAll()
+        setCustomers(data || [])
       } catch {
         setCustomers([])
       } finally {

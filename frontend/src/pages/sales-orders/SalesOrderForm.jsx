@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
-import { salesOrderApi, customerApi, productApi } from '../../services/api'
-import { PageHeader, Card, Field, TextArea, Btn, LinkBtn, Alert, Table, Td, Icons, fmtCurrency } from '../../components/ui'
+import { PageHeader, Card, Alert, Table, Td, Field, TextArea, Btn, LinkBtn, Icons, fmtCurrency } from '../../components/ui'
+import customerService from '../../services/customerService'
+import productService from '../../services/productService'
+import salesOrderService from '../../services/salesOrderService'
 
 const emptyItem = () => ({
   key: Date.now() + Math.random(),
@@ -26,8 +28,8 @@ export default function SalesOrderForm() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    customerApi.getAll().then((res) => setCustomers(res.data.data || [])).catch(() => {})
-    productApi.getAll().then((res) => setProducts(res.data.data || [])).catch(() => {})
+    customerService.getAll().then((data) => setCustomers(data || [])).catch(() => {})
+    productService.getAll().then((data) => setProducts(data || [])).catch(() => {})
   }, [])
 
   const updateItem = (index, field, value) => {
@@ -55,7 +57,7 @@ export default function SalesOrderForm() {
     setSaving(true)
     setError('')
     try {
-      await salesOrderApi.create({
+      await salesOrderService.create({
         customer: { id: customerId },
         deliveryDate,
         deliveryAddress,

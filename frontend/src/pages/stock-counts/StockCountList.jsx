@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Table, Td, Badge, Loading, EmptyState, ActionLink, Icons, fmtDate } from '../../components/ui'
-import { stockCountApi } from '../../services/api'
+import stockCountService from '../../services/stockCountService'
 
 const STATUS_BADGE = {
   DRAFT: { variant: 'yellow', label: 'Nháp' },
@@ -16,8 +16,8 @@ export default function StockCountList() {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const res = await stockCountApi.getAll()
-        setCounts(Array.isArray(res.data) ? res.data : res.data?.data || [])
+        const data = await stockCountService.getAll()
+        setCounts(data || [])
       } catch {
         setCounts([])
       } finally {

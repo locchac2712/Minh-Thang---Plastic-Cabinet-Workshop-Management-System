@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, Field, TextArea, Btn, LinkBtn, Alert, Loading } from '../../components/ui'
-import { materialApi } from '../../services/api'
+import materialService from '../../services/materialService'
 
 export default function RawMaterialForm() {
   const { id } = useParams()
@@ -18,8 +18,7 @@ export default function RawMaterialForm() {
 
   useEffect(() => {
     if (isEdit) {
-      materialApi.getById(id).then((res) => {
-        const m = res.data.data || res.data
+      materialService.getById(id).then((m) => {
         setForm({
           name: m.name || '',
           code: m.code || m.sku || '',
@@ -40,9 +39,9 @@ export default function RawMaterialForm() {
     setError('')
     try {
       if (isEdit) {
-        await materialApi.update(id, form)
+        await materialService.update(id, form)
       } else {
-        await materialApi.create(form)
+        await materialService.create(form)
       }
       navigate('/materials')
     } catch (err) {

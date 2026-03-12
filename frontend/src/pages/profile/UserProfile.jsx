@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { Card, Field, Btn, Alert, Badge } from '../../components/ui'
-import { profileApi } from '../../services/api'
+import profileService from '../../services/profileService'
 
 const pwdReqs = [
   { key: 'len', label: 'Tối thiểu 8 ký tự', test: (v) => v.length >= 8 },
@@ -24,8 +24,8 @@ export default function UserProfile() {
   const [showPwd, setShowPwd] = useState({ current: false, new: false, confirm: false })
 
   useEffect(() => {
-    profileApi.get()
-      .then((res) => setProfile(res.data.data || res.data))
+    profileService.get()
+      .then((data) => setProfile(data))
       .catch(() => setAlert({ type: 'error', message: 'Không thể tải thông tin hồ sơ' }))
       .finally(() => setLoading(false))
   }, [])
@@ -34,7 +34,7 @@ export default function UserProfile() {
     setSaving(true)
     setAlert(null)
     try {
-      await profileApi.update({ fullName: profile.fullName, phone: profile.phone })
+      await profileService.update({ fullName: profile.fullName, phone: profile.phone })
       setAlert({ type: 'success', message: 'Cập nhật hồ sơ thành công' })
       const stored = localStorage.getItem('user') ? 'localStorage' : 'sessionStorage'
       const user = JSON.parse(window[stored].getItem('user') || '{}')
@@ -54,7 +54,7 @@ export default function UserProfile() {
     setPwdSaving(true)
     setPwdAlert(null)
     try {
-      await profileApi.changePassword({ currentPassword: pwdForm.currentPassword, newPassword: pwdForm.newPassword })
+      await profileService.changePassword({ currentPassword: pwdForm.currentPassword, newPassword: pwdForm.newPassword })
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       sessionStorage.removeItem('token')

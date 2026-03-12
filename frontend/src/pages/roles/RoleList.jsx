@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, Loading } from '../../components/ui'
-import { roleApi } from '../../services/api'
+import roleService from '../../services/roleService'
 
 const ROLE_INFO = {
   ADMIN:              { label: 'Admin',              desc: 'Quản trị viên hệ thống, toàn quyền truy cập',           color: 'bg-red-50 text-red-600' },
@@ -23,9 +23,9 @@ export default function RoleList() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    roleApi.getAll()
-      .then(({ data }) => {
-        const list = data?.data || data || []
+    roleService.getAll()
+      .then((data) => {
+        const list = data || []
         if (Array.isArray(list) && list.length > 0) {
           setRoleKeys(list.map(getRoleKey))
         }

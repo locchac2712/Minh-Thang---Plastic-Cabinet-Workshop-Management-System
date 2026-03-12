@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Table, Td, Badge, ActionLink, Icons, Loading, Alert, EmptyState, fmtDate } from '../../components/ui'
-import { bomApi } from '../../services/api'
+import bomService from '../../services/bomService'
 
 const statusMap = {
   DRAFT: { label: 'Nháp', variant: 'yellow' },
@@ -17,8 +17,8 @@ export default function BomList() {
   useEffect(() => {
     const fetchBoms = async () => {
       try {
-        const { data } = await bomApi.getAll()
-        setBoms(data.data || [])
+        const data = await bomService.getAll()
+        setBoms(data || [])
       } catch {
         setError('Không thể tải danh sách BOM')
       } finally {

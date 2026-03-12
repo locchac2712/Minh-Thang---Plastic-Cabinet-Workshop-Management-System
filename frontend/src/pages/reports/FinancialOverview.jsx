@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, StatCard, Table, Td, Badge, Loading, EmptyState, fmtCurrency, fmt } from '../../components/ui'
-import { dashboardApi, salesOrderApi } from '../../services/api'
+import salesOrderService from '../../services/salesOrderService'
+import dashboardService from '../../services/dashboardService'
 
 const STATUS_BADGE = {
   PENDING: { variant: 'yellow', label: 'Chờ xử lý' },
@@ -25,13 +26,12 @@ export default function FinancialOverview() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, ordersRes] = await Promise.all([
-          dashboardApi.getStats(),
-          salesOrderApi.getAll(),
+        const [statsData, orderData] = await Promise.all([
+          dashboardService.getStats(),
+          salesOrderService.getAll(),
         ])
-        setStats(statsRes.data.data || statsRes.data)
-        const orderData = Array.isArray(ordersRes.data) ? ordersRes.data : ordersRes.data?.data || []
-        setOrders(orderData.slice(0, 10))
+        setStats(statsData)
+        setOrders((orderData || []).slice(0, 10))
       } catch {
         setStats(null)
         setOrders([])

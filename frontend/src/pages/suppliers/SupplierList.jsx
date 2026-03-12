@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, SearchBar, Table, Td, Badge, ActionLink, Icons, Loading, EmptyState } from '../../components/ui'
-import { supplierApi } from '../../services/api'
+import supplierService from '../../services/supplierService'
 
 export default function SupplierList() {
   const [suppliers, setSuppliers] = useState([])
@@ -11,8 +11,8 @@ export default function SupplierList() {
   const fetchSuppliers = async (q = '') => {
     try {
       setLoading(true)
-      const res = await supplierApi.getAll(q)
-      setSuppliers(res.data.data || [])
+      const data = await supplierService.getAll(q)
+      setSuppliers(data || [])
     } catch {
       setSuppliers([])
     } finally {

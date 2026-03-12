@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, Field, TextArea, Btn, LinkBtn, Alert, Loading } from '../../components/ui'
-import { supplierApi } from '../../services/api'
+import supplierService from '../../services/supplierService'
 
 export default function SupplierForm() {
   const { id } = useParams()
@@ -18,8 +18,7 @@ export default function SupplierForm() {
 
   useEffect(() => {
     if (isEdit) {
-      supplierApi.getById(id).then((res) => {
-        const s = res.data.data
+      supplierService.getById(id).then((s) => {
         setForm({
           name: s.name || '',
           contactInfo: s.contactInfo || ''
@@ -38,9 +37,9 @@ export default function SupplierForm() {
     setError('')
     try {
       if (isEdit) {
-        await supplierApi.update(id, form)
+        await supplierService.update(id, form)
       } else {
-        await supplierApi.create(form)
+        await supplierService.create(form)
       }
       navigate('/suppliers')
     } catch (err) {

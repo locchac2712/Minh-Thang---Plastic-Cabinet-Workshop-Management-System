@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, Field, TextArea, Select, Btn, Alert, Loading } from '../../components/ui'
-import { workOrderApi, productionOrderApi } from '../../services/api'
+import productionOrderService from '../../services/productionOrderService'
+import workOrderService from '../../services/workOrderService'
 
 export default function WorkOrderForm() {
   const { id } = useParams()
@@ -25,12 +26,11 @@ export default function WorkOrderForm() {
   useEffect(() => {
     const load = async () => {
       try {
-        const poRes = await productionOrderApi.getAll()
-        setProductionOrders(poRes.data.data || poRes.data)
+        const productionOrdersData = await productionOrderService.getAll()
+        setProductionOrders(productionOrdersData || [])
 
         if (isEdit) {
-          const { data } = await workOrderApi.getById(id)
-          const wo = data.data || data
+          const wo = await workOrderService.getById(id)
           setForm({
             productionOrderId: wo.productionOrder?.id || '',
             description: wo.description || '',
@@ -66,9 +66,9 @@ export default function WorkOrderForm() {
         notes: form.notes || null,
       }
       if (isEdit) {
-        await workOrderApi.update(id, payload)
+        await workOrderService.update(id, payload)
       } else {
-        await workOrderApi.create(payload)
+        await workOrderService.create(payload)
       }
       navigate('/work-orders')
     } catch (err) {

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, Field, TextArea, Select, Btn, LinkBtn, Alert, Loading } from '../../components/ui'
-import { bomApi, productApi } from '../../services/api'
+import bomService from '../../services/bomService'
+import productService from '../../services/productService'
 
 export default function BomForm() {
   const { id } = useParams()
@@ -20,12 +21,12 @@ export default function BomForm() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const prodRes = await productApi.getAll()
-        setProducts(prodRes.data.data || prodRes.data || [])
+        const prodData = await productService.getAll()
+        setProducts(prodData || [])
 
         if (isEdit) {
-          const { data } = await bomApi.getById(id)
-          const b = data.data
+          const data = await bomService.getById(id)
+          const b = data
           setForm({
             name: b.name || '',
             description: b.description || '',
@@ -60,9 +61,9 @@ export default function BomForm() {
 
     try {
       if (isEdit) {
-        await bomApi.update(id, body)
+        await bomService.update(id, body)
       } else {
-        await bomApi.create(body)
+        await bomService.create(body)
       }
       navigate('/bom')
     } catch (err) {

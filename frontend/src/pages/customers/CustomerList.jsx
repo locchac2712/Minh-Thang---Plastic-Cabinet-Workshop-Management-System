@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
-import { customerApi } from '../../services/api'
-import { PageHeader, SearchBar, Table, Td, Badge, ActionLink, ActionBtn, Loading, EmptyState, Icons, fmtCurrency } from '../../components/ui'
+import customerService from '../../services/customerService'
+import { PageHeader, SearchBar, Table, Td, Badge, ActionLink, ActionBtn, Icons, fmtCurrency, Loading, EmptyState } from '../../components/ui'
 
 export default function CustomerList() {
   const [customers, setCustomers] = useState([])
@@ -11,8 +11,8 @@ export default function CustomerList() {
   const fetchCustomers = async (q = '') => {
     try {
       setLoading(true)
-      const res = await customerApi.getAll(q)
-      setCustomers(res.data.data || [])
+      const data = await customerService.getAll(q)
+      setCustomers(data || [])
     } catch {
       setCustomers([])
     } finally {
@@ -29,7 +29,7 @@ export default function CustomerList() {
 
   const handleToggle = async (id) => {
     try {
-      await customerApi.toggleActive(id)
+      await customerService.toggleActive(id)
       fetchCustomers(search)
     } catch { /* ignore */ }
   }

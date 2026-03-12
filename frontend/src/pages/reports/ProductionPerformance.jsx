@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { Card, StatCard, Table, Td, Badge, Loading, PageHeader, fmt, fmtDate } from '../../components/ui'
-import { productionOrderApi, dashboardApi } from '../../services/api'
+import productionOrderService from '../../services/productionOrderService'
+import dashboardService from '../../services/dashboardService'
 
 const STATUS_LABELS = {
   PLANNED: 'Kế hoạch',
@@ -44,9 +45,8 @@ export default function ProductionPerformance() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data } = await productionOrderApi.getAll({})
-        const items = Array.isArray(data) ? data : data?.data || []
-        setProdOrders(items)
+        const data = await productionOrderService.getAll({})
+        setProdOrders(data || [])
       } catch {
         setProdOrders([])
       } finally {

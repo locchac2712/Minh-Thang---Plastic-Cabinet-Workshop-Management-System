@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, SearchBar, Table, Td, Badge, ActionLink, Icons, Loading, EmptyState, fmtCurrency, Alert } from '../../components/ui'
-import { productApi } from '../../services/api'
+import productService from '../../services/productService'
 
 export default function ProductList() {
   const [products, setProducts] = useState([])
@@ -13,9 +13,8 @@ export default function ProductList() {
     try {
       setLoading(true)
       setError('')
-      const res = await productApi.getAll()
-      const data = res.data?.data || res.data || []
-      setProducts(Array.isArray(data) ? data : [])
+      const data = await productService.getAll()
+      setProducts(data || [])
     } catch (err) {
       setProducts([])
       const status = err?.response?.status

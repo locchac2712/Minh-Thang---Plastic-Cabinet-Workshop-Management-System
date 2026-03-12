@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
-import { quotationApi } from '../../services/api'
-import { PageHeader, FilterTabs, Table, Td, Badge, ActionLink, Loading, EmptyState, Icons, fmtCurrency, fmtDate } from '../../components/ui'
+import { PageHeader, FilterTabs, Loading, EmptyState, Table, Td, Badge, ActionLink, Icons, fmtCurrency, fmtDate } from '../../components/ui'
+import quotationService from '../../services/quotationService'
 
 const STATUS_TABS = [
   { value: '', label: 'Tất cả' },
@@ -36,8 +36,8 @@ export default function QuotationList() {
     try {
       setLoading(true)
       const params = status ? { status } : {}
-      const res = await quotationApi.getAll(params)
-      setQuotations(res.data.data || [])
+      const data = await quotationService.getAll(params)
+      setQuotations(data || [])
     } catch {
       setQuotations([])
     } finally {

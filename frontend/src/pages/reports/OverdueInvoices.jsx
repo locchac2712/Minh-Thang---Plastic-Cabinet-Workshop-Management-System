@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { StatCard, Table, Td, Badge, Loading, PageHeader, fmt, fmtCurrency, fmtDate } from '../../components/ui'
-import { salesOrderApi } from '../../services/api'
+import salesOrderService from '../../services/salesOrderService'
 
 const PAYMENT_BADGE = {
   UNPAID: { variant: 'red', label: 'Chưa thanh toán' },
@@ -22,9 +22,8 @@ export default function OverdueInvoices() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data } = await salesOrderApi.getAll()
-        const items = Array.isArray(data) ? data : data?.data || []
-        setOrders(items)
+        const data = await salesOrderService.getAll()
+        setOrders(data || [])
       } catch {
         setOrders([])
       } finally {

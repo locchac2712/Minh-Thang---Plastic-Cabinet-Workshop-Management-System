@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, SearchBar, Table, Td, Badge, ActionLink, Icons, Loading, EmptyState, Alert } from '../../components/ui'
-import { materialApi } from '../../services/api'
+import materialService from '../../services/materialService'
 
 export default function RawMaterialList() {
   const [materials, setMaterials] = useState([])
@@ -13,9 +13,8 @@ export default function RawMaterialList() {
     try {
       setLoading(true)
       setError('')
-      const res = await materialApi.getAll()
-      const data = res.data?.data || res.data || []
-      setMaterials(Array.isArray(data) ? data : [])
+      const data = await materialService.getAll()
+      setMaterials(data || [])
     } catch (err) {
       setMaterials([])
       const status = err?.response?.status

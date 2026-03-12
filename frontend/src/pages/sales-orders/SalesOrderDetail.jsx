@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
-import { salesOrderApi } from '../../services/api'
-import { PageHeader, DetailGrid, Card, Table, Td, Badge, Btn, LinkBtn, Loading, Alert, Field, TextArea, Icons, fmtCurrency, fmtDate } from '../../components/ui'
+import { PageHeader, Loading, Card, Badge, Td, Btn, Alert, Field, TextArea, LinkBtn, Icons, fmtCurrency, fmtDate, DetailGrid } from '../../components/ui'
+import salesOrderService from '../../services/salesOrderService'
 
 const orderStatusVariant = {
   PENDING: 'yellow', CONFIRMED: 'blue', IN_PRODUCTION: 'purple',
@@ -38,15 +38,15 @@ export default function SalesOrderDetail() {
   const [paymentSaving, setPaymentSaving] = useState(false)
 
   const fetchOrder = () => {
-    salesOrderApi.getById(id)
-      .then((res) => setOrder(res.data.data))
+    salesOrderService.getById(id)
+      .then((data) => setOrder(data))
       .catch(() => navigate('/sales-orders'))
       .finally(() => setLoading(false))
   }
 
   const fetchPayments = () => {
-    salesOrderApi.getPayments(id)
-      .then((res) => setPayments(res.data.data || []))
+    salesOrderService.getPayments(id)
+      .then((data) => setPayments(data || []))
       .catch(() => setPayments([]))
   }
 
@@ -60,7 +60,7 @@ export default function SalesOrderDetail() {
     if (!flow) return
     try {
       setActionLoading(true)
-      await salesOrderApi.changeStatus(id, flow.next)
+      await salesOrderService.changeStatus(id, flow.next)
       fetchOrder()
     } catch { /* ignore */ }
     finally { setActionLoading(false) }
@@ -69,7 +69,7 @@ export default function SalesOrderDetail() {
   const handleCancelOrder = async () => {
     try {
       setActionLoading(true)
-      await salesOrderApi.changeStatus(id, 'CANCELLED')
+      await salesOrderService.changeStatus(id, 'CANCELLED')
       fetchOrder()
     } catch { /* ignore */ }
     finally { setActionLoading(false) }
@@ -80,7 +80,7 @@ export default function SalesOrderDetail() {
     setPaymentSaving(true)
     setPaymentError('')
     try {
-      await salesOrderApi.addPayment(id, {
+      await salesOrderService.addPayment(id, {
         ...paymentForm,
         amount: Number(paymentForm.amount) || 0,
       })

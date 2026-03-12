@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, DetailGrid, Badge, LinkBtn, Icons, Loading } from '../../components/ui'
-import { materialApi } from '../../services/api'
+import materialService from '../../services/materialService'
 
 export default function RawMaterialDetail() {
   const { id } = useParams()
@@ -11,8 +11,8 @@ export default function RawMaterialDetail() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    materialApi.getById(id)
-      .then((res) => setMaterial(res.data.data || res.data))
+    materialService.getById(id)
+      .then((data) => setMaterial(data))
       .catch(() => navigate('/materials'))
       .finally(() => setLoading(false))
   }, [id, navigate])

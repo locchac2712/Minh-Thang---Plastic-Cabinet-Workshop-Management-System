@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
-import { quotationApi, customerApi, productApi } from '../../services/api'
-import { PageHeader, Card, Field, TextArea, Btn, LinkBtn, Alert, Table, Td, Icons, fmtCurrency } from '../../components/ui'
+import { PageHeader, Card, Alert, Table, Td, Field, TextArea, Btn, LinkBtn, Icons, fmtCurrency } from '../../components/ui'
+import customerService from '../../services/customerService'
+import productService from '../../services/productService'
+import quotationService from '../../services/quotationService'
 
 const emptyItem = () => ({
   key: Date.now(),
@@ -29,14 +31,13 @@ export default function QuotationForm() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    customerApi.getAll().then((res) => setCustomers(res.data.data || [])).catch(() => {})
-    productApi.getAll().then((res) => setProducts(res.data.data || [])).catch(() => {})
+    customerService.getAll().then((data) => setCustomers(data || [])).catch(() => {})
+    productService.getAll().then((data) => setProducts(data || [])).catch(() => {})
   }, [])
 
   useEffect(() => {
     if (isEdit) {
-      quotationApi.getById(id).then((res) => {
-        const q = res.data.data
+      quotationService.getById(id).then((q) => {
         setCustomerId(q.customer?.id || '')
         setValidUntil(q.validUntil ? q.validUntil.split('T')[0] : '')
         setNotes(q.notes || '')
@@ -93,9 +94,9 @@ export default function QuotationForm() {
         })),
       }
       if (isEdit) {
-        await quotationApi.update(id, payload)
+        await quotationService.update(id, payload)
       } else {
-        await quotationApi.create(payload)
+        await quotationService.create(payload)
       }
       navigate('/quotations')
     } catch (err) {

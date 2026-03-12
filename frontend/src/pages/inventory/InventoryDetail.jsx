@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, DetailGrid, Badge, LinkBtn, Loading, EmptyState, Icons, fmt, fmtCurrency } from '../../components/ui'
-import { materialApi } from '../../services/api'
+import materialService from '../../services/materialService'
 
 export default function InventoryDetail() {
   const { id } = useParams()
@@ -12,8 +12,8 @@ export default function InventoryDetail() {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const res = await materialApi.getById(id)
-        setMaterial(res.data.data)
+        const data = await materialService.getById(id)
+        setMaterial(data)
       } catch {
         setMaterial(null)
       } finally {

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, FilterTabs, Table, Td, Badge, Loading, EmptyState, ActionLink, Icons, fmt, fmtDate } from '../../components/ui'
-import { productionOrderApi } from '../../services/api'
+import productionOrderService from '../../services/productionOrderService'
 
 const STATUS_TABS = [
   { label: 'Tất cả', value: '' },
@@ -31,8 +31,8 @@ export default function ProductionOrderList() {
       const params = {}
       if (status) params.status = status
       if (search) params.q = search
-      const { data } = await productionOrderApi.getAll(params)
-      setOrders(data.data || data)
+      const data = await productionOrderService.getAll(params)
+      setOrders(data || [])
     } catch {
       setOrders([])
     } finally {

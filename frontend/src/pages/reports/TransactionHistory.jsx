@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { Card, Table, Td, Badge, FilterTabs, Loading, PageHeader, fmt, fmtDate } from '../../components/ui'
-import { stockApi } from '../../services/api'
+import stockService from '../../services/stockService'
 
 const TYPE_LABELS = {
   STOCK_IN: 'Nhập kho',
@@ -39,9 +39,8 @@ export default function TransactionHistory() {
     const fetchData = async () => {
       try {
         const params = filter ? { type: filter } : {}
-        const { data } = await stockApi.getTransactions(params)
-        const items = Array.isArray(data) ? data : data?.data || []
-        setTransactions(items)
+        const data = await stockService.getTransactions(params)
+        setTransactions(data || [])
       } catch {
         setTransactions([])
       } finally {

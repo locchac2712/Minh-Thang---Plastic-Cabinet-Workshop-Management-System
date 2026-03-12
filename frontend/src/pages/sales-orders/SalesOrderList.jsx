@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
-import { salesOrderApi } from '../../services/api'
-import { PageHeader, FilterTabs, Table, Td, Badge, ActionLink, Loading, EmptyState, Icons, fmtCurrency, fmtDate } from '../../components/ui'
+import { PageHeader, FilterTabs, Loading, EmptyState, Table, Td, Badge, ActionLink, Icons, fmtCurrency, fmtDate } from '../../components/ui'
+import salesOrderService from '../../services/salesOrderService'
 
 const STATUS_TABS = [
   { value: '', label: 'Tất cả' },
@@ -34,8 +34,8 @@ export default function SalesOrderList() {
     try {
       setLoading(true)
       const params = status ? { status } : {}
-      const res = await salesOrderApi.getAll(params)
-      setOrders(res.data.data || [])
+      const data = await salesOrderService.getAll(params)
+      setOrders(data || [])
     } catch {
       setOrders([])
     } finally {

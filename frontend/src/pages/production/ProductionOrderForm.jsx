@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, Field, TextArea, Select, Btn, Alert } from '../../components/ui'
-import { productionOrderApi, productApi, salesOrderApi, bomApi } from '../../services/api'
+import salesOrderService from '../../services/salesOrderService'
+import bomService from '../../services/bomService'
+import productService from '../../services/productService'
+import productionOrderService from '../../services/productionOrderService'
 
 export default function ProductionOrderForm() {
   const navigate = useNavigate()
@@ -24,9 +27,9 @@ export default function ProductionOrderForm() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    productApi.getAll().then((res) => setProducts(res.data.data || res.data)).catch(() => {})
-    salesOrderApi.getAll().then((res) => setSalesOrders(res.data.data || res.data)).catch(() => {})
-    bomApi.getAll().then((res) => setBoms(res.data.data || res.data)).catch(() => {})
+    productService.getAll().then((data) => setProducts(data || [])).catch(() => {})
+    salesOrderService.getAll().then((data) => setSalesOrders(data || [])).catch(() => {})
+    bomService.getAll().then((data) => setBoms(data || [])).catch(() => {})
   }, [])
 
   const handleChange = (e) => {
@@ -49,7 +52,7 @@ export default function ProductionOrderForm() {
         endDate: form.endDate || null,
         notes: form.notes || null,
       }
-      await productionOrderApi.create(payload)
+      await productionOrderService.create(payload)
       navigate('/production-orders')
     } catch (err) {
       setError(err.response?.data?.message || 'Có lỗi xảy ra')

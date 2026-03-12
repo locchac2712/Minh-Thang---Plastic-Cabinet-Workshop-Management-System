@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
-import { customerApi } from '../../services/api'
-import { PageHeader, Card, Field, TextArea, Btn, LinkBtn, Alert, Icons } from '../../components/ui'
+import { PageHeader, Card, Alert, Field, TextArea, Btn, LinkBtn, Icons } from '../../components/ui'
+import customerService from '../../services/customerService'
 
 export default function CustomerForm() {
   const { id } = useParams()
@@ -17,8 +17,7 @@ export default function CustomerForm() {
 
   useEffect(() => {
     if (isEdit) {
-      customerApi.getById(id).then((res) => {
-        const c = res.data.data
+      customerService.getById(id).then((c) => {
         setForm({
           name: c.name || '',
           code: c.code || '',
@@ -43,9 +42,9 @@ export default function CustomerForm() {
     try {
       const payload = { ...form, creditLimit: Number(form.creditLimit) || 0 }
       if (isEdit) {
-        await customerApi.update(id, payload)
+        await customerService.update(id, payload)
       } else {
-        await customerApi.create(payload)
+        await customerService.create(payload)
       }
       navigate('/customers')
     } catch (err) {

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { Card, StatCard, Table, Td, Badge, Loading, fmtCurrency, fmtDate, fmt } from '../../components/ui'
-import { dashboardApi } from '../../services/api'
+import dashboardService from '../../services/dashboardService'
 
 const ORDER_STATUS = {
   PENDING: { label: 'Chờ xử lý', variant: 'yellow' },
@@ -18,8 +18,8 @@ export default function SalesManagerDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    dashboardApi.getSalesManager().then(({ data }) => {
-      setStats(data.data)
+    dashboardService.getSalesManager().then((data) => {
+      setStats(data)
     }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, SearchBar, Table, Td, Badge, Loading, EmptyState, fmt } from '../../components/ui'
-import { materialApi, warehouseApi } from '../../services/api'
+import warehouseService from '../../services/warehouseService'
+import materialService from '../../services/materialService'
 
 export default function InventoryList() {
   const [materials, setMaterials] = useState([])
@@ -14,12 +15,12 @@ export default function InventoryList() {
   const fetchData = async (q = '') => {
     try {
       setLoading(true)
-      const [matRes, whRes] = await Promise.all([
-        materialApi.getAll(q),
-        warehouseApi.getAll(),
+      const [matData, whData] = await Promise.all([
+        materialService.getAll(q),
+        warehouseService.getAll(),
       ])
-      setMaterials(matRes.data.data || [])
-      setWarehouses(whRes.data.data || [])
+      setMaterials(matData || [])
+      setWarehouses(whData || [])
     } catch {
       setMaterials([])
     } finally {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout from '../components/AuthLayout'
-import { authApi } from '../services/api'
+import authService from '../services/authService'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -41,11 +41,11 @@ export default function Login() {
 
     setError(''); setLoading(true)
     try {
-      const { data } = await authApi.login({ username: form.username.trim(), password: form.password })
-      if (data.status === 'SUCCESS' || data.data?.token) {
+      const data = await authService.login({ username: form.username.trim(), password: form.password })
+      if (data.status === 'SUCCESS' || data.token) {
         const s = form.rememberMe ? localStorage : sessionStorage
-        s.setItem('token', data.data.token)
-        s.setItem('user', JSON.stringify(data.data))
+        s.setItem('token', data.token)
+        s.setItem('user', JSON.stringify(data))
         setSuccess('Đăng nhập thành công')
         setTimeout(() => navigate('/dashboard'), 600)
       }

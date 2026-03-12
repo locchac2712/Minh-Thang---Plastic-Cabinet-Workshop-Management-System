@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 import { PageHeader, Card, Table, Td, Loading, EmptyState, fmt, fmtDate, Btn, Select } from '../../components/ui';
-import { stockApi } from '../../services/api';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import stockService from '../../services/stockService'
 
 export default function StockInList() {
     const navigate = useNavigate();
@@ -15,8 +13,7 @@ export default function StockInList() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const txRes = await stockApi.getTransactions({ type: 'IMPORT' });
-                const txData = Array.isArray(txRes.data) ? txRes.data : txRes.data?.data || [];
+                const txData = await stockService.getTransactions({ type: 'IMPORT' });
                 const mappedData = txData.map(tx => {
                     const detail = tx.details && tx.details[0] ? tx.details[0] : {};
                     const isMaterial = detail.itemType === 'MATERIAL';

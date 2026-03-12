@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, SearchBar, FilterTabs, Table, Td, Badge, Select, Alert, Loading, EmptyState, ActionLink, ActionBtn, Icons, fmtDate } from '../../components/ui'
-import { userApi } from '../../services/api'
+import userService from '../../services/userService'
 
 const ROLE_TABS = [
   { value: '', label: 'Tất cả' },
@@ -46,8 +46,8 @@ export default function UserList() {
       if (q) params.q = q
       if (role) params.role = role
       if (status) params.status = status
-      const res = await userApi.getAll(params)
-      setUsers(res.data.data || res.data || [])
+      const data = await userService.getAll(params)
+      setUsers(data || [])
     } catch {
       setAlert({ type: 'error', message: 'Không thể tải danh sách người dùng' })
     } finally {
@@ -60,8 +60,8 @@ export default function UserList() {
   const handleResetPassword = async (user) => {
     if (!window.confirm(`Đặt lại mật khẩu cho "${user.fullName}"?`)) return
     try {
-      const res = await userApi.resetPassword(user.id)
-      const msg = res.data?.message || res.data?.data || 'Đặt lại mật khẩu thành công'
+      const data = await userService.resetPassword(user.id)
+      const msg = data?.message || data || 'Đặt lại mật khẩu thành công'
       setAlert({ type: 'success', message: `${msg}` })
     } catch (err) {
       setAlert({ type: 'error', message: err.response?.data?.message || 'Đặt lại mật khẩu thất bại' })
@@ -72,7 +72,7 @@ export default function UserList() {
     const action = user.active ? 'vô hiệu hóa' : 'kích hoạt'
     if (!window.confirm(`Bạn muốn ${action} tài khoản "${user.fullName}"?`)) return
     try {
-      await userApi.toggleActive(user.id)
+      await userService.toggleActive(user.id)
       setAlert({ type: 'success', message: `${action.charAt(0).toUpperCase() + action.slice(1)} tài khoản thành công` })
       fetchUsers()
     } catch (err) {

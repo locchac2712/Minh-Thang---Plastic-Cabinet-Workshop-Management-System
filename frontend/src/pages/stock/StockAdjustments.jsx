@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { Card, Table, Td, Badge, Field, Select, Btn, Alert, Loading, PageHeader, fmt, fmtDate, TextArea } from '../../components/ui'
-import { stockApi, warehouseApi, materialApi } from '../../services/api'
+import warehouseService from '../../services/warehouseService'
+import stockService from '../../services/stockService'
+import materialService from '../../services/materialService'
 
 export default function StockAdjustments() {
   const [warehouses, setWarehouses] = useState([])
@@ -20,7 +22,7 @@ export default function StockAdjustments() {
 
   const fetchTransactions = async () => {
     try {
-      const { data } = await stockApi.getTransactions({ type: 'ADJUSTMENT' })
+      const data = await stockService.getTransactions({ type: 'ADJUSTMENT' })
       const txData = Array.isArray(data) ? data : data?.data || []
       const mappedData = txData.map(tx => {
         const detail = tx.details && tx.details[0] ? tx.details[0] : {};
@@ -45,12 +47,10 @@ export default function StockAdjustments() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [whRes, matRes] = await Promise.all([
-          warehouseApi.getAll(),
-          materialApi.getAll(),
+        const [whItems, matItems] = await Promise.all([
+          warehouseService.getAll(),
+          materialService.getAll(),
         ])
-        const whItems = Array.isArray(whRes.data) ? whRes.data : whRes.data?.data || []
-        const matItems = Array.isArray(matRes.data) ? matRes.data : matRes.data?.data || []
         setWarehouses(whItems)
         setMaterials(matItems)
         await fetchTransactions()
@@ -82,7 +82,7 @@ export default function StockAdjustments() {
     }
     try {
       setSubmitting(true)
-      await stockApi.adjust({
+      await stockService.adjust({
         type: 'ADJUSTMENT',
         warehouseId: form.warehouseId ? Number(form.warehouseId) : null,
         referenceId: form.reason.trim(),

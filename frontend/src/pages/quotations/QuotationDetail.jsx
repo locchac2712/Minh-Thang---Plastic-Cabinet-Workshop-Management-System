@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
-import { quotationApi } from '../../services/api'
-import { PageHeader, DetailGrid, Card, Table, Td, Badge, Btn, LinkBtn, Loading, Icons, fmtCurrency, fmtDate } from '../../components/ui'
+import { PageHeader, Loading, Card, Badge, Td, Btn, LinkBtn, Icons, fmtCurrency, fmtDate, DetailGrid } from '../../components/ui'
+import quotationService from '../../services/quotationService'
 
 const statusVariant = { DRAFT: 'gray', SENT: 'blue', APPROVED: 'green', REJECTED: 'red', EXPIRED: 'yellow' }
 const statusLabel = { DRAFT: 'Nháp', SENT: 'Đã gửi', APPROVED: 'Đã duyệt', REJECTED: 'Từ chối', EXPIRED: 'Hết hạn' }
@@ -15,8 +15,8 @@ export default function QuotationDetail() {
   const [actionLoading, setActionLoading] = useState(false)
 
   const fetchQuotation = () => {
-    quotationApi.getById(id)
-      .then((res) => setQuotation(res.data.data))
+    quotationService.getById(id)
+      .then((data) => setQuotation(data))
       .catch(() => navigate('/quotations'))
       .finally(() => setLoading(false))
   }
@@ -26,7 +26,7 @@ export default function QuotationDetail() {
   const handleStatusChange = async (newStatus) => {
     try {
       setActionLoading(true)
-      await quotationApi.changeStatus(id, newStatus)
+      await quotationService.changeStatus(id, newStatus)
       fetchQuotation()
     } catch { /* ignore */ }
     finally { setActionLoading(false) }

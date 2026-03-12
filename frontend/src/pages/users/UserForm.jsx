@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, Field, Select, Btn, Alert, Loading, LinkBtn } from '../../components/ui'
-import { userApi } from '../../services/api'
+import userService from '../../services/userService'
 
 const ROLES = [
   { value: 'ADMIN', label: 'Admin' },
@@ -36,9 +36,8 @@ export default function UserForm() {
 
   useEffect(() => {
     if (!isEdit) return
-    userApi.getById(id)
-      .then((res) => {
-        const u = res.data.data || res.data
+    userService.getById(id)
+      .then((u) => {
         setForm((f) => ({ ...f, email: u.email || '', fullName: u.fullName || '', phone: u.phone || '', department: u.department || '', role: u.role || '' }))
       })
       .catch(() => setAlert({ type: 'error', message: 'Không thể tải thông tin người dùng' }))
@@ -68,14 +67,14 @@ export default function UserForm() {
     setAlert(null)
     try {
       if (isEdit) {
-        await userApi.update(id, {
+        await userService.update(id, {
           fullName: form.fullName,
           phone: form.phone,
           department: form.department,
           role: form.role,
         })
       } else {
-        await userApi.create({
+        await userService.create({
           email: form.email,
           fullName: form.fullName,
           phone: form.phone,

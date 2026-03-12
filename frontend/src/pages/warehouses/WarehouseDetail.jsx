@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, DetailGrid, Badge, LinkBtn, Icons, Loading, fmt } from '../../components/ui'
-import { warehouseApi } from '../../services/api'
+import warehouseService from '../../services/warehouseService'
 
 export default function WarehouseDetail() {
   const { id } = useParams()
@@ -11,8 +11,8 @@ export default function WarehouseDetail() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    warehouseApi.getById(id)
-      .then((res) => setWarehouse(res.data.data))
+    warehouseService.getById(id)
+      .then((data) => setWarehouse(data))
       .catch(() => navigate('/warehouses'))
       .finally(() => setLoading(false))
   }, [id, navigate])

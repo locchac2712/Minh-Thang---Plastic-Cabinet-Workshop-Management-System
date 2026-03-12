@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, SearchBar, Table, Td, Badge, ActionLink, ActionBtn, Icons, Loading, EmptyState, fmt } from '../../components/ui'
-import { warehouseApi } from '../../services/api'
+import warehouseService from '../../services/warehouseService'
 
 export default function WarehouseList() {
   const [warehouses, setWarehouses] = useState([])
@@ -11,8 +11,8 @@ export default function WarehouseList() {
   const fetchWarehouses = async (q = '') => {
     try {
       setLoading(true)
-      const res = await warehouseApi.getAll(q)
-      setWarehouses(res.data.data || [])
+      const data = await warehouseService.getAll(q)
+      setWarehouses(data || [])
     } catch {
       setWarehouses([])
     } finally {
@@ -29,7 +29,7 @@ export default function WarehouseList() {
 
   const handleToggle = async (id) => {
     try {
-      await warehouseApi.toggleActive(id)
+      await warehouseService.toggleActive(id)
       fetchWarehouses(search)
     } catch { /* ignore */ }
   }

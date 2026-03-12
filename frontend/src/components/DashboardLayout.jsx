@@ -10,10 +10,21 @@ const PROD = ['ROLE_ADMIN', 'ROLE_PRODUCTION_MANAGER']
 const ADM = ['ROLE_ADMIN']
 const ADM_DIR = ['ROLE_ADMIN', 'ROLE_DIRECTOR']
 
+function getDashboardPath(role) {
+  switch (role) {
+    case 'ROLE_SALES_STAFF': return '/dashboard/sales-staff'
+    case 'ROLE_SALES_MANAGER': return '/dashboard/sales-manager'
+    case 'ROLE_PRODUCTION_MANAGER': return '/dashboard/production'
+    case 'ROLE_WAREHOUSE_MANAGER': return '/dashboard/warehouse'
+    case 'ROLE_DIRECTOR': return '/dashboard/director'
+    default: return '/dashboard'
+  }
+}
+
 const sections = [
   {
     title: 'TỔNG QUAN', items: [
-      { label: 'Dashboard', path: '/dashboard', roles: ALL, icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z' },
+      { label: 'Dashboard', path: '__DASHBOARD__', roles: ALL, icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z' },
       { label: 'Giám sát KPI', path: '/monitoring', roles: ADM_DIR, icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z' },
     ]
   },
@@ -77,6 +88,7 @@ export default function DashboardLayout({ title, children }) {
   const menuRef = useRef(null)
   const navRef = useRef(null)
   const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}')
+  const dashboardPath = getDashboardPath(user.role)
 
   useEffect(() => {
     localStorage.setItem('sidebar-collapsed', collapsed)
@@ -108,7 +120,11 @@ export default function DashboardLayout({ title, children }) {
     navigate('/login')
   }
 
-  const active = (p) => location.pathname === p || (p !== '/dashboard' && location.pathname.startsWith(p + '/'))
+  const resolveItemPath = (p) => p === '__DASHBOARD__' ? dashboardPath : p
+  const active = (p) => {
+    const resolved = resolveItemPath(p)
+    return location.pathname === resolved || (resolved !== '/dashboard' && location.pathname.startsWith(resolved + '/'))
+  }
 
   return (
     <div className="min-h-screen bg-white selection:bg-purple-200 selection:text-purple-900">
@@ -140,7 +156,7 @@ export default function DashboardLayout({ title, children }) {
                 )}
                 <div className="space-y-0.5">
                   {visibleItems.map(item => (
-                    <Link key={item.path} to={item.path} onClick={handleNavClick}
+                    <Link key={item.path} to={resolveItemPath(item.path)} onClick={handleNavClick}
                       data-active={active(item.path) || undefined}
                       title={collapsed ? item.label : undefined}
                       className={`flex items-center ${collapsed ? 'justify-center mx-auto w-11 h-11' : 'gap-3 px-3 py-2'} rounded-xl text-[13px] font-medium transition-all duration-200 ${active(item.path)

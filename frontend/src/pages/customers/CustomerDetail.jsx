@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
-import { customerApi } from '../../services/api'
-import { PageHeader, DetailGrid, Badge, LinkBtn, Loading, Icons, fmtCurrency } from '../../components/ui'
+import { PageHeader, Loading, Badge, LinkBtn, Icons, fmtCurrency, DetailGrid } from '../../components/ui'
+import customerService from '../../services/customerService'
 
 export default function CustomerDetail() {
   const { id } = useParams()
@@ -11,8 +11,8 @@ export default function CustomerDetail() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    customerApi.getById(id)
-      .then((res) => setCustomer(res.data.data))
+    customerService.getById(id)
+      .then((data) => setCustomer(data))
       .catch(() => navigate('/customers'))
       .finally(() => setLoading(false))
   }, [id, navigate])

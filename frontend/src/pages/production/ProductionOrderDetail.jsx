@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, DetailGrid, Table, Td, Badge, Btn, LinkBtn, Field, Loading, Icons, ActionLink, fmt, fmtDate } from '../../components/ui'
-import { productionOrderApi, workOrderApi } from '../../services/api'
+import productionOrderService from '../../services/productionOrderService'
+import workOrderService from '../../services/workOrderService'
 
 const STATUS_BADGE = {
   PLANNED: { variant: 'gray', label: 'Kế hoạch' },
@@ -24,16 +25,15 @@ export default function ProductionOrderDetail() {
   const fetchData = async () => {
     try {
       setLoading(true)
-      const { data } = await productionOrderApi.getById(id)
-      const o = data.data || data
+      const o = await productionOrderService.getById(id)
       setOrder(o)
       setProgressForm({
         completedQuantity: o.completedQuantity || 0,
         scrapQuantity: o.scrapQuantity || 0,
       })
       try {
-        const woRes = await workOrderApi.getAll({ productionOrderId: id })
-        setWorkOrders(woRes.data.data || woRes.data)
+        const data = await workOrderService.getAll({ productionOrderId: id })
+        setWorkOrders(data || [])
       } catch {
         setWorkOrders([])
       }
@@ -48,7 +48,7 @@ export default function ProductionOrderDetail() {
 
   const handleStatusChange = async (newStatus) => {
     try {
-      await productionOrderApi.changeStatus(id, newStatus)
+      await productionOrderService.changeStatus(id, newStatus)
       fetchData()
     } catch { /* ignore */ }
   }
@@ -57,7 +57,7 @@ export default function ProductionOrderDetail() {
     e.preventDefault()
     setUpdating(true)
     try {
-      await productionOrderApi.updateProgress(id, {
+      await productionOrderService.updateProgress(id, {
         completedQuantity: Number(progressForm.completedQuantity),
         scrapQuantity: Number(progressForm.scrapQuantity),
       })

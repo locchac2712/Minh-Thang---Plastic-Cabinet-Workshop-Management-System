@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, Field, TextArea, Select, Btn, Alert, Loading, fmt } from '../../components/ui'
-import { stockApi, materialApi, warehouseApi } from '../../services/api'
+import warehouseService from '../../services/warehouseService'
+import stockService from '../../services/stockService'
+import materialService from '../../services/materialService'
 
 export default function StockForm() {
     const location = useLocation()
@@ -26,12 +28,12 @@ export default function StockForm() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [whRes, matRes] = await Promise.all([
-                    warehouseApi.getAll(),
-                    materialApi.getAll()
+                const [whData, matData] = await Promise.all([
+                    warehouseService.getAll(),
+                    materialService.getAll()
                 ])
-                setWarehouses(whRes.data.data || [])
-                setMaterials(matRes.data.data || [])
+                setWarehouses(whData || [])
+                setMaterials(matData || [])
             } catch {
                 /* ignore */
             } finally {
@@ -80,9 +82,9 @@ export default function StockForm() {
             }
 
             if (form.type === 'IMPORT') {
-                await stockApi.stockIn(data)
+                await stockService.stockIn(data)
             } else {
-                await stockApi.stockOut(data)
+                await stockService.stockOut(data)
             }
 
             setSuccess(true)
@@ -90,8 +92,8 @@ export default function StockForm() {
             setForm({ ...form, rawMaterialId: '', quantity: '', reason: '' })
 
             if (form.type === 'EXPORT') {
-                const matRes = await materialApi.getAll()
-                setMaterials(matRes.data.data || [])
+                const matData = await materialService.getAll()
+                setMaterials(matData || [])
             }
 
             setTimeout(() => {

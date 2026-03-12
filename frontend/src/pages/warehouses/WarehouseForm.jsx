@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, Field, TextArea, Btn, LinkBtn, Alert, Loading } from '../../components/ui'
-import { warehouseApi } from '../../services/api'
+import warehouseService from '../../services/warehouseService'
 
 export default function WarehouseForm() {
   const { id } = useParams()
@@ -18,8 +18,7 @@ export default function WarehouseForm() {
 
   useEffect(() => {
     if (isEdit) {
-      warehouseApi.getById(id).then((res) => {
-        const w = res.data.data
+      warehouseService.getById(id).then((w) => {
         setForm({
           name: w.name || '',
           code: w.code || '',
@@ -40,9 +39,9 @@ export default function WarehouseForm() {
     setError('')
     try {
       if (isEdit) {
-        await warehouseApi.update(id, form)
+        await warehouseService.update(id, form)
       } else {
-        await warehouseApi.create(form)
+        await warehouseService.create(form)
       }
       navigate('/warehouses')
     } catch (err) {

@@ -68,6 +68,7 @@ import OverdueInvoices from './pages/reports/OverdueInvoices'
 import InventoryOverview from './pages/reports/InventoryOverview'
 import ProductionPerformance from './pages/reports/ProductionPerformance'
 import StockAdjustments from './pages/stock/StockAdjustments'
+import DirectorDashboard from './pages/director/DirectorDashboard'
 
 const ROLES = {
   ADMIN: 'ROLE_ADMIN',
@@ -98,8 +99,8 @@ function getDefaultDashboard(role) {
     case ROLES.SALES_MANAGER: return '/dashboard/sales-manager'
     case ROLES.PRODUCTION_MANAGER: return '/dashboard/production'
     case ROLES.WAREHOUSE_MANAGER: return '/dashboard/warehouse'
+    case ROLES.DIRECTOR: return '/dashboard/director'
     case ROLES.ADMIN:
-    case ROLES.DIRECTOR:
     default: return '/dashboard'
   }
 }
@@ -180,13 +181,13 @@ export default function App() {
         <Route path="/sales-orders/new" element={<RequireRole allow={SALES}><SalesOrderForm /></RequireRole>} />
         <Route path="/sales-orders/:id" element={<RequireRole allow={SALES}><SalesOrderDetail /></RequireRole>} />
 
-        <Route path="/production-orders" element={<RequireRole allow={PROD}><ProductionOrderList /></RequireRole>} />
+        <Route path="/production-orders" element={<RequireRole allow={[...PROD, ROLES.DIRECTOR]}><ProductionOrderList /></RequireRole>} />
         <Route path="/production-orders/new" element={<RequireRole allow={PROD}><ProductionOrderForm /></RequireRole>} />
-        <Route path="/production-orders/:id" element={<RequireRole allow={PROD}><ProductionOrderDetail /></RequireRole>} />
+        <Route path="/production-orders/:id" element={<RequireRole allow={[...PROD, ROLES.DIRECTOR]}><ProductionOrderDetail /></RequireRole>} />
 
-        <Route path="/work-orders" element={<RequireRole allow={PROD}><WorkOrderList /></RequireRole>} />
+        <Route path="/work-orders" element={<RequireRole allow={[...PROD, ROLES.DIRECTOR]}><WorkOrderList /></RequireRole>} />
         <Route path="/work-orders/new" element={<RequireRole allow={PROD}><WorkOrderForm /></RequireRole>} />
-        <Route path="/work-orders/:id" element={<RequireRole allow={PROD}><WorkOrderDetail /></RequireRole>} />
+        <Route path="/work-orders/:id" element={<RequireRole allow={[...PROD, ROLES.DIRECTOR]}><WorkOrderDetail /></RequireRole>} />
         <Route path="/work-orders/:id/edit" element={<RequireRole allow={PROD}><WorkOrderForm /></RequireRole>} />
 
         <Route path="/inventory" element={<RequireRole allow={WH}><InventoryList /></RequireRole>} />
@@ -223,6 +224,7 @@ export default function App() {
         <Route path="/dashboard/production" element={<RequireRole allow={[ROLES.PRODUCTION_MANAGER, ROLES.ADMIN]}><ProductionDashboard /></RequireRole>} />
         <Route path="/dashboard/warehouse" element={<RequireRole allow={[ROLES.WAREHOUSE_MANAGER, ROLES.ADMIN]}><WarehouseDashboard /></RequireRole>} />
         <Route path="/dashboard/operational" element={<RequireRole allow={ADM_DIR}><OperationalDashboard /></RequireRole>} />
+        <Route path="/dashboard/director" element={<RequireRole allow={[ROLES.DIRECTOR, ROLES.ADMIN]}><DirectorDashboard /></RequireRole>} />
 
         <Route path="/delivery-tracking" element={<RequireRole allow={SALES}><DeliveryTracking /></RequireRole>} />
         <Route path="/payment-reminders" element={<RequireRole allow={[ROLES.ADMIN, ROLES.SALES_MANAGER]}><PaymentReminders /></RequireRole>} />

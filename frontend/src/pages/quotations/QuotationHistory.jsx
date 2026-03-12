@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
-import { quotationApi, customerApi } from '../../services/api'
-import { PageHeader, Card, Table, Td, Badge, StatCard, Loading, EmptyState, ActionLink, LinkBtn, Icons, fmtCurrency, fmtDate } from '../../components/ui'
+import { PageHeader, Loading, EmptyState, Card, Table, Td, Badge, ActionLink, StatCard, LinkBtn, Icons, fmtCurrency, fmtDate } from '../../components/ui'
+import customerService from '../../services/customerService'
+import quotationService from '../../services/quotationService'
 
 const statusVariant = {
   DRAFT: 'gray', SENT: 'blue', APPROVED: 'green',
@@ -24,12 +25,11 @@ export default function QuotationHistory() {
     const fetch = async () => {
       try {
         setLoading(true)
-        const [custRes, quotRes] = await Promise.all([
-          customerApi.getById(customerId),
-          quotationApi.getAll({ customerId }),
+        const [customerData, items] = await Promise.all([
+          customerService.getById(customerId),
+          quotationService.getAll({ customerId }),
         ])
-        setCustomer(custRes.data.data || custRes.data)
-        const items = quotRes.data.data || quotRes.data
+        setCustomer(customerData)
         setQuotations(Array.isArray(items) ? items : [])
       } catch {
         setError('Không thể tải dữ liệu')

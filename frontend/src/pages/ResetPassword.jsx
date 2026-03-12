@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import AuthLayout from '../components/AuthLayout'
-import { authApi } from '../services/api'
+import authService from '../services/authService'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -64,7 +64,7 @@ export default function ResetPassword() {
     setResendSuccess('')
     setFieldErrors(prev => ({ ...prev, token: '' }))
     try {
-      await authApi.forgotPassword({ email })
+      await authService.forgotPassword({ email })
       setResendSuccess('Đã gửi lại mã OTP thành công!')
       setTimeout(() => setResendSuccess(''), 5000)
     } catch (err) {
@@ -106,11 +106,8 @@ export default function ResetPassword() {
       return
     }
 
-    setError('')
-    setLoading(true)
-
     try {
-      const { data } = await authApi.resetPassword({
+      const data = await authService.resetPassword({
         token: form.token.trim(),
         newPassword: form.newPassword,
         confirmPassword: form.confirmPassword,

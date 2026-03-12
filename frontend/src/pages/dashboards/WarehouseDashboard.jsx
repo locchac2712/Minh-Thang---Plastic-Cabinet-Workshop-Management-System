@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { Card, StatCard, Table, Td, Badge, Loading, LinkBtn, fmtCurrency, fmtDate, fmt } from '../../components/ui'
-import { dashboardApi } from '../../services/api'
+import dashboardService from '../../services/dashboardService'
 
 const TX_TYPE = {
   STOCK_IN: { label: 'Nhập', variant: 'green' },
@@ -14,8 +14,8 @@ export default function WarehouseDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    dashboardApi.getWarehouse().then(({ data }) => {
-      setStats(data.data)
+    dashboardService.getWarehouse().then((data) => {
+      setStats(data)
     }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 

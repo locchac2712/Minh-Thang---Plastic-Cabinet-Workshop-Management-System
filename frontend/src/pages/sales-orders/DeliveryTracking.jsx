@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
-import { salesOrderApi } from '../../services/api'
-import { PageHeader, FilterTabs, Table, Td, Badge, StatCard, ActionLink, Loading, EmptyState, SearchBar, Icons, fmtCurrency, fmtDate } from '../../components/ui'
+import { PageHeader, StatCard, SearchBar, FilterTabs, Loading, EmptyState, Table, Td, Badge, ActionLink, Icons, fmtDate } from '../../components/ui'
+import salesOrderService from '../../services/salesOrderService'
 
 const DELIVERY_STATUSES = ['CONFIRMED', 'IN_PRODUCTION', 'READY_FOR_DELIVERY', 'DELIVERED']
 
@@ -41,8 +41,7 @@ export default function DeliveryTracking() {
     const fetch = async () => {
       try {
         setLoading(true)
-        const res = await salesOrderApi.getAll()
-        const items = res.data.data || res.data
+        const items = await salesOrderService.getAll()
         setOrders(Array.isArray(items) ? items.filter(o => DELIVERY_STATUSES.includes(o.status)) : [])
       } catch {
         setError('Không thể tải dữ liệu đơn hàng')

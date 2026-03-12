@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { Card, StatCard, Table, Td, Badge, Loading, fmtCurrency, fmtDate, fmt } from '../../components/ui'
-import { dashboardApi } from '../../services/api'
+import dashboardService from '../../services/dashboardService'
 
 const STATUS_LABELS = {
   PENDING: 'Chờ xử lý',
@@ -73,8 +73,8 @@ export default function DirectorDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data } = await dashboardApi.getMonitoring()
-        setStats(data.data || data)
+        const data = await dashboardService.getMonitoring()
+        setStats(data || {})
       } catch {
         setError('Không thể tải dữ liệu thống kê')
       } finally {

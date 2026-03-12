@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
-import { salesOrderApi } from '../../services/api'
-import { PageHeader, FilterTabs, Table, Td, Badge, StatCard, Loading, EmptyState, LinkBtn, SearchBar, Icons, fmtCurrency, fmtDate } from '../../components/ui'
+import { PageHeader, StatCard, SearchBar, FilterTabs, Loading, EmptyState, Table, Td, Badge, LinkBtn, Icons, fmtCurrency, fmtDate } from '../../components/ui'
+import salesOrderService from '../../services/salesOrderService'
 
 const TABS = [
   { value: '', label: 'Tất cả' },
@@ -23,8 +23,7 @@ export default function PaymentReminders() {
     const fetch = async () => {
       try {
         setLoading(true)
-        const res = await salesOrderApi.getAll()
-        const items = res.data.data || res.data
+        const items = await salesOrderService.getAll()
         const unpaid = Array.isArray(items)
           ? items.filter(o => o.paymentStatus === 'UNPAID' || o.paymentStatus === 'PARTIAL')
           : []

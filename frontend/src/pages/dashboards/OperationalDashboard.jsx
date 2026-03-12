@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { Card, StatCard, Loading, LinkBtn, fmt } from '../../components/ui'
-import { dashboardApi } from '../../services/api'
+import dashboardService from '../../services/dashboardService'
 
 const STATUS_ITEMS = [
   { key: 'pendingSalesOrders', label: 'Đơn hàng chờ xử lý', color: 'bg-amber-400' },
@@ -31,8 +31,8 @@ export default function OperationalDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    dashboardApi.getStats().then(({ data }) => {
-      setStats(data.data)
+    dashboardService.getStats().then((data) => {
+      setStats(data)
     }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 

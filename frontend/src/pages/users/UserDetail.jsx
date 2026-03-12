@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, DetailGrid, Field, Select, Badge, Btn, LinkBtn, Alert, Loading, Icons, fmtDate } from '../../components/ui'
-import { userApi } from '../../services/api'
+import userService from '../../services/userService'
 
 const ROLES = [
   { value: 'ADMIN', label: 'Admin' },
@@ -36,8 +36,7 @@ export default function UserDetail() {
 
   const fetchUser = async () => {
     try {
-      const res = await userApi.getById(id)
-      const u = res.data.data || res.data
+      const u = await userService.getById(id)
       setUser(u)
       setForm({ fullName: u.fullName || '', phone: u.phone || '', department: u.department || '', role: u.role || '' })
     } catch {
@@ -55,7 +54,7 @@ export default function UserDetail() {
     setSaving(true)
     setAlert(null)
     try {
-      await userApi.update(id, form)
+      await userService.update(id, form)
       setAlert({ type: 'success', message: 'Cập nhật thành công' })
       setEditMode(false)
       fetchUser()
@@ -74,8 +73,8 @@ export default function UserDetail() {
   const handleResetPassword = async () => {
     if (!window.confirm(`Đặt lại mật khẩu cho "${user.fullName}"?`)) return
     try {
-      const res = await userApi.resetPassword(id)
-      const msg = res.data?.message || res.data?.data || 'Đặt lại mật khẩu thành công'
+      const data = await userService.resetPassword(id)
+      const msg = data?.message || data || 'Đặt lại mật khẩu thành công'
       setAlert({ type: 'success', message: msg })
     } catch (err) {
       setAlert({ type: 'error', message: err.response?.data?.message || 'Đặt lại mật khẩu thất bại' })
@@ -86,7 +85,7 @@ export default function UserDetail() {
     const action = user.active ? 'vô hiệu hóa' : 'kích hoạt'
     if (!window.confirm(`Bạn muốn ${action} tài khoản "${user.fullName}"?`)) return
     try {
-      await userApi.toggleActive(id)
+      await userService.toggleActive(id)
       setAlert({ type: 'success', message: `${action.charAt(0).toUpperCase() + action.slice(1)} tài khoản thành công` })
       fetchUser()
     } catch (err) {

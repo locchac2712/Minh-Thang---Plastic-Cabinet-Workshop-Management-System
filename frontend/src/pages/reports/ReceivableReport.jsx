@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, StatCard, Table, Td, Badge, Loading, EmptyState, fmtCurrency } from '../../components/ui'
-import { customerApi } from '../../services/api'
+import customerService from '../../services/customerService'
 
 export default function ReceivableReport() {
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    customerApi.getAll()
-      .then((res) => setCustomers(res.data.data || []))
+    customerService.getAll()
+      .then((data) => setCustomers(data || []))
       .catch(() => setCustomers([]))
       .finally(() => setLoading(false))
   }, [])

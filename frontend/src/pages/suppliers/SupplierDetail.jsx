@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, DetailGrid, Badge, LinkBtn, Icons, Loading } from '../../components/ui'
-import { supplierApi } from '../../services/api'
+import supplierService from '../../services/supplierService'
 
 export default function SupplierDetail() {
   const { id } = useParams()
@@ -11,8 +11,8 @@ export default function SupplierDetail() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supplierApi.getById(id)
-      .then((res) => setSupplier(res.data.data))
+    supplierService.getById(id)
+      .then((data) => setSupplier(data))
       .catch(() => navigate('/suppliers'))
       .finally(() => setLoading(false))
   }, [id, navigate])

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, StatCard, Table, Td, Badge, Loading, EmptyState, fmtCurrency, fmtDate } from '../../components/ui'
-import { salesOrderApi } from '../../services/api'
+import salesOrderService from '../../services/salesOrderService'
 
 const STATUS_BADGE = {
   PENDING: { variant: 'yellow', label: 'Chờ xử lý' },
@@ -18,9 +18,8 @@ export default function RevenueReport() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await salesOrderApi.getAll()
-        const data = Array.isArray(res.data) ? res.data : res.data?.data || []
-        setOrders(data)
+        const data = await salesOrderService.getAll()
+        setOrders(data || [])
       } catch {
         setOrders([])
       } finally {

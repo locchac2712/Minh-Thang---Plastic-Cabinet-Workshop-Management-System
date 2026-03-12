@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, FilterTabs, Table, Td, Badge, Loading, EmptyState, ActionLink, Icons, fmt, fmtDate } from '../../components/ui'
-import { workOrderApi } from '../../services/api'
+import workOrderService from '../../services/workOrderService'
 
 const STATUS_TABS = [
   { label: 'Tất cả', value: '' },
@@ -10,6 +10,7 @@ const STATUS_TABS = [
   { label: 'Đang thực hiện', value: 'IN_PROGRESS' },
   { label: 'Hoàn thành', value: 'COMPLETED' },
   { label: 'Đã hủy', value: 'CANCELLED' },
+  { label: 'Đã lập kế hoạch', value: 'PLANNED' },
 ]
 
 const STATUS_BADGE = {
@@ -17,7 +18,7 @@ const STATUS_BADGE = {
   IN_PROGRESS: { variant: 'blue', label: 'Đang thực hiện' },
   COMPLETED: { variant: 'green', label: 'Hoàn thành' },
   CANCELLED: { variant: 'red', label: 'Đã hủy' },
-  PLANNED: { variant: 'gray', label: 'Kế hoạch' },
+  PLANNED: { variant: 'gray', label: 'Lập kế hoạch' },
 }
 
 export default function WorkOrderList() {
@@ -32,8 +33,8 @@ export default function WorkOrderList() {
       const params = {}
       if (status) params.status = status
       if (search) params.q = search
-      const { data } = await workOrderApi.getAll(params)
-      setOrders(data.data || data)
+      const data = await workOrderService.getAll(params)
+      setOrders(data || [])
     } catch {
       setOrders([])
     } finally {

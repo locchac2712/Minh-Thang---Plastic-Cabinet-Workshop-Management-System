@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, DetailGrid, Card, Table, Td, Badge, Btn, LinkBtn, Field, Select, Icons, Loading, Alert, EmptyState, fmtDate } from '../../components/ui'
-import { bomApi, materialApi } from '../../services/api'
+import bomService from '../../services/bomService'
+import materialService from '../../services/materialService'
 
 const statusMap = {
   DRAFT: { label: 'Nháp', variant: 'yellow' },
@@ -21,8 +22,8 @@ export default function BomDetail() {
 
   const fetchBom = async () => {
     try {
-      const { data } = await bomApi.getById(id)
-      setBom(data.data)
+      const data = await bomService.getById(id)
+      setBom(data)
     } catch {
       setError('Không thể tải thông tin BOM')
     } finally {
@@ -33,8 +34,8 @@ export default function BomDetail() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const matRes = await materialApi.getAll()
-        setMaterials(matRes.data.data || [])
+        const matData = await materialService.getAll()
+        setMaterials(matData || [])
       } catch { /* ignore */ }
     }
     fetchBom()
@@ -43,7 +44,7 @@ export default function BomDetail() {
 
   const handleStatusChange = async (newStatus) => {
     try {
-      await bomApi.changeStatus(id, newStatus)
+      await bomService.changeStatus(id, newStatus)
       fetchBom()
     } catch {
       setError('Không thể thay đổi trạng thái')
@@ -53,7 +54,7 @@ export default function BomDetail() {
   const handleAddItem = async (e) => {
     e.preventDefault()
     try {
-      await bomApi.addItem(id, {
+      await bomService.addItem(id, {
         rawMaterial: { id: Number(itemForm.materialId) },
         quantity: Number(itemForm.quantity),
         unit: itemForm.unit,
@@ -70,7 +71,7 @@ export default function BomDetail() {
   const handleRemoveItem = async (itemId) => {
     if (!window.confirm('Bạn có chắc muốn xóa thành phần này?')) return
     try {
-      await bomApi.removeItem(itemId)
+      await bomService.removeItem(itemId)
       fetchBom()
     } catch {
       setError('Không thể xóa thành phần')

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout from '../components/AuthLayout'
-import { authApi } from '../services/api'
+import authService from '../services/authService'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -29,7 +29,7 @@ export default function ForgotPassword() {
     setLoading(true)
 
     try {
-      const { data } = await authApi.forgotPassword({ email: email.trim() })
+      const data = await authService.forgotPassword({ email: email.trim() })
       if (data?.success || (typeof data === 'string' && data.includes('thành công')) || data) {
          setSuccessMsg('Đã gửi email khôi phục mật khẩu. Vui lòng kiểm tra email của bạn.');
          setTimeout(() => {

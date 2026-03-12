@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { Card, StatCard, Table, Td, Badge, Loading, PageHeader, fmt, fmtCurrency } from '../../components/ui'
-import { materialApi, dashboardApi } from '../../services/api'
+import dashboardService from '../../services/dashboardService'
+import materialService from '../../services/materialService'
 
 export default function InventoryOverview() {
   const [materials, setMaterials] = useState([])
@@ -11,13 +12,12 @@ export default function InventoryOverview() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [matRes, statsRes] = await Promise.all([
-          materialApi.getAll(),
-          dashboardApi.getStats(),
+        const [matItems, statsData] = await Promise.all([
+          materialService.getAll(),
+          dashboardService.getStats(),
         ])
-        const matItems = Array.isArray(matRes.data) ? matRes.data : matRes.data?.data || []
-        setMaterials(matItems)
-        setStats(statsRes.data?.data || statsRes.data)
+        setMaterials(matItems || [])
+        setStats(statsData)
       } catch {
         setMaterials([])
       } finally {

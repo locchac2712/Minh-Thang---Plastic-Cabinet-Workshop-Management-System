@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, Field, TextArea, Select, Btn, LinkBtn, Alert, Loading } from '../../components/ui'
-import { productApi } from '../../services/api'
+import productService from '../../services/productService'
 
 export default function ProductForm() {
   const { id } = useParams()
@@ -18,10 +18,9 @@ export default function ProductForm() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    productApi.getCategories().then((res) => setCategories(res.data.data || [])).catch(() => {})
+    productService.getCategories().then((data) => setCategories(data || [])).catch(() => {})
     if (isEdit) {
-      productApi.getById(id).then((res) => {
-        const p = res.data.data
+      productService.getById(id).then((p) => {
         setForm({
           name: p.name || '',
           sku: p.sku || '',
@@ -52,9 +51,9 @@ export default function ProductForm() {
         categoryId: form.categoryId || null,
       }
       if (isEdit) {
-        await productApi.update(id, payload)
+        await productService.update(id, payload)
       } else {
-        await productApi.create(payload)
+        await productService.create(payload)
       }
       navigate('/products')
     } catch (err) {

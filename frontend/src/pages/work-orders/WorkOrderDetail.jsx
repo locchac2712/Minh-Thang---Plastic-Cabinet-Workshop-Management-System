@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, DetailGrid, Badge, Btn, LinkBtn, Field, Loading, Icons, fmt, fmtDate } from '../../components/ui'
-import { workOrderApi } from '../../services/api'
+import workOrderService from '../../services/workOrderService'
 
 const STATUS_BADGE = {
   PENDING: { variant: 'yellow', label: 'Chờ xử lý' },
@@ -23,12 +23,11 @@ export default function WorkOrderDetail() {
   const fetchData = async () => {
     try {
       setLoading(true)
-      const { data } = await workOrderApi.getById(id)
-      const item = data.data || data
+      const item = await workOrderService.getById(id)
       setWo(item)
       setProgressForm({
-        completedQuantity: item.completedQuantity || 0,
-        scrapQuantity: item.scrapQuantity || 0,
+        completedQuantity: item?.completedQuantity || 0,
+        scrapQuantity: item?.scrapQuantity || 0,
       })
     } catch {
       navigate('/work-orders')
@@ -41,7 +40,7 @@ export default function WorkOrderDetail() {
 
   const handleStatusChange = async (newStatus) => {
     try {
-      await workOrderApi.changeStatus(id, newStatus)
+      await workOrderService.changeStatus(id, newStatus)
       fetchData()
     } catch { /* ignore */ }
   }
@@ -50,7 +49,7 @@ export default function WorkOrderDetail() {
     e.preventDefault()
     setUpdating(true)
     try {
-      await workOrderApi.updateProgress(id, {
+      await workOrderService.updateProgress(id, {
         completedQuantity: Number(progressForm.completedQuantity),
         scrapQuantity: Number(progressForm.scrapQuantity),
       })

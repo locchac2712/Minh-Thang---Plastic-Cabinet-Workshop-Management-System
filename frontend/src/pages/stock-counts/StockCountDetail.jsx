@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { PageHeader, Card, DetailGrid, Table, Td, Badge, Btn, LinkBtn, Loading, EmptyState, Icons, fmt, fmtDate } from '../../components/ui'
-import { stockCountApi } from '../../services/api'
+import stockCountService from '../../services/stockCountService'
 
 const STATUS_BADGE = {
   DRAFT: { variant: 'yellow', label: 'Nháp' },
@@ -19,8 +19,8 @@ export default function StockCountDetail() {
 
   const fetchData = async () => {
     try {
-      const res = await stockCountApi.getById(id)
-      setCount(res.data.data)
+      const data = await stockCountService.getById(id)
+      setCount(data)
     } catch {
       setCount(null)
     } finally {
@@ -34,7 +34,7 @@ export default function StockCountDetail() {
     if (!window.confirm('Bạn có chắc muốn hoàn thành phiếu kiểm kê này?')) return
     try {
       setCompleting(true)
-      await stockCountApi.complete(id)
+      await stockCountService.complete(id)
       fetchData()
     } catch {
       alert('Hoàn thành kiểm kê thất bại.')

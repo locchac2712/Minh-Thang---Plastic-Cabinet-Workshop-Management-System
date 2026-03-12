@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { Card, StatCard, Table, Td, Badge, Loading, PageHeader, fmt, fmtCurrency, fmtDate } from '../../components/ui'
-import { salesOrderApi } from '../../services/api'
+import salesOrderService from '../../services/salesOrderService'
 
 export default function ProfitReport() {
   const [orders, setOrders] = useState([])
@@ -10,9 +10,8 @@ export default function ProfitReport() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data } = await salesOrderApi.getAll()
-        const items = Array.isArray(data) ? data : data?.data || []
-        setOrders(items)
+        const data = await salesOrderService.getAll()
+        setOrders(data || [])
       } catch {
         setOrders([])
       } finally {
