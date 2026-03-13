@@ -14,6 +14,7 @@ public class ProductResponse {
     private String unit;
     private String description;
     private String status;
+    private String imageUrl;
 
     public ProductResponse(Product p) {
         this.id = p.getId();
@@ -25,5 +26,6 @@ public class ProductResponse {
         this.description = p.getDescription();
         // Chuyển Enum thành String (DRAFT, ACTIVE, DEACTIVATED)
         this.status = p.getStatus() != null ? p.getStatus().name() : "DRAFT";
+        this.imageUrl = p.getImageUrl();
     }
 }

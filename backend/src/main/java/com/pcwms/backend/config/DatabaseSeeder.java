@@ -43,7 +43,6 @@ public class DatabaseSeeder implements CommandLineRunner {
     @Autowired
     private SupplierMaterialRepository supplierMaterialRepository;
 
-    // 👉 BỔ SUNG: Kho chứa Định mức (BOM)
     @Autowired
     private BillOfMaterialRepository billOfMaterialRepository;
 
@@ -88,9 +87,8 @@ public class DatabaseSeeder implements CommandLineRunner {
             System.out.println("-> Đã tạo 2 Khách hàng CRM mẫu.");
         }
 
-        // 4. TẠO VẬT TƯ & THÀNH PHẨM (Bơm nhiều Data để test cảnh báo)
+        // 4. TẠO VẬT TƯ & THÀNH PHẨM
         if (materialRepository.count() == 0) {
-            // Nhóm 1: Vật tư dồi dào (An toàn - Xanh)
             Material m1 = new Material();
             m1.setName("Gỗ Sồi Nga");
             m1.setSku("MAT-WOOD-001");
@@ -111,13 +109,12 @@ public class DatabaseSeeder implements CommandLineRunner {
             m2.setDescription("Đinh ốc Lỏ.");
             materialRepository.save(m2);
 
-            // Nhóm 2: Vật tư sắp hết (Cảnh báo - Đỏ)
             Material m3 = new Material();
             m3.setName("Sơn phủ bóng PU");
             m3.setSku("MAT-PAINT-003");
             m3.setUnit("Lít");
             m3.setMinStockLevel(50);
-            m3.setCurrentStock(15); // Tồn < Ngưỡng
+            m3.setCurrentStock(15);
             m3.setActive(true);
             m3.setDescription("Sơn Trộm Của Sơn lại cuộc đời.");
             materialRepository.save(m3);
@@ -127,12 +124,11 @@ public class DatabaseSeeder implements CommandLineRunner {
             m4.setSku("MAT-GLUE-004");
             m4.setUnit("Hũ");
             m4.setMinStockLevel(20);
-            m4.setCurrentStock(5); // Tồn < Ngưỡng
+            m4.setCurrentStock(5);
             m4.setActive(true);
             m4.setDescription("Keo con chó.");
             materialRepository.save(m4);
 
-            // Nhóm 3: Vật tư ngừng sử dụng (Test Soft Delete - Ẩn)
             Material m5 = new Material();
             m5.setName("Vải nỉ cũ (Mẫu 2024)");
             m5.setSku("MAT-FABRIC-005");
@@ -143,7 +139,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             m5.setDescription("Vải nỉ đã ngừng sử dụng, chỉ để lại làm mẫu test xóa mềm.");
             materialRepository.save(m5);
 
-            System.out.println("-> Đã tạo 5 Nguyên vật liệu mẫu (Đủ kịch bản Xanh/Đỏ/Ẩn).");
+            System.out.println("-> Đã tạo 5 Nguyên vật liệu mẫu.");
         }
 
         if (productRepository.count() == 0) {
@@ -160,51 +156,45 @@ public class DatabaseSeeder implements CommandLineRunner {
             System.out.println("-> Đã tạo 1 Thành phẩm mẫu.");
         }
 
-        // 4.1 TẠO NHÀ CUNG CẤP & NỐI VỚI VẬT TƯ (BẢNG TRUNG GIAN)
+        // 👉 4.1 TẠO NHÀ CUNG CẤP VỚI CẤU TRÚC MỚI
         if (supplierRepository.count() == 0) {
-            // Tạo 1 ông Nhà cung cấp xịn
             Supplier sup1 = new Supplier();
             sup1.setName("Công ty TNHH Gỗ Trường Thành");
-            sup1.setContactInfo("0909123456 - KCN Sóng Thần, Bình Dương");
+            sup1.setContactPerson("Nguyễn Văn Trường"); // Thêm tên người liên hệ
+            sup1.setPhoneNumber("0909123456");         // Tách SĐT
+            sup1.setEmail("contact@gotruongthanh.vn"); // Thêm Email
+            sup1.setAddress("KCN Sóng Thần, Bình Dương"); // Tách Địa chỉ
+            sup1.setStatus("ACTIVE");                  // Trạng thái mặc định
             supplierRepository.save(sup1);
 
-            // Tìm lại ông "Gỗ Sồi Nga" vừa tạo ở trên
             Material goSoi = materialRepository.findAll().stream()
                     .filter(m -> m.getName().equals("Gỗ Sồi Nga"))
                     .findFirst()
                     .orElse(null);
 
-            // Tiến hành nối dây và báo giá nhập
             if (goSoi != null) {
                 SupplierMaterial sm = new SupplierMaterial();
                 sm.setSupplier(sup1);
                 sm.setMaterial(goSoi);
-                sm.setPurchasePrice(new BigDecimal("12000000")); // Giá nhập: 12 củ/khối
+                sm.setPurchasePrice(new BigDecimal("12000000"));
                 supplierMaterialRepository.save(sm);
             }
 
-            System.out.println("-> Đã tạo Nhà cung cấp và nối với Gỗ Sồi Nga thành công!");
+            System.out.println("-> Đã tạo Nhà cung cấp (Phiên bản mới) và nối với Gỗ Sồi Nga thành công!");
         }
 
-// 👉 4.2 TẠO ĐỊNH MỨC SẢN XUẤT (BOM) MẪU
+        // 4.2 TẠO ĐỊNH MỨC SẢN XUẤT (BOM) MẪU
         if (billOfMaterialRepository.count() == 0) {
             Product banLamViec = productRepository.findAll().stream()
                     .filter(p -> p.getSku().equals("SP-BAN-001")).findFirst().orElse(null);
-
             Material goSoi = materialRepository.findAll().stream()
                     .filter(m -> m.getSku().equals("MAT-WOOD-001")).findFirst().orElse(null);
-
             Material dinhOc = materialRepository.findAll().stream()
                     .filter(m -> m.getSku().equals("MAT-IRON-002")).findFirst().orElse(null);
-
             Material keoDan = materialRepository.findAll().stream()
                     .filter(m -> m.getSku().equals("MAT-GLUE-004")).findFirst().orElse(null);
 
             if (banLamViec != null && goSoi != null && dinhOc != null && keoDan != null) {
-
-                // ==========================================
-                // 🛑 BOM SỐ 1: ĐÃ DUYỆT (Dùng để test chặn Edit)
-                // ==========================================
                 BillOfMaterial bom1 = new BillOfMaterial();
                 bom1.setProduct(banLamViec);
                 bom1.setVersion("1.0");
@@ -223,19 +213,15 @@ public class DatabaseSeeder implements CommandLineRunner {
 
                 billOfMaterialRepository.save(bom1);
 
-                // ==========================================
-                // 🟢 BOM SỐ 2: BẢN NHÁP (Dùng để test Edit thành công và Approve)
-                // ==========================================
                 BillOfMaterial bom2 = new BillOfMaterial();
                 bom2.setProduct(banLamViec);
                 bom2.setVersion("2.0-DRAFT");
                 bom2.setIsApproved(false); // 👉 CHƯA DUYỆT (Được phép Edit)
                 bom2.setIsActive(true);
 
-                // Bản nháp này mới chỉ có Gỗ, chưa có Đinh và Keo
                 BillOfMaterialDetail detail2_1 = new BillOfMaterialDetail();
                 detail2_1.setMaterial(goSoi);
-                detail2_1.setQuantityRequired(new BigDecimal("0.4500")); // Thử giảm gỗ xuống
+                detail2_1.setQuantityRequired(new BigDecimal("0.4500"));
                 bom2.addBomDetail(detail2_1);
 
                 billOfMaterialRepository.save(bom2);
@@ -244,7 +230,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             }
         }
 
-        // 5. TẠO PHIẾU KHO MẪU ĐỂ TEST API (BẢN NÂNG CẤP NHIỀU DATA)
+        // 5. TẠO PHIẾU KHO MẪU ĐỂ TEST API
         if (warehouseTransactionRepository.count() == 0) {
             Staff thuKho = staffRepository.findAll().stream()
                     .filter(s -> s.getUser().getUsername().equals("warehouse_manager"))
@@ -255,8 +241,6 @@ public class DatabaseSeeder implements CommandLineRunner {
             Material goSoi = materialRepository.findAll().stream().findFirst().orElse(null);
 
             if (thuKho != null && banLamViec != null && goSoi != null) {
-
-                // --- 1. TẠO 1 PHIẾU NHẬP KHO VẬT TƯ TRƯỚC ---
                 WarehouseTransaction phieuNhap = new WarehouseTransaction();
                 phieuNhap.setType(TransactionType.IMPORT);
                 phieuNhap.setReferenceId("PO-SUPPLIER-999");
@@ -271,17 +255,14 @@ public class DatabaseSeeder implements CommandLineRunner {
                 phieuNhap.setDetails(List.of(chiTietNhap));
                 warehouseTransactionRepository.save(phieuNhap);
 
-                // --- 2. DÙNG VÒNG LẶP ĐẺ RA 15 PHIẾU XUẤT KHO ---
                 for (int i = 1; i <= 15; i++) {
                     WarehouseTransaction phieuXuat = new WarehouseTransaction();
                     phieuXuat.setType(TransactionType.EXPORT);
-
                     if (i % 3 == 0) {
                         phieuXuat.setReferenceId("SO-VIP-2026-00" + i);
                     } else {
                         phieuXuat.setReferenceId("SO-NORMAL-2026-00" + i);
                     }
-
                     phieuXuat.setDate(java.time.LocalDateTime.now().minusHours(i));
                     phieuXuat.setStaff(thuKho);
 
@@ -293,8 +274,7 @@ public class DatabaseSeeder implements CommandLineRunner {
                     phieuXuat.setDetails(List.of(chiTietXuat));
                     warehouseTransactionRepository.save(phieuXuat);
                 }
-
-                System.out.println("-> Đã tạo 1 Phiếu Nhập và 15 Phiếu Xuất kho mẫu thành công (Sẵn sàng test Phân trang)!");
+                System.out.println("-> Đã tạo 1 Phiếu Nhập và 15 Phiếu Xuất kho mẫu thành công!");
             }
         }
 

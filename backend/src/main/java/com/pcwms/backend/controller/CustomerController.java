@@ -8,56 +8,56 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/api/v1/customer")
+@RequestMapping("/api/v1/customers")
 public class CustomerController {
 
     @Autowired
     private CustomerService customerService;
 
-    @GetMapping()
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('STAFF')")
-    public ResponseEntity<ResponseObject> getCustomer(@PathVariable Long id) {
+    @GetMapping
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ResponseObject> getAllCustomer() {
         return ResponseEntity.ok(
-                new ResponseObject("SUCCESS", "Lấy danh sách thành công",
-                        customerService.findAll())
+                new ResponseObject("SUCCESS", "Lấy danh sách khách hàng thành công",
+                        customerService.getAllCustomer())
         );
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('STAFF')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ResponseObject> getCustomerById(@PathVariable Long id) {
         return ResponseEntity.ok(
-                new ResponseObject("SUCCESS", "Lấy danh sách thành công",
-                        customerService.findById(id))
+                new ResponseObject("SUCCESS", "Lấy thông tin khách hàng thành công",
+                        customerService.getCustomerById(id))
         );
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALE_MANAGER')")
     public ResponseEntity<ResponseObject> createCustomer(@RequestBody Customer customer) {
         return ResponseEntity.ok(
-                new ResponseObject("SUCCESS", "Tạo thành công",
-                        customerService.createCutomer(customer))
+                new ResponseObject("SUCCESS", "Thêm khách hàng thành công",
+                        customerService.createCustomer(customer))
         );
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('STAFF')")
-    public ResponseEntity<ResponseObject> updateCustomer(@PathVariable Long id,
-                                                          @RequestBody Customer customer) {
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALE_MANAGER')")
+    public ResponseEntity<ResponseObject> updateCustomer(@PathVariable Long id, @RequestBody Customer customer) {
         return ResponseEntity.ok(
-                new ResponseObject("SUCCESS", "Cập nhật thành công",
-                        customerService.updateCutomer(id, customer))
+                new ResponseObject("SUCCESS", "Cập nhật khách hàng thành công",
+                        customerService.updateCustomer(id, customer))
         );
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
     public ResponseEntity<ResponseObject> deleteCustomer(@PathVariable Long id) {
+        customerService.deleteCustomer(id);
         return ResponseEntity.ok(
-                new ResponseObject("SUCCESS", "Xoá thành công",
-                        null)
+                new ResponseObject("SUCCESS", "Xóa khách hàng thành công", null)
         );
     }
 }

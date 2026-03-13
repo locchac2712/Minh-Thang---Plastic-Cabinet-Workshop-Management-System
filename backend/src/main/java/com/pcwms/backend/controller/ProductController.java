@@ -1,5 +1,6 @@
 package com.pcwms.backend.controller;
 
+import com.pcwms.backend.dto.response.ProductResponse;
 import com.pcwms.backend.dto.response.ResponseObject;
 import com.pcwms.backend.entity.Product;
 import com.pcwms.backend.entity.ProductStatus;
@@ -8,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -21,8 +24,10 @@ public class ProductController {
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ResponseObject> getAllProducts() {
+        List<ProductResponse> products = productService.getAllProducts();
         return ResponseEntity.ok(
-                new ResponseObject("SUCCESS", "Lấy danh sách thành phẩm thành công", productService.getAllProducts())
+                new ResponseObject("SUCCESS", "Lấy danh sách thành phẩm thành công",
+                        productService.getAllProducts())
         );
     }
 
@@ -31,7 +36,8 @@ public class ProductController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ResponseObject> getProductById(@PathVariable Long id) {
         return ResponseEntity.ok(
-                new ResponseObject("SUCCESS", "Lấy chi tiết thành phẩm thành công", productService.getProductDetail(id))
+                new ResponseObject("SUCCESS", "Lấy chi tiết thành phẩm thành công",
+                        productService.getProductDetail(id))
         );
     }
 
@@ -40,7 +46,8 @@ public class ProductController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('PRODUCTION_MANAGER')")
     public ResponseEntity<ResponseObject> createProduct(@RequestBody Product product) {
         return ResponseEntity.ok(
-                new ResponseObject("SUCCESS", "Thêm thành phẩm thành công", productService.createProduct(product))
+                new ResponseObject("SUCCESS", "Thêm thành phẩm thành công",
+                        productService.createProduct(product))
         );
     }
 
@@ -49,7 +56,8 @@ public class ProductController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('PRODUCTION_MANAGER')")
     public ResponseEntity<ResponseObject> updateProduct(@PathVariable Long id, @RequestBody Product product) {
         return ResponseEntity.ok(
-                new ResponseObject("SUCCESS", "Cập nhật thành phẩm thành công", productService.updateProduct(id, product))
+                new ResponseObject("SUCCESS", "Cập nhật thành phẩm thành công",
+                        productService.updateProduct(id, product))
         );
     }
 

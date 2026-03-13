@@ -34,7 +34,7 @@ public class ProductService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm với ID: " + id));
     }
 
-    public Product createProduct(Product product) {
+    public ProductResponse createProduct(Product product) {
         if (productRepository.existsBySku(product.getSku())) {
             throw new RuntimeException("SKU đã tồn tại. Vui lòng chọn một SKU khác.");
         }
@@ -47,10 +47,10 @@ public class ProductService {
             product.setStatus(ProductStatus.DRAFT);
         }
 
-        return productRepository.save(product);
+        return new ProductResponse(productRepository.save(product));
     }
 
-    public Product updateProduct(Long id, Product productDetails) {
+    public ProductResponse updateProduct(Long id, Product productDetails) {
         // 👉 SỬA LỖI: Dùng hàm getProductEntityById ở trên để tránh lỗi
         Product existingProduct = getProductEntityById(id);
 
@@ -75,7 +75,10 @@ public class ProductService {
             existingProduct.setStatus(productDetails.getStatus());
         }
 
-        return productRepository.save(existingProduct);
+        if(productDetails.getImageUrl() != null) {
+            existingProduct.setImageUrl(productDetails.getImageUrl());
+        }
+        return new ProductResponse(productRepository.save(existingProduct));
     }
 
     // 👉 CHUYỂN SANG XÓA MỀM (SOFT DELETE) THAY VÌ XÓA CỨNG

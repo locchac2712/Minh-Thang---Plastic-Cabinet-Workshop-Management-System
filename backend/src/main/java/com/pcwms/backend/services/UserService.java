@@ -78,10 +78,32 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
     }
 
+    private static final String DEFAULT_PASSWORD = "Pizama123";
+
+    private void validatePassword(String password) {
+        if (password == null || password.length() < 8) {
+            throw new RuntimeException("Mật khẩu phải có ít nhất 8 ký tự!");
+        }
+        if (!password.matches(".*[A-Z].*")) {
+            throw new RuntimeException("Mật khẩu phải có ít nhất 1 chữ hoa!");
+        }
+        if (!password.matches(".*[0-9].*")) {
+            throw new RuntimeException("Mật khẩu phải có ít nhất 1 chữ số!");
+        }
+    }
+
     public User createUser(User user) {
         if (userRepository.existsByUsername(user.getUsername())) {
             throw new RuntimeException("Tai khoản đã tồn tại. Vui lòng chọn một tên đăng nhập khác.");
         }
+        // Nếu không truyền password thì dùng default, ngược lại validate rồi encode
+        String rawPassword = (user.getPassword() == null || user.getPassword().trim().isEmpty())
+                ? DEFAULT_PASSWORD
+                : user.getPassword();
+
+        validatePassword(rawPassword);
+        user.setPassword(passwordEncoder.encode(rawPassword));
+
         return userRepository.save(user);
     }
 
@@ -93,14 +115,20 @@ public class UserService {
         existingUser.setUsername(userDetails.getUsername());
         existingUser.setEmail(userDetails.getEmail());
         existingUser.setIsActive(userDetails.getIsActive());
-        existingUser.setPassword(passwordEncoder.encode(userDetails.getPassword()));
         existingUser.setRole(userDetails.getRole());
-        // Cập nhật các trường khác nếu cần
+
+        // Nếu có truyền password mới thì validate + encode, ngược lại giữ nguyên
+        if (userDetails.getPassword() != null && !userDetails.getPassword().trim().isEmpty()) {
+            validatePassword(userDetails.getPassword());
+            existingUser.setPassword(passwordEncoder.encode(userDetails.getPassword()));
+        }
+
         return userRepository.save(existingUser);
     }
 
     public void deleteUser(Long id) {
         User user = getUserById(id);
+        user.setIsActive(false);
         userRepository.delete(user);
     }
 

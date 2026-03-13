@@ -8,4 +8,6 @@ import org.springframework.stereotype.Repository;
 public interface SupplierRepository extends JpaRepository<Supplier, Long> {
     // Check trùng tên nhà cung cấp
     boolean existsByName(String name);
+
+    boolean existsByEmail(String email);
 }

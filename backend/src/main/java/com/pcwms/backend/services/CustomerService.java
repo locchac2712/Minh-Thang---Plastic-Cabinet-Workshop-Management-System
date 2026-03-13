@@ -1,6 +1,7 @@
 package com.pcwms.backend.services;
 
 import com.pcwms.backend.entity.Customer;
+import com.pcwms.backend.entity.Supplier;
 import com.pcwms.backend.repository.CustomerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -12,40 +13,36 @@ public class CustomerService {
     @Autowired
     private CustomerRepository customerRepository;
 
-    // read all khach hang
-    public List<Customer> findAll() {
+    public List<Customer> getAllCustomer() {
         return customerRepository.findAll();
     }
 
-    // lay chi tiet 1 khach hang
-    public Customer findById(Long id) {
+    public Customer getCustomerById(Long id) {
         return customerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng với ID: " + id ));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng với ID: " + id));
     }
 
-    //tao moi khach hang
-    public Customer createCutomer(Customer customer) {
-        if (customerRepository.findById(customer.getId()).isPresent()) {
-            throw new RuntimeException("Khách hàng đã tồn tại.");
+    public Customer createCustomer(Customer customer) {
+        // Tên khách hàng logic check if name exists
+        if (customerRepository.existsByName(customer.getName())) {
+            throw new RuntimeException("Tên khách hàng đã tồn tại trong hệ thống!");
         }
         return customerRepository.save(customer);
     }
 
-    // update thong tin khach hang
-    public Customer updateCutomer(Long id,Customer newCustomer) {
-        Customer customer = findById(id);
-
-        customer.setAddress(newCustomer.getAddress());
-        customer.setCompanyName(newCustomer.getCompanyName());
-        customer.setCreditLimit(newCustomer.getCreditLimit());
-        customer.setCurrentDebt(newCustomer.getCurrentDebt());
-        return customerRepository.save(customer);
-
+    public Customer updateCustomer(Long id, Customer customer) {
+        Customer existing = getCustomerById(id);
+        existing.setName(customer.getName());
+        existing.setAddress(customer.getAddress());
+        existing.setTaxCode(customer.getTaxCode());
+        existing.setCreditLimit(customer.getCreditLimit());
+        existing.setEmail(customer.getEmail());
+        existing.setCurrentDebt(customer.getCurrentDebt()); // Fixed to use input debt or keep existing? loc-be had existing.setCurrentDebt(existing.getCurrentDebt()) which does nothing.
+        return customerRepository.save(existing);
     }
 
-    // delete khach hang
-    public void deleteCutomer(Long id) {
-        Customer customer = findById(id);
+    public void deleteCustomer(Long id) {
+        Customer customer = getCustomerById(id);
         customerRepository.delete(customer);
     }
 

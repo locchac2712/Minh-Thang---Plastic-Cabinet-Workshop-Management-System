@@ -10,7 +10,7 @@ export default function ProductForm() {
   const isEdit = Boolean(id)
 
   const [form, setForm] = useState({
-    name: '', sku: '', description: '', categoryId: '', price: '', costPrice: '', unit: '', imageUrl: '',
+    name: '', sku: '', description: '', categoryId: '', sellingPrice: '', currentStock: '', unit: '', imageUrl: '',
   })
   const [categories, setCategories] = useState([])
   const [saving, setSaving] = useState(false)
@@ -26,8 +26,8 @@ export default function ProductForm() {
           sku: p.sku || '',
           description: p.description || '',
           categoryId: p.categoryId || p.category?.id || '',
-          price: p.price ?? '',
-          costPrice: p.costPrice ?? '',
+          sellingPrice: p.sellingPrice ?? '',
+          currentStock: p.currentStock ?? '',
           unit: p.unit || '',
           imageUrl: p.imageUrl || '',
         })
@@ -46,8 +46,8 @@ export default function ProductForm() {
     try {
       const payload = {
         ...form,
-        price: form.price ? Number(form.price) : null,
-        costPrice: form.costPrice ? Number(form.costPrice) : null,
+        sellingPrice: form.sellingPrice ? Number(form.sellingPrice) : null,
+        currentStock: form.currentStock ? Number(form.currentStock) : 0,
         categoryId: form.categoryId || null,
       }
       if (isEdit) {
@@ -74,7 +74,7 @@ export default function ProductForm() {
   return (
     <DashboardLayout title={isEdit ? 'Sửa sản phẩm' : 'Thêm sản phẩm'}>
       <PageHeader title={isEdit ? 'Sửa sản phẩm' : 'Thêm sản phẩm'} />
-      <Alert type="error" message={error} />
+      {error && <Alert type="error" message={error} onClose={() => setError('')} />}
       <Card className="p-6 max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -95,8 +95,8 @@ export default function ProductForm() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <Field label="Giá bán" name="price" type="number" value={form.price} onChange={handleChange} />
-            <Field label="Giá vốn" name="costPrice" type="number" value={form.costPrice} onChange={handleChange} />
+            <Field label="Giá bán" name="sellingPrice" type="number" value={form.sellingPrice} onChange={handleChange} />
+            <Field label="Tồn kho" name="currentStock" type="number" value={form.currentStock} onChange={handleChange} />
           </div>
 
           <Field label="URL hình ảnh" name="imageUrl" value={form.imageUrl} onChange={handleChange} placeholder="https://..." />

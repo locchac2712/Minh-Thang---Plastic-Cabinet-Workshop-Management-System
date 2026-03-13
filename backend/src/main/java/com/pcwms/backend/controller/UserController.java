@@ -48,18 +48,30 @@ public class UserController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
     public ResponseEntity<?> createUser(@RequestBody User user) {
-        return ResponseEntity.ok(
-                new ResponseObject("SUCCESS", "Thêm user thành công", userService.createUser(user))
-        );
+        try {
+            return ResponseEntity.ok(
+                    new ResponseObject("SUCCESS", "Thêm user thành công", userService.createUser(user))
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", e.getMessage(), null)
+            );
+        }
     }
 
     // cap nhat thong tin nguoi dung/staff
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User user) {
-        return ResponseEntity.ok(
-                new ResponseObject("SUCCESS", "Cập nhật user thành công", userService.updateUser(id, user))
-        );
+        try {
+            return ResponseEntity.ok(
+                    new ResponseObject("SUCCESS", "Cập nhật user thành công", userService.updateUser(id, user))
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", e.getMessage(), null)
+            );
+        }
     }
 
     // xoa nguoi dung/staff
