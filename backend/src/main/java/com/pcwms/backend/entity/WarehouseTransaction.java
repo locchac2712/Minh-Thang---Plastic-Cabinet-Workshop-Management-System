@@ -36,6 +36,10 @@ public class WarehouseTransaction {
     @Column(name = "reference_id")
     private String referenceId;
 
+    @ManyToOne
+    @JoinColumn(name = "warehouse_id")
+    private Warehouse warehouse;
+
     @Column(name = "date")
     private LocalDateTime date;
 

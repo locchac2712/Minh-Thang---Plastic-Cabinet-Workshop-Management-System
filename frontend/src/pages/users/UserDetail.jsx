@@ -5,24 +5,24 @@ import { PageHeader, Card, DetailGrid, Field, Select, Badge, Btn, LinkBtn, Alert
 import userService from '../../services/userService'
 
 const ROLES = [
-  { value: 'ADMIN', label: 'Admin' },
-  { value: 'DIRECTOR', label: 'Giám đốc' },
-  { value: 'SALES_STAFF', label: 'NV Bán hàng' },
-  { value: 'SALES_MANAGER', label: 'QL Bán hàng' },
-  { value: 'WAREHOUSE_MANAGER', label: 'QL Kho' },
-  { value: 'PRODUCTION_MANAGER', label: 'QL Sản xuất' },
+  { value: 'ROLE_ADMIN', label: 'Quản trị viên' },
+  { value: 'ROLE_DIRECTOR', label: 'Giám đốc' },
+  { value: 'ROLE_SALES_STAFF', label: 'Nhân viên bán hàng' },
+  { value: 'ROLE_SALES_MANAGER', label: 'Quản lý bán hàng' },
+  { value: 'ROLE_WAREHOUSE_MANAGER', label: 'Quản lý kho' },
+  { value: 'ROLE_PRODUCTION_MANAGER', label: 'Quản lý sản xuất' },
+  { value: 'ROLE_ACCOUNTANT', label: 'Kế toán' }
 ]
 
-const ROLE_COLORS = {
-  ADMIN: 'red',
-  DIRECTOR: 'purple',
-  SALES_STAFF: 'blue',
-  SALES_MANAGER: 'cyan',
-  WAREHOUSE_MANAGER: 'yellow',
-  PRODUCTION_MANAGER: 'green',
+const ROLE_LABELS = {
+  ROLE_ADMIN: 'Quản trị viên',
+  ROLE_DIRECTOR: 'Giám đốc',
+  ROLE_SALES_STAFF: 'Nhân viên bán hàng',
+  ROLE_SALES_MANAGER: 'Quản lý bán hàng',
+  ROLE_WAREHOUSE_MANAGER: 'Quản lý kho',
+  ROLE_PRODUCTION_MANAGER: 'Quản lý sản xuất',
+  ROLE_ACCOUNTANT: 'Kế toán',
 }
-
-const ROLE_LABELS = Object.fromEntries(ROLES.map((r) => [r.value, r.label]))
 
 export default function UserDetail() {
   const { id } = useParams()
@@ -30,15 +30,24 @@ export default function UserDetail() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
-  const [form, setForm] = useState({ fullName: '', phone: '', department: '', role: '' })
+  const [formData, setFormData] = useState({ username: '', fullName: '', email: '', phone: '', address: '', role: '' })
+  const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
   const [alert, setAlert] = useState(null)
+  const [newPassword, setNewPassword] = useState('')
 
   const fetchUser = async () => {
     try {
       const u = await userService.getById(id)
       setUser(u)
-      setForm({ fullName: u.fullName || '', phone: u.phone || '', department: u.department || '', role: u.role || '' })
+      setFormData({ 
+        username: u.username || '', 
+        fullName: u.fullName || '', 
+        email: u.email || '', 
+        phone: u.phone || '', 
+        address: u.address || '', 
+        role: u.role || '' 
+      })
     } catch {
       setAlert({ type: 'error', message: 'Không thể tải thông tin người dùng' })
     } finally {
@@ -48,16 +57,31 @@ export default function UserDetail() {
 
   useEffect(() => { fetchUser() }, [id])
 
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const validate = () => {
+    const nextErrors = {}
+    if (!formData.fullName) nextErrors.fullName = 'Họ và tên là bắt buộc'
+    if (!formData.email) {
+      nextErrors.email = 'Email là bắt buộc'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      nextErrors.email = 'Email không đúng định dạng'
+    }
+    if (!formData.phone) {
+      nextErrors.phone = 'Số điện thoại là bắt buộc'
+    } else if (!/^\d{10}$/.test(formData.phone)) {
+      nextErrors.phone = 'Số điện thoại phải có 10 chữ số'
+    }
+    setErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
 
   const handleSave = async () => {
+    if (!validate()) return
     setSaving(true)
     setAlert(null)
     try {
-      await userService.update(id, form)
-      setAlert({ type: 'success', message: 'Cập nhật thành công' })
-      setEditMode(false)
-      fetchUser()
+      await userService.update(id, formData)
+      setAlert({ type: 'success', message: 'Cập nhật thành công! Đang quay lại danh sách...' })
+      setTimeout(() => navigate('/users'), 1500)
     } catch (err) {
       setAlert({ type: 'error', message: err.response?.data?.message || 'Cập nhật thất bại' })
     } finally {
@@ -66,16 +90,23 @@ export default function UserDetail() {
   }
 
   const handleCancel = () => {
-    setForm({ fullName: user.fullName || '', phone: user.phone || '', department: user.department || '', role: user.role || '' })
+    setFormData({ 
+      username: user.username || '', 
+      fullName: user.fullName || '', 
+      email: user.email || '', 
+      phone: user.phone || '', 
+      address: user.address || '', 
+      role: user.role || '' 
+    })
+    setErrors({})
     setEditMode(false)
   }
 
   const handleResetPassword = async () => {
-    if (!window.confirm(`Đặt lại mật khẩu cho "${user.fullName}"?`)) return
     try {
-      const data = await userService.resetPassword(id)
-      const msg = data?.message || data || 'Đặt lại mật khẩu thành công'
-      setAlert({ type: 'success', message: msg })
+      const pass = await userService.resetPassword(id)
+      setNewPassword(pass)
+      setAlert({ type: 'success', message: 'Đã đặt lại mật khẩu mới!' })
     } catch (err) {
       setAlert({ type: 'error', message: err.response?.data?.message || 'Đặt lại mật khẩu thất bại' })
     }
@@ -83,11 +114,11 @@ export default function UserDetail() {
 
   const handleToggleActive = async () => {
     const action = user.active ? 'vô hiệu hóa' : 'kích hoạt'
-    if (!window.confirm(`Bạn muốn ${action} tài khoản "${user.fullName}"?`)) return
     try {
-      await userService.toggleActive(id)
-      setAlert({ type: 'success', message: `${action.charAt(0).toUpperCase() + action.slice(1)} tài khoản thành công` })
-      fetchUser()
+      if (user.active) await userService.lock(id)
+      else await userService.unlock(id)
+      setAlert({ type: 'success', message: `${action.charAt(0).toUpperCase() + action.slice(1)} tài khoản thành công! Đang quay lại danh sách...` })
+      setTimeout(() => navigate('/users'), 1500)
     } catch (err) {
       setAlert({ type: 'error', message: err.response?.data?.message || `${action} thất bại` })
     }
@@ -114,109 +145,179 @@ export default function UserDetail() {
 
   return (
     <DashboardLayout title="Chi tiết người dùng">
-      <PageHeader title={editMode ? 'Sửa người dùng' : 'Chi tiết người dùng'}>
-        {!editMode ? (
-          <>
-            <Btn variant="secondary" onClick={() => setEditMode(true)}>
-              {Icons.edit} Sửa
-            </Btn>
-            <LinkBtn to="/users" variant="ghost">← Quay lại</LinkBtn>
-          </>
-        ) : (
-          <>
-            <Btn onClick={handleSave} disabled={saving}>
-              {saving ? 'Đang lưu...' : 'Lưu'}
-            </Btn>
-            <Btn variant="secondary" onClick={handleCancel}>Hủy</Btn>
-          </>
-        )}
+      <PageHeader title={editMode ? 'Chỉnh sửa tài khoản' : 'Chi tiết tài khoản'} desc={editMode ? 'Cập nhật thông tin người dùng hệ thống' : 'Thông tin chi tiết và hành động quản trị'}>
+        <div className="flex items-center gap-3">
+          {!editMode ? (
+            <>
+              <Btn variant="secondary" onClick={() => setEditMode(true)}>
+                {Icons.edit} Sửa thông tin
+              </Btn>
+              <LinkBtn to="/users" variant="ghost">Quay lại</LinkBtn>
+            </>
+          ) : (
+            <>
+              <Btn onClick={handleSave} disabled={saving}>
+                {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </Btn>
+              <Btn variant="secondary" onClick={handleCancel}>Hủy</Btn>
+            </>
+          )}
+        </div>
       </PageHeader>
 
       <Alert type={alert?.type} message={alert?.message} onClose={() => setAlert(null)} />
 
-      {!user.active && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex items-center gap-3 animate-fade-in-up">
-          <svg className="w-5 h-5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-          </svg>
-          <p className="text-sm text-amber-700 font-medium">Tài khoản này đang bị vô hiệu hóa</p>
+      {newPassword && (
+        <div className="mb-6 bg-purple-50 border-2 border-dashed border-purple-200 rounded-3xl p-6 animate-fade-in-up">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-600 font-bold text-sm mb-1 uppercase tracking-wider">Mật khẩu mới đã được tạo</p>
+              <h3 className="text-3xl font-black text-purple-900 tracking-widest">{newPassword}</h3>
+            </div>
+            <button 
+              onClick={() => setNewPassword('')}
+              className="p-2 hover:bg-purple-100 rounded-full transition-colors"
+            >
+              {Icons.close}
+            </button>
+          </div>
+          <p className="text-purple-500 text-xs mt-3 italic">* Vui lòng cung cấp mật khẩu này cho người dùng. Block này sẽ biến mất sau khi bạn đóng hoặc tải lại trang.</p>
         </div>
       )}
 
-      <div className="space-y-6 max-w-3xl">
-        {editMode ? (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
           <Card className="p-8">
-            <div className="space-y-5">
-              <Field label="Email">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              {/* Hàng 1: Họ tên, Tên đăng nhập */}
+              <Field label="Họ và tên" error={errors.fullName} required={editMode}>
                 <input
-                  type="email"
-                  value={user.email}
-                  disabled
-                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-500 cursor-not-allowed"
+                  type="text"
+                  readOnly={!editMode}
+                  className={`w-full px-4 py-3 rounded-xl border ${!editMode ? 'bg-gray-50/50 border-gray-100 text-gray-700' : (errors.fullName ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10')} outline-none transition-all`}
+                  value={formData.fullName}
+                  onChange={e => setFormData({ ...formData, fullName: e.target.value })}
                 />
               </Field>
-              <Field
-                label="Họ và tên"
-                value={form.fullName}
-                onChange={set('fullName')}
-                placeholder="Nhập họ và tên"
-              />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <Field
-                  label="Số điện thoại"
-                  value={form.phone}
-                  onChange={set('phone')}
-                  placeholder="Nhập SĐT"
+
+              <Field label="Tên đăng nhập">
+                <input
+                  type="text"
+                  readOnly
+                  className="w-full px-4 py-3 rounded-xl border bg-gray-50/50 border-gray-100 text-gray-400 outline-none cursor-not-allowed"
+                  value={formData.username}
                 />
-                <Field
-                  label="Phòng ban"
-                  value={form.department}
-                  onChange={set('department')}
-                  placeholder="Nhập phòng ban"
+              </Field>
+
+              {/* Hàng 2: Email, Trạng thái (View) / Email (Edit) */}
+              <Field label="Email" error={errors.email} required={editMode}>
+                <input
+                  type="email"
+                  readOnly={!editMode}
+                  className={`w-full px-4 py-3 rounded-xl border ${!editMode ? 'bg-gray-50/50 border-gray-100 text-gray-700' : (errors.email ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10')} outline-none transition-all`}
+                  value={formData.email}
+                  onChange={e => setFormData({ ...formData, email: e.target.value })}
                 />
+              </Field>
+
+              <Field label="Trạng thái">
+                <div className="h-[50px] flex items-center">
+                  <Badge variant={user.active ? 'green' : 'gray'}>
+                    {user.active ? 'Đang hoạt động' : 'Tạm khóa'}
+                  </Badge>
+                </div>
+              </Field>
+
+              {/* Hàng 3: SĐT, Vai trò */}
+              <Field label="Số điện thoại" error={errors.phone} required={editMode}>
+                <input
+                  type="text"
+                  readOnly={!editMode}
+                  className={`w-full px-4 py-3 rounded-xl border ${!editMode ? 'bg-gray-50/50 border-gray-100 text-gray-700' : (errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10')} outline-none transition-all`}
+                  value={formData.phone}
+                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </Field>
+
+              {editMode ? (
+                <Select
+                  label="Vai trò"
+                  options={ROLES}
+                  value={formData.role}
+                  onChange={e => setFormData({ ...formData, role: e.target.value })}
+                  required
+                  disabled={user.username === JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}').username}
+                />
+              ) : (
+                <Field label="Vai trò">
+                  <input
+                    type="text"
+                    readOnly
+                    className="w-full px-4 py-3 rounded-xl border bg-gray-50/50 border-gray-100 text-gray-700 outline-none"
+                    value={ROLE_LABELS[formData.role] || formData.role}
+                  />
+                </Field>
+              )}
+
+              {/* Hàng 4: Địa chỉ */}
+              <div className="md:col-span-2">
+                <Field label="Địa chỉ">
+                  <input
+                    type="text"
+                    readOnly={!editMode}
+                    className={`w-full px-4 py-3 rounded-xl border ${!editMode ? 'bg-gray-50/50 border-gray-100 text-gray-700' : 'border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10'} outline-none transition-all`}
+                    placeholder="Chưa cập nhật địa chỉ"
+                    value={formData.address}
+                    onChange={e => setFormData({ ...formData, address: e.target.value })}
+                  />
+                </Field>
               </div>
-              <Select
-                label="Vai trò"
-                options={ROLES}
-                value={form.role}
-                onChange={set('role')}
-                placeholder="Chọn vai trò"
-              />
             </div>
           </Card>
-        ) : (
-          <DetailGrid items={[
-            { label: 'Email', value: user.email },
-            { label: 'Họ tên', value: user.fullName },
-            { label: 'Số điện thoại', value: user.phone },
-            { label: 'Phòng ban', value: user.department },
-            { label: 'Vai trò', value: <Badge variant={ROLE_COLORS[user.role] || 'gray'}>{ROLE_LABELS[user.role] || user.role}</Badge> },
-            { label: 'Trạng thái', value: <Badge variant={user.active ? 'green' : 'gray'}>{user.active ? 'Hoạt động' : 'Vô hiệu'}</Badge> },
-            { label: 'Ngày tạo', value: fmtDate(user.createdAt) },
-            { label: 'Cập nhật lần cuối', value: fmtDate(user.updatedAt) },
-          ]} />
-        )}
+        </div>
 
-        {!editMode && (
+        <div className="space-y-6">
           <Card className="p-6">
-            <h4 className="text-sm font-semibold text-gray-700 mb-4">Thao tác</h4>
-            <div className="flex flex-wrap gap-3">
-              <Btn variant="secondary" onClick={handleResetPassword}>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+            <h4 className="text-[13px] font-bold text-gray-400 uppercase tracking-widest mb-4">Quản trị tài khoản</h4>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={handleResetPassword}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-all active:scale-95"
+              >
+                <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                 </svg>
                 Đặt lại mật khẩu
-              </Btn>
-              <Btn
-                variant={user.active ? 'danger' : 'primary'}
+              </button>
+
+              <button
+                type="button"
                 onClick={handleToggleActive}
+                disabled={user.username === JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}').username}
+                className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all active:scale-95 ${user.active ? 'bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
+                title={user.username === JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}').username ? "Bạn không thể tự vô hiệu hóa tài khoản của mình" : ""}
               >
                 {Icons.toggle}
-                {user.active ? 'Vô hiệu hóa' : 'Kích hoạt tài khoản'}
-              </Btn>
+                {user.active ? 'Vô hiệu hóa tài khoản' : 'Kích hoạt tài khoản'}
+              </button>
             </div>
           </Card>
-        )}
+
+          <Card className="p-6 bg-gray-50/50 border-dashed">
+            <h4 className="text-[13px] font-bold text-gray-400 uppercase tracking-widest mb-3">Lịch sử hệ thống</h4>
+            <div className="space-y-4">
+              <div>
+                <p className="text-[11px] text-gray-400 uppercase font-medium">Ngày tạo</p>
+                <p className="text-sm text-gray-600">{fmtDate(user.createdAt)}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-gray-400 uppercase font-medium">Cập nhật cuối</p>
+                <p className="text-sm text-gray-600">{fmtDate(user.updatedAt)}</p>
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
     </DashboardLayout>
   )

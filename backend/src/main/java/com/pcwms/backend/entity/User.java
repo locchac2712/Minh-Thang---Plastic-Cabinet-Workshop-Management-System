@@ -39,6 +39,23 @@ public class User {
     @Column(name = "reset_token_expiry")
     private LocalDateTime resetTokenExpiry;
 
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
     // Thêm các trường khác theo ERD của bạn nếu cần (fullname, email...)
     // Nếu là staff thì biến sẽ có dữ liệu
     @OneToOne(mappedBy = "user")

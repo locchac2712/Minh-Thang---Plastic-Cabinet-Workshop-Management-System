@@ -64,8 +64,12 @@ public class AuthController {
             // 5. Lấy role (vì dự án của mình mỗi người 1 role nên lấy cái đầu tiên)
             String role = userDetails.getAuthorities().iterator().next().getAuthority();
 
+            // 5a. Lấy trạng thái hoạt động từ Database
+            User user = userRepository.findById(userDetails.getId()).orElse(null);
+            Boolean isActive = (user != null) ? user.getIsActive() : true;
+
             // 6. Đóng gói dữ liệu trả về
-            JwtResponse jwtResponse = new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), role);
+            JwtResponse jwtResponse = new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), role, isActive);
 
             return ResponseEntity.ok(
                     new ResponseObject("SUCCESS", "Đăng nhập thành công!", jwtResponse)

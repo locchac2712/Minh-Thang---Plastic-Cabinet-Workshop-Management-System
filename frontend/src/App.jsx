@@ -4,7 +4,6 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import ProductList from './pages/products/ProductList'
-import ProductForm from './pages/products/ProductForm'
 import ProductDetail from './pages/products/ProductDetail'
 import SupplierList from './pages/suppliers/SupplierList'
 import SupplierForm from './pages/suppliers/SupplierForm'
@@ -139,9 +138,9 @@ export default function App() {
         <Route path="/dashboard" element={<RequireRole allow={ALL}><Dashboard /></RequireRole>} />
 
         <Route path="/products" element={<RequireRole allow={PRODUCT_ROLES}><ProductList /></RequireRole>} />
-        <Route path="/products/new" element={<RequireRole allow={PRODUCT_ROLES}><ProductForm /></RequireRole>} />
+        <Route path="/products/new" element={<RequireRole allow={PRODUCT_ROLES}><ProductDetail /></RequireRole>} />
         <Route path="/products/:id" element={<RequireRole allow={PRODUCT_ROLES}><ProductDetail /></RequireRole>} />
-        <Route path="/products/:id/edit" element={<RequireRole allow={PRODUCT_ROLES}><ProductForm /></RequireRole>} />
+        <Route path="/products/:id/edit" element={<RequireRole allow={PRODUCT_ROLES}><ProductDetail /></RequireRole>} />
 
         <Route path="/suppliers" element={<RequireRole allow={[ROLES.ADMIN, ROLES.WAREHOUSE_MANAGER, ROLES.DIRECTOR]}><SupplierList /></RequireRole>} />
         <Route path="/suppliers/new" element={<RequireRole allow={[ROLES.ADMIN, ROLES.WAREHOUSE_MANAGER, ROLES.DIRECTOR]}><SupplierForm /></RequireRole>} />

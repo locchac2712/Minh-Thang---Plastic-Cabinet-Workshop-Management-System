@@ -43,6 +43,13 @@ export default function Login() {
     try {
       const data = await authService.login({ username: form.username.trim(), password: form.password })
       if (data.status === 'SUCCESS' || data.token) {
+        // Check account status (isActive)
+        if (data.isActive === false) {
+          setError('Tài khoản của bạn đã bị vô hiệu hóa')
+          setLoading(false)
+          return
+        }
+
         const s = form.rememberMe ? localStorage : sessionStorage
         s.setItem('token', data.token)
         s.setItem('user', JSON.stringify(data))

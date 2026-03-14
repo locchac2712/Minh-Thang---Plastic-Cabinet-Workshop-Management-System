@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/test/all").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/api/v1/user/**").hasAnyAuthority("ADMIN", "DIRECTOR", "ROLE_ADMIN", "ROLE_DIRECTOR")
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()
                 );

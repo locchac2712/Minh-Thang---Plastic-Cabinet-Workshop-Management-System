@@ -10,11 +10,13 @@ public class JwtResponse {
     private Long id;
     private String username;
     private String role;
+    private Boolean isActive;
 
-    public JwtResponse(String accessToken,Long id ,String username, String role) {
+    public JwtResponse(String accessToken, Long id, String username, String role, Boolean isActive) {
         this.token = accessToken;
+        this.id = id;
         this.username = username;
         this.role = role;
-        this.id = id;
+        this.isActive = isActive;
     }
 }

@@ -1,31 +1,36 @@
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 
 /* ── Vantage v2 Design System ── */
 
 export function PageHeader({ title, desc, action, actionLabel = 'Thêm mới', actionTo, children }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 animate-fade-in-up">
-      <div>
-        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-gray-900">{title}</h2>
-        {desc && <p className="text-gray-500 mt-2 text-base font-normal leading-relaxed">{desc}</p>}
+    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10 animate-fade-in-up">
+      <div className="flex-1 min-w-0">
+        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-gray-900 truncate pb-1">{title}</h2>
+        {desc && <p className="text-gray-500 mt-2 text-sm md:text-base font-medium leading-relaxed max-w-2xl">{desc}</p>}
       </div>
-      <div className="flex items-center gap-3 flex-shrink-0">
+      <div className="flex flex-wrap items-center gap-3 md:gap-4 flex-shrink-0">
         {children}
-        {actionTo && (
-          <Link to={actionTo} className="group inline-flex items-center gap-2 bg-white text-gray-900 pl-5 pr-2 py-2 rounded-full text-sm font-medium shadow-lg shadow-purple-900/5 transition-transform hover:scale-[1.02] hover:shadow-xl border border-gray-100 active:scale-[0.98]">
-            <span>{actionLabel}</span>
-            <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-            </div>
-          </Link>
-        )}
-        {action && (
-          <button onClick={action} className="group inline-flex items-center gap-2 bg-white text-gray-900 pl-5 pr-2 py-2 rounded-full text-sm font-medium shadow-lg shadow-purple-900/5 hover:scale-[1.02] hover:shadow-xl border border-gray-100 transition-transform active:scale-[0.98]">
-            <span>{actionLabel}</span>
-            <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-            </div>
-          </button>
+        {(actionTo || action) && (
+          <div className="flex gap-2 min-w-fit">
+            {actionTo && (
+              <Link to={actionTo} className="group inline-flex items-center gap-2 bg-purple-600 text-white pl-5 pr-2 py-2.5 rounded-full text-sm font-semibold shadow-lg shadow-purple-600/20 transition-all hover:scale-[1.03] hover:shadow-xl active:scale-[0.97]">
+                <span>{actionLabel}</span>
+                <div className="w-8 h-8 rounded-full bg-white/20 group-hover:bg-white/30 flex items-center justify-center transition-colors">
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </div>
+              </Link>
+            )}
+            {action && (
+              <button onClick={action} className="group inline-flex items-center gap-2 bg-purple-600 text-white pl-5 pr-2 py-2.5 rounded-full text-sm font-semibold shadow-lg shadow-purple-600/20 transition-all hover:scale-[1.03] hover:shadow-xl active:scale-[0.97]">
+                <span>{actionLabel}</span>
+                <div className="w-8 h-8 rounded-full bg-white/20 group-hover:bg-white/30 flex items-center justify-center transition-colors">
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </div>
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -48,14 +53,14 @@ export function GlassCard({ children, className = '' }) {
   )
 }
 
-export function SearchBar({ value, onChange, placeholder = 'Tìm kiếm...' }) {
+export function SearchBar({ value, onChange, placeholder = 'Tìm kiếm...', className = '' }) {
   return (
-    <div className="relative">
+    <div className={`relative ${className}`}>
       <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
       </svg>
       <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full sm:w-80 bg-white border border-gray-200 rounded-full pl-11 pr-4 py-2.5 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all placeholder:text-gray-400 shadow-sm" />
+        className="w-full bg-white border border-gray-200 rounded-full pl-11 pr-12 py-3 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all placeholder:text-gray-400 shadow-sm" />
     </div>
   )
 }
@@ -114,36 +119,54 @@ export function Badge({ variant = 'gray', children }) {
   return <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ring-inset ${c[variant] || c.gray}`}>{children}</span>
 }
 
-export function Field({ label, children, ...props }) {
+export function Field({ label, children, error, required, ...props }) {
   return (
-    <div>
-      {label && <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>}
-      {children || (
-        <input {...props} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all placeholder:text-gray-400 shadow-sm" />
+    <div className="flex flex-col gap-1.5">
+      {label && (
+        <label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+          {label}
+          {required && <span className="text-red-500">*</span>}
+        </label>
       )}
+      {children || (
+        <input {...props} className={`w-full bg-white border ${error ? 'border-red-500 bg-red-50' : 'border-gray-200'} rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all placeholder:text-gray-400 shadow-sm`} />
+      )}
+      {error && <p className="text-xs font-medium text-red-500">{error}</p>}
     </div>
   )
 }
 
-export function TextArea({ label, ...props }) {
+export function TextArea({ label, error, required, ...props }) {
   return (
-    <div>
-      {label && <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>}
+    <div className="flex flex-col gap-1.5">
+      {label && (
+        <label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+          {label}
+          {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
       <textarea {...props} rows={props.rows || 3}
-        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all resize-none placeholder:text-gray-400 shadow-sm" />
+        className={`w-full bg-white border ${error ? 'border-red-500 bg-red-50' : 'border-gray-200'} rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all resize-none placeholder:text-gray-400 shadow-sm`} />
+      {error && <p className="text-xs font-medium text-red-500">{error}</p>}
     </div>
   )
 }
 
-export function Select({ label, options = [], value, onChange, hidePlaceholder = false, placeholder = 'Chọn...', ...props }) {
+export function Select({ label, options = [], value, onChange, error, required, hidePlaceholder = false, placeholder = 'Chọn...', ...props }) {
   return (
-    <div>
-      {label && <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>}
+    <div className="flex flex-col gap-1.5">
+      {label && (
+        <label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+          {label}
+          {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
       <select value={value} onChange={onChange} {...props}
-        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all shadow-sm">
+        className={`w-full bg-white border ${error ? 'border-red-500 bg-red-50' : 'border-gray-200'} rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all shadow-sm`}>
         {!hidePlaceholder && <option value="">{placeholder}</option>}
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
+      {error && <p className="text-xs font-medium text-red-500">{error}</p>}
     </div>
   )
 }
@@ -190,13 +213,13 @@ export function StatCard({ label, value, color = 'purple', desc }) {
     orange: 'bg-orange-500', red: 'bg-red-500', cyan: 'bg-cyan-500',
   }
   return (
-    <Card className="p-6 hover:shadow-xl hover:shadow-purple-900/5 hover:-translate-y-1 transition-all duration-300">
+    <Card className="p-6 hover:shadow-xl hover:shadow-purple-900/5 hover:-translate-y-1 transition-all duration-300 min-w-0">
       <div className="flex items-center gap-2 mb-3">
-        <div className={`w-2 h-2 rounded-full ${dots[color] || dots.purple}`}></div>
-        <p className="text-sm text-gray-500 font-normal">{label}</p>
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dots[color] || dots.purple}`}></div>
+        <p className="text-sm text-gray-500 font-semibold truncate">{label}</p>
       </div>
-      <p className="text-3xl font-semibold tracking-tight text-gray-900">{value ?? '—'}</p>
-      {desc && <p className="text-xs text-gray-400 mt-2">{desc}</p>}
+      <p className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 truncate">{value ?? '—'}</p>
+      {desc && <p className="text-xs text-gray-400 mt-2 line-clamp-1">{desc}</p>}
     </Card>
   )
 }
@@ -258,6 +281,142 @@ export function ActionBtn({ icon, onClick, title }) {
   )
 }
 
+export function Dropdown({ value, onChange, options, placeholder, label }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+
+  const selected = options.find(o => o.value === value)
+
+  return (
+    <div className="relative" ref={ref}>
+      {label && <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{label}</p>}
+      <button 
+        onClick={() => setOpen(!open)}
+        className="w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-sm flex items-center justify-between hover:bg-gray-100 transition-all text-gray-700 font-medium"
+      >
+        <span>{selected ? selected.label : placeholder}</span>
+        <svg className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-30 animate-fade-in py-1">
+          {placeholder && (
+            <button 
+              onClick={() => { onChange(''); setOpen(false) }}
+              className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors ${!value ? 'text-purple-600 font-semibold' : 'text-gray-600'}`}
+            >
+              {placeholder}
+            </button>
+          )}
+          {options.map(o => (
+            <button 
+              key={o.value} 
+              onClick={() => { onChange(o.value); setOpen(false) }}
+              className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors ${value === o.value ? 'text-purple-600 font-semibold' : 'text-gray-600'}`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function Pagination({ currentPage, totalItems, pageSize, onPageChange, onPageSizeChange }) {
+  const totalPages = Math.ceil(totalItems / pageSize)
+  if (totalItems === 0) return null
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-6 border-t border-gray-50 bg-[#FAFAFF] rounded-b-[32px]">
+      <div className="flex items-center gap-4">
+        <span className="text-xs text-gray-500">Hiển thị</span>
+        <select 
+          value={pageSize} 
+          onChange={(e) => onPageSizeChange(Number(e.target.value))}
+          className="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-purple-100"
+        >
+          {[5, 10, 15, 20].map(size => (
+            <option key={size} value={size}>{size}</option>
+          ))}
+        </select>
+        <span className="text-xs text-gray-500">trên {totalItems} kết quả</span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button 
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 text-gray-400 disabled:opacity-30 hover:bg-white transition-all"
+        >
+          &lsaquo;
+        </button>
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+          <button
+            key={page}
+            onClick={() => onPageChange(page)}
+            className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${
+              currentPage === page 
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20' 
+                : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            {page}
+          </button>
+        ))}
+        <button 
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 text-gray-400 disabled:opacity-30 hover:bg-white transition-all"
+        >
+          &rsaquo;
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export function Modal({ isOpen, onClose, title, children }) {
+  if (!isOpen) return null
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="relative bg-white rounded-[32px] shadow-2xl border border-gray-100 w-full max-w-md overflow-hidden animate-scale-in">
+        <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-900 transition-colors text-2xl">&times;</button>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+export function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmLabel = 'Xác nhận', cancelLabel = 'Hủy', variant = 'primary' }) {
+  const s = {
+    primary: 'bg-black text-white hover:bg-gray-800',
+    danger: 'bg-red-600 text-white hover:bg-red-700',
+    purple: 'bg-purple-600 text-white hover:bg-purple-700',
+  }
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={title}>
+      <p className="text-gray-600 mb-8">{message}</p>
+      <div className="flex gap-3 justify-end">
+        <button onClick={onClose} className="px-5 py-2.5 rounded-full text-sm font-medium text-gray-600 hover:bg-gray-100 transition-all">{cancelLabel}</button>
+        <button onClick={onConfirm} className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all shadow-lg ${s[variant] || s.primary}`}>{confirmLabel}</button>
+      </div>
+    </Modal>
+  )
+}
+
 export const Icons = {
   eye: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
   edit: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>,
@@ -265,6 +424,12 @@ export const Icons = {
   toggle: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" /></svg>,
   plus: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>,
   trash: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>,
+  filter: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" /></svg>,
+  ChevronLeft: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>,
+  User: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>,
+  Check: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>,
+  Loading: <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>,
+  close: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>,
 }
 
 export const fmt = (v) => v != null ? new Intl.NumberFormat('vi-VN').format(v) : '—'

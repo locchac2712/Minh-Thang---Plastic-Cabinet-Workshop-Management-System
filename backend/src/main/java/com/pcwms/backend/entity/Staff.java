@@ -30,6 +30,9 @@ public class Staff {
     @Column(name= "phone_number")
     private String phoneNumber;
 
+    @Column(name= "address")
+    private String address;
+
     @OneToMany(mappedBy = "staff")
     private List<WarehouseTransaction> warehouseTransactions;
 }

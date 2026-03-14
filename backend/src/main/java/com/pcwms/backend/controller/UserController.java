@@ -44,33 +44,40 @@ public class UserController {
         }
     }
 
+    // lay danh sach nguoi dung
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
+    public ResponseEntity<?> getAllUsers() {
+        return ResponseEntity.ok(
+                new ResponseObject("SUCCESS", "Danh sách người dùng", userService.getAllUsers()));
+    }
+
+    // lay chi tiet nguoi dung
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
+    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+        User user = userService.getUserById(id);
+        return ResponseEntity.ok(
+                new ResponseObject("SUCCESS", "Chi tiết người dùng", UserResponseDTO.fromEntity(user)));
+    }
+
     // tao nguoi dung/staff
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
-    public ResponseEntity<?> createUser(@RequestBody User user) {
-        try {
-            return ResponseEntity.ok(
-                    new ResponseObject("SUCCESS", "Thêm user thành công", userService.createUser(user))
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    new ResponseObject("ERROR", e.getMessage(), null)
-            );
-        }
+    public ResponseEntity<?> createUser(@RequestBody com.pcwms.backend.dto.request.UserCreateRequest request) {
+        return ResponseEntity.ok(
+                new ResponseObject("SUCCESS", "Thêm user thành công", userService.createUser(request)));
     }
 
     // cap nhat thong tin nguoi dung/staff
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User user) {
+    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody com.pcwms.backend.dto.request.UserCreateRequest request, Principal principal) {
         try {
             return ResponseEntity.ok(
-                    new ResponseObject("SUCCESS", "Cập nhật user thành công", userService.updateUser(id, user))
-            );
+                new ResponseObject("SUCCESS", "Cập nhật user thành công", userService.updateUser(id, request, principal.getName())));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    new ResponseObject("ERROR", e.getMessage(), null)
-            );
+            return ResponseEntity.badRequest().body(new ResponseObject("ERROR", e.getMessage(), null));
         }
     }
 
@@ -80,15 +87,31 @@ public class UserController {
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.ok(
-                new ResponseObject("SUCCESS", "Xóa user thành công", null)
-        );
+                new ResponseObject("SUCCESS", "Xóa user thành công", null));
     }
 
-    // khoa tai khoan nguoi dung/staff
     @PutMapping("/{id}/lock")
     @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
-    public ResponseEntity<UserResponseDTO> lockUser(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.lockUser(id));
+    public ResponseEntity<?> lockUser(@PathVariable Long id, Principal principal) {
+        try {
+            return ResponseEntity.ok(
+                new ResponseObject("SUCCESS", "Khóa tài khoản thành công", userService.lockUser(id, principal.getName())));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ResponseObject("ERROR", e.getMessage(), null));
+        }
+    }
+
+    // reset mat khau nguoi dung (Dùng đường dẫn tường minh hơn để tránh 404)
+    @PutMapping("/reset-password-for-user/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
+    public ResponseEntity<?> resetPassword(@PathVariable Long id) {
+        try {
+            String newPassword = userService.resetPassword(id);
+            return ResponseEntity.ok(
+                new ResponseObject("SUCCESS", "Đặt lại mật khẩu thành công", newPassword));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ResponseObject("ERROR", e.getMessage(), null));
+        }
     }
 
     // mo khoa tai khoan nguoi dung/staff

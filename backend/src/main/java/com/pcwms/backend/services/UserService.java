@@ -1,10 +1,13 @@
 package com.pcwms.backend.services;
 
+import com.pcwms.backend.dto.request.UserCreateRequest;
 import com.pcwms.backend.dto.request.UpdateProfileRequest;
 import com.pcwms.backend.dto.response.UserProfileResponse;
 import com.pcwms.backend.dto.response.UserResponseDTO;
+import com.pcwms.backend.entity.Role;
 import com.pcwms.backend.entity.Staff;
 import com.pcwms.backend.entity.User;
+import com.pcwms.backend.repository.RoleRepository;
 import com.pcwms.backend.repository.StaffRepository;
 import com.pcwms.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -22,6 +27,10 @@ public class UserService {
 
     @Autowired
     private StaffRepository staffRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
+
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -69,8 +78,11 @@ public class UserService {
         staffRepository.save(staff);
     }
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserResponseDTO> getAllUsers() {
+        return userRepository.findAllWithStaffAndRole()
+                .stream()
+                .map(UserResponseDTO::fromEntity)
+                .collect(java.util.stream.Collectors.toList());
     }
 
     public User getUserById(Long id) {
@@ -78,52 +90,88 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
     }
 
-    private static final String DEFAULT_PASSWORD = "Pizama123";
+    @Transactional
+    public User createUser(UserCreateRequest request) {
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new RuntimeException("Tài khoản đã tồn tại. Vui lòng chọn một tên đăng nhập khác.");
+        }
 
-    private void validatePassword(String password) {
-        if (password == null || password.length() < 8) {
-            throw new RuntimeException("Mật khẩu phải có ít nhất 8 ký tự!");
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email đã tồn tại trong hệ thống.");
         }
-        if (!password.matches(".*[A-Z].*")) {
-            throw new RuntimeException("Mật khẩu phải có ít nhất 1 chữ hoa!");
-        }
-        if (!password.matches(".*[0-9].*")) {
-            throw new RuntimeException("Mật khẩu phải có ít nhất 1 chữ số!");
-        }
-    }
 
-    public User createUser(User user) {
-        if (userRepository.existsByUsername(user.getUsername())) {
-            throw new RuntimeException("Tai khoản đã tồn tại. Vui lòng chọn một tên đăng nhập khác.");
+        if (staffRepository.existsByPhoneNumber(request.getPhone())) {
+            throw new RuntimeException("Số điện thoại đã tồn tại trong hệ thống.");
         }
-        // Nếu không truyền password thì dùng default, ngược lại validate rồi encode
-        String rawPassword = (user.getPassword() == null || user.getPassword().trim().isEmpty())
-                ? DEFAULT_PASSWORD
-                : user.getPassword();
 
-        validatePassword(rawPassword);
+        // 1. Tạo User
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        
+        // Sử dụng mật khẩu từ request hoặc mặc định nếu trống
+        String rawPassword = (request.getPassword() != null && !request.getPassword().trim().isEmpty()) 
+                ? request.getPassword() 
+                : "123456";
         user.setPassword(passwordEncoder.encode(rawPassword));
+        
+        Role role = roleRepository.findByRoleName("ROLE_" + request.getRole())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy vai trò: " + request.getRole()));
+        user.setRole(role);
+        user.setIsActive(true);
+        
+        User savedUser = userRepository.save(user);
 
-        return userRepository.save(user);
+        // 2. Tạo Staff tương ứng
+        Staff staff = new Staff();
+        staff.setUser(savedUser);
+        staff.setFullname(request.getFullName());
+        staff.setPhoneNumber(request.getPhone());
+        staff.setAddress(request.getAddress());
+        // Có thể sinh employeeId tự động hoặc để trống
+        staff.setEmployeeId("EMP-" + System.currentTimeMillis() % 10000);
+        staffRepository.save(staff);
+
+        return savedUser;
     }
 
-    public User updateUser(Long id, User userDetails) {
-        if (!userRepository.existsByUsername(userDetails.getUsername())) {
-            throw new RuntimeException("Không tìm thấy người dùng với tên đăng nhập: " + userDetails.getUsername());
-        }
+    @Transactional
+    public User updateUser(Long id, UserCreateRequest request, String currentUsername) {
         User existingUser = getUserById(id);
-        existingUser.setUsername(userDetails.getUsername());
-        existingUser.setEmail(userDetails.getEmail());
-        existingUser.setIsActive(userDetails.getIsActive());
-        existingUser.setRole(userDetails.getRole());
-
-        // Nếu có truyền password mới thì validate + encode, ngược lại giữ nguyên
-        if (userDetails.getPassword() != null && !userDetails.getPassword().trim().isEmpty()) {
-            validatePassword(userDetails.getPassword());
-            existingUser.setPassword(passwordEncoder.encode(userDetails.getPassword()));
+        
+        // Ngăn chặn đổi vai trò của chính mình
+        if (existingUser.getUsername().equals(currentUsername) && request.getRole() != null) {
+            String newRole = "ROLE_" + request.getRole();
+            if (!existingUser.getRole().getRoleName().equals(newRole)) {
+                throw new RuntimeException("Bạn không thể tự thay đổi vai trò của chính mình.");
+            }
         }
 
-        return userRepository.save(existingUser);
+        existingUser.setUsername(request.getUsername());
+        existingUser.setEmail(request.getEmail());
+        
+        if (request.getRole() != null) {
+            Role role = roleRepository.findByRoleName("ROLE_" + request.getRole())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy vai trò: " + request.getRole()));
+            existingUser.setRole(role);
+        }
+
+        userRepository.save(existingUser);
+
+        // Cập nhật Staff
+        Staff staff = staffRepository.findByUser(existingUser)
+                .orElseGet(() -> {
+                    Staff newStaff = new Staff();
+                    newStaff.setUser(existingUser);
+                    return newStaff;
+                });
+        
+        staff.setFullname(request.getFullName());
+        staff.setPhoneNumber(request.getPhone());
+        staff.setAddress(request.getAddress());
+        staffRepository.save(staff);
+
+        return existingUser;
     }
 
     public void deleteUser(Long id) {
@@ -133,15 +181,33 @@ public class UserService {
     }
 
 
-    public UserResponseDTO lockUser(Long id) {
-        User user = userRepository.findById(id)
+    public UserResponseDTO lockUser(Long id, String currentUsername) {
+        User userToLock = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
-        if(!user.getIsActive()) {
+        
+        if (userToLock.getUsername().equals(currentUsername)) {
+            throw new RuntimeException("Bạn không thể tự vô hiệu hóa tài khoản của chính mình.");
+        }
+
+        if(!userToLock.getIsActive()) {
             throw new RuntimeException("Tài khoản đã bị khóa trước đó.");
         }
-        user.setIsActive(false);
-        User save1 = userRepository.save(user);
-        return UserResponseDTO.fromEntity(save1);
+        userToLock.setIsActive(false);
+        User savedUser = userRepository.save(userToLock);
+        return UserResponseDTO.fromEntity(savedUser);
+    }
+
+    @Transactional
+    public String resetPassword(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
+        
+        // Sinh mật khẩu ngẫu nhiên 6 chữ số
+        String newPassword = String.valueOf((int)((Math.random() * 900000) + 100000));
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        
+        return newPassword;
     }
 
     public UserResponseDTO unlockUser(Long id) {

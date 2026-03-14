@@ -37,7 +37,7 @@ public class CustomerService {
         existing.setTaxCode(customer.getTaxCode());
         existing.setCreditLimit(customer.getCreditLimit());
         existing.setEmail(customer.getEmail());
-        existing.setCurrentDebt(customer.getCurrentDebt()); // Fixed to use input debt or keep existing? loc-be had existing.setCurrentDebt(existing.getCurrentDebt()) which does nothing.
+        existing.setCurrentDebt(customer.getCurrentDebt());
         return customerRepository.save(existing);
     }
 
