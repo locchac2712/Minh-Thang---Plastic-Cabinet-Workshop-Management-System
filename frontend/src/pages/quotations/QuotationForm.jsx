@@ -142,20 +142,21 @@ export default function QuotationForm() {
     setSaving(true)
     setError('')
     try {
+      // Lấy thông tin nhân viên từ localStorage
+      const userStr = localStorage.getItem('user')
+      const user = userStr ? JSON.parse(userStr) : null
+      const staffId = user?.staffId || user?.id || 1 // Fallback to 1 if not found
+
       const payload = {
-        quotationNumber,
-        status,
-        customer: { id: customerId },
-        validUntil,
-        notes,
-        totalAmount: totals.grandTotal,
+        customerId: Number(customerId),
+        staffId: Number(staffId),
+        validUntil: validUntil ? `${validUntil}T23:59:59` : null, // Chuyển sang định dạng LocalDateTime
+        note: notes,
         items: items.map((it) => ({
-          product: { id: it.productId },
+          productId: Number(it.productId),
           quantity: Number(it.quantity) || 0,
           unitPrice: Number(it.unitPrice) || 0,
-          discount: Number(it.discount) || 0,
-          totalPrice: it.totalPrice,
-          notes: it.notes,
+          discountPercent: Number(it.discount) || 0,
         })),
       }
       if (isEdit) {
