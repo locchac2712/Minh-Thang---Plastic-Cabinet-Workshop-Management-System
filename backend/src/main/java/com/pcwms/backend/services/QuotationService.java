@@ -1,6 +1,7 @@
 package com.pcwms.backend.services;
 
 import com.pcwms.backend.dto.request.QuotationRequest;
+import com.pcwms.backend.dto.response.QuotationDetailResponse;
 import com.pcwms.backend.entity.*;
 import com.pcwms.backend.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -192,5 +193,13 @@ public class QuotationService {
 
         // Map nguyên mảng Entity sang DTO siêu nhẹ
         return quotationPage.map(QuotationListResponse::new);
+    }
+
+    // API XEM CHI TIẾT CỦA 1 BÁO GIÁ
+    public QuotationDetailResponse getQuotationDetail(Long id) {
+        Quotation quotation = quotationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Báo giá ID " + id));
+
+        return new QuotationDetailResponse(quotation);
     }
 }
