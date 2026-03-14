@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import static org.springframework.http.ResponseEntity.ok;
+
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/v1/quotations")
@@ -18,12 +20,27 @@ public class QuotationController {
     private QuotationService quotationService;
 
     @PostMapping("/create")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('DIRECTOR')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('DIRECTOR') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> createQuotation(@RequestBody QuotationRequest request) {
         try {
             Quotation savedQuotation = quotationService.createQuotation(request);
-            return ResponseEntity.ok(
+            return ok(
                     new ResponseObject("SUCCESS", "Tạo Báo giá thành công!", savedQuotation)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", e.getMessage(), null)
+            );
+        }
+    }
+
+    @PostMapping("{id}/update")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('DIRECTOR') or hasRole('SALES_STAFF')")
+    public ResponseEntity<ResponseObject> updateStatus(@PathVariable Long id, @RequestParam String status){
+        try{
+            Quotation updatedQuotation = quotationService.updateQuotation(id, status);
+            return ResponseEntity.ok(
+                    new ResponseObject("SUCCESS", "Cập nhật trạng thái báo giá thành công!", updatedQuotation)
             );
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(

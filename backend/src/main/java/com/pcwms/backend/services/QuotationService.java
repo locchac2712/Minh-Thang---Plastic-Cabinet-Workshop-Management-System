@@ -3,12 +3,14 @@ package com.pcwms.backend.services;
 import com.pcwms.backend.dto.request.QuotationRequest;
 import com.pcwms.backend.entity.*;
 import com.pcwms.backend.repository.*;
+import org.hibernate.dialect.function.array.ArrayContainsUnnestFunction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class QuotationService {
@@ -90,5 +92,29 @@ public class QuotationService {
         quotation.setTotalAmount(grandTotal);
 
         return quotationRepository.save(quotation);
+    }
+
+    @Transactional
+    public Quotation updateQuotation(Long id, String status) {
+        Quotation quotation = quotationRepository.findById(id).orElseThrow(() -> new RuntimeException("Lôĩ không tìm thấy báo giá ID: " + id))   ;
+        // 1. Chỉ cho phép các trạng thái này được lọt qua
+        List<String> validStatuses = List.of("DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED");
+        if (!validStatuses.contains(status.toUpperCase())) {
+            throw new RuntimeException("Lỗi: Trạng thái không hợp lệ! Chỉ nhận DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED.");
+        }
+        // 2. Chặn logic: Nếu báo giá đã chốt (ACCEPTED) thì cấm quay xe về Nháp (DRAFT)
+        if ("ACCEPTED".equals(quotation.getStatus()) && !"ACCEPTED".equals(status.toUpperCase())) {
+            throw new RuntimeException("Lỗi: Báo giá này đã được chốt đơn, không thể lùi trạng thái về " + status);
+        }
+        // 3. Cập nhật và lưu DB
+        quotation.setStatus(status.toUpperCase());
+        Quotation savedQuotation = quotationRepository.save(quotation);
+
+        // 💡 TINH HOA Ở ĐÂY: Nếu status là ACCEPTED, ta sẽ gọi hàm sinh Đơn Hàng (Sales Order)
+        if ("ACCEPTED".equals(savedQuotation.getStatus())) {
+            System.out.println("🚀 KHÁCH ĐÃ CHỐT DEAL: Chuẩn bị kích hoạt luồng tự động tạo Sales Order!");
+            // TODO: Gọi hàm createSalesOrderFromQuotation(savedQuotation) ở bước tiếp theo
+        }
+        return savedQuotation;
     }
 }
