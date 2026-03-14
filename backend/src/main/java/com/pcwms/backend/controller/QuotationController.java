@@ -1,6 +1,7 @@
 package com.pcwms.backend.controller;
 
 import com.pcwms.backend.dto.request.QuotationRequest;
+import com.pcwms.backend.dto.response.QuotationDetailResponse;
 import com.pcwms.backend.dto.response.QuotationListResponse;
 import com.pcwms.backend.dto.response.ResponseObject;
 import com.pcwms.backend.entity.Quotation;
@@ -92,6 +93,21 @@ public class QuotationController {
 
             return ResponseEntity.ok(
                     new ResponseObject("SUCCESS", "Lấy danh sách Báo giá thành công!", quotations)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", e.getMessage(), null)
+            );
+        }
+    }
+    // 👉 API Xem chi tiết 1 Báo giá
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
+    public ResponseEntity<ResponseObject> getQuotationDetail(@PathVariable Long id) {
+        try {
+            QuotationDetailResponse detail = quotationService.getQuotationDetail(id);
+            return ResponseEntity.ok(
+                    new ResponseObject("SUCCESS", "Lấy chi tiết Báo giá thành công!", detail)
             );
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(
