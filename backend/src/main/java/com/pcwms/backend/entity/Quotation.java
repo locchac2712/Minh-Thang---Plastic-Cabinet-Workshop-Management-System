@@ -1,47 +1,66 @@
 package com.pcwms.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "quotations")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Quotation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Mã báo giá (VD: BG-2026-001). Cột này bắt buộc phải Unique (duy nhất)
-    @Column(name = "quotation_number", nullable = false, unique = true)
+    @Column(name = "quotation_number", unique = true, nullable = false)
     private String quotationNumber;
 
-    // Khóa ngoại: Báo giá này gửi cho Khách hàng nào?
-    @ManyToOne
-    @JoinColumn(name = "customer_id", referencedColumnName = "id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Customer customer;
 
-    // Khóa ngoại: Nhân viên Sale nào làm báo giá này?
-    @ManyToOne
-    @JoinColumn(name = "staff_id", referencedColumnName = "id", nullable = false)
+    // Mở file Quotation.java, tìm đến đoạn Staff:
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "staff_id", nullable = false)
+    @JsonIgnoreProperties({"user", "department", "phoneNumber"}) // 👉 DÙNG CÁI NÀY: Chỉ lấy ID và Tên, bỏ qua các trường nhạy cảm
     private Staff staff;
 
-    // Ngày tạo báo giá (Lưu cả giờ phút giây)
-    @Column(name = "created_date", nullable = false)
-    private LocalDateTime createdDate;
+    @Column(name = "created_date")
+    private LocalDateTime createdDate = LocalDateTime.now();
 
-    // Hạn chốt báo giá (Chỉ cần lưu ngày tháng năm)
-    @Column(name = "valid_until", nullable = false)
-    private LocalDate validUntil;
+    @Column(name = "valid_until")
+    private LocalDateTime validUntil;
 
-    // Tổng tiền của cả tờ báo giá (Dùng BigDecimal cho chuẩn tài chính)
-    @Column(name = "total_amount", nullable = false)
-    private BigDecimal totalAmount;
+    // Tổng tiền của cả tờ báo giá
+    @Column(name = "total_amount", precision = 15, scale = 2)
+    private BigDecimal totalAmount = BigDecimal.ZERO;
 
-    // Trạng thái báo giá (DRAFT: Nháp, SENT: Đã gửi, ACCEPTED: Đã chốt, REJECTED: Hủy)
-    @Column(name = "status", nullable = false)
-    private String status;
+    @Column(length = 50)
+    private String status = "DRAFT";
+
+    // 👉 Đã thêm Note theo yêu cầu
+    @Column(columnDefinition = "TEXT")
+    private String note;
+
+    @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<QuotationDetail> details = new ArrayList<>();
+
+    public void addDetail(QuotationDetail detail) {
+        details.add(detail);
+        detail.setQuotation(this);
+    }
+
+
 }

@@ -1,49 +1,47 @@
 package com.pcwms.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "quotation_details")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class QuotationDetail {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Khóa ngoại: Dòng chi tiết này thuộc về tờ Báo giá nào?
-    @ManyToOne
-    @JoinColumn(name = "quotation_id", referencedColumnName = "id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "quotation_id", nullable = false)
+    @JsonIgnore // 👉 GẮN CÁI KHIÊN NÀY VÀO ĐÂY LÀ CHẶN ĐỨNG VÒNG LẶP!
     private Quotation quotation;
 
-    // Khóa ngoại: Bán mặt hàng gì?
-    @ManyToOne
-    @JoinColumn(name = "product_id", referencedColumnName = "id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "billOfMaterials", "salesOrderDetails"})
     private Product product;
 
-    // Số lượng khách định mua
-    @Column(name = "quantity", nullable = false)
+    @Column(nullable = false)
     private Integer quantity;
 
-    // Đơn giá lúc báo giá (Lưu lại đề phòng sau này giá Product trong kho thay đổi)
-    @Column(name = "unit_price", nullable = false)
+    @Column(name = "unit_price", precision = 15, scale = 2, nullable = false)
     private BigDecimal unitPrice;
 
-    // Tiền chiết khấu/giảm giá cho riêng mặt hàng này
-    @Column(name = "discount")
-    private BigDecimal discount;
+    // 👉 Giữ nguyên tên là discount theo đúng ERD
+    @Column(name = "discount", precision = 15, scale = 2)
+    private BigDecimal discount = BigDecimal.ZERO;
 
-    // 👉 HÀM BẢO VỆ DATABASE (Giống cách bạn làm bên TransactionDetail)
-    @PrePersist
-    @PreUpdate
-    private void validateDetail() {
-        if (this.quantity == null || this.quantity <= 0) {
-            throw new RuntimeException("Lỗi Logic: Số lượng báo giá phải lớn hơn 0!");
-        }
-        if (this.unitPrice == null || this.unitPrice.compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("Lỗi Logic: Đơn giá không được để trống hoặc số âm!");
-        }
-    }
+    // Thành tiền của riêng dòng này = (Số lượng * Đơn giá) - discount
+    @Column(name = "total_line_amount", precision = 15, scale = 2)
+    private BigDecimal totalLineAmount;
 }

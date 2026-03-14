@@ -1,5 +1,6 @@
 package com.pcwms.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -59,5 +60,6 @@ public class User {
     // Thêm các trường khác theo ERD của bạn nếu cần (fullname, email...)
     // Nếu là staff thì biến sẽ có dữ liệu
     @OneToOne(mappedBy = "user")
+    @JsonIgnore
     private Staff staff;
 }
