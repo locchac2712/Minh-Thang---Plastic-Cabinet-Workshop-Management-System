@@ -73,7 +73,7 @@ import "./assets/global.css";
 import "./assets/button.css";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { DashboardLayout } from "./layouts/DashboardLayout";
-import { SalesLayout }     from "./layouts/SalesLayout";
+import { SalesLayout }     from "./layouts/Saleslayout";
 // import { ResetPassword }   from "./components/ResetPassword"; // Conflict with pages/ResetPassword
 import { LoginModal }      from "./components/LoginModal";
 
