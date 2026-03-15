@@ -22,53 +22,50 @@ public class QuotationController {
     @Autowired
     private QuotationService quotationService;
 
+    // Sửa createQuotation endpoint
     @PostMapping("/create")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('DIRECTOR') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> createQuotation(@RequestBody QuotationRequest request) {
         try {
             Quotation savedQuotation = quotationService.createQuotation(request);
-            return ok(
-                    new ResponseObject("SUCCESS", "Tạo Báo giá thành công!", savedQuotation)
-            );
+            // ✅ Wrap bằng DTO thay vì trả thẳng entity
+            return ok(new ResponseObject("SUCCESS", "Tạo Báo giá thành công!",
+                    new QuotationDetailResponse(savedQuotation)));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(
-                    new ResponseObject("ERROR", e.getMessage(), null)
-            );
+                    new ResponseObject("ERROR", e.getMessage(), null));
         }
     }
 
-    // API SỬA STATUS
-    @PostMapping("{id}/status")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('DIRECTOR') or hasRole('SALES_STAFF')")
-    public ResponseEntity<ResponseObject> updateStatus(@PathVariable Long id, @RequestParam String status){
-        try{
-            Quotation updatedQuotation = quotationService.updateQuotationStatus(id, status);
-            return ResponseEntity.ok(
-                    new ResponseObject("SUCCESS", "Cập nhật trạng thái báo giá thành công!", updatedQuotation)
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    new ResponseObject("ERROR", e.getMessage(), null)
-            );
-        }
-    }
-    // API SỬA NỘI DUNG (Thêm/bớt Bàn Ghế, sửa chiết khấu)
-    // ========================================================
+    // Sửa updateQuotation endpoint
     @PutMapping("/{id}/update")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> updateQuotation(
             @PathVariable Long id,
             @RequestBody QuotationRequest request) {
         try {
-            // Gọi hàm updateQuotation (sửa ruột)
             Quotation updatedQuotation = quotationService.updateQuotation(id, request);
-            return ResponseEntity.ok(
-                    new ResponseObject("SUCCESS", "Cập nhật nội dung Báo giá thành công!", updatedQuotation)
-            );
+            // ✅ Wrap bằng DTO
+            return ResponseEntity.ok(new ResponseObject("SUCCESS", "Cập nhật nội dung Báo giá thành công!",
+                    new QuotationDetailResponse(updatedQuotation)));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(
-                    new ResponseObject("ERROR", e.getMessage(), null)
-            );
+                    new ResponseObject("ERROR", e.getMessage(), null));
+        }
+    }
+
+    // Sửa updateStatus endpoint
+    @PostMapping("{id}/status")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('DIRECTOR') or hasRole('SALES_STAFF')")
+    public ResponseEntity<ResponseObject> updateStatus(@PathVariable Long id, @RequestParam String status) {
+        try {
+            Quotation updatedQuotation = quotationService.updateQuotationStatus(id, status);
+            // ✅ Wrap bằng DTO
+            return ResponseEntity.ok(new ResponseObject("SUCCESS", "Cập nhật trạng thái báo giá thành công!",
+                    new QuotationDetailResponse(updatedQuotation)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", e.getMessage(), null));
         }
     }
 

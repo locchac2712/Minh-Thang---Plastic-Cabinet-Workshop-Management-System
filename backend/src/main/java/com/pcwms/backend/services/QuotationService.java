@@ -94,7 +94,10 @@ public class QuotationService {
         // 4. Chốt hạ Tổng tiền và Lưu Database
         quotation.setTotalAmount(grandTotal);
 
-        return quotationRepository.save(quotation);
+        Quotation saved = quotationRepository.save(quotation);
+// Load lại để tránh lazy loading khi map sang DTO
+        return quotationRepository.findById(saved.getId())
+                .orElseThrow(() -> new RuntimeException("Lỗi khi tải lại báo giá"));
     }
 
     @Transactional
@@ -180,7 +183,9 @@ public class QuotationService {
         // 5. Chốt tổng tiền mới và Lưu DB
         quotation.setTotalAmount(grandTotal);
 
-        return quotationRepository.save(quotation);
+        Quotation saved = quotationRepository.save(quotation);
+        return quotationRepository.findById(saved.getId())
+                .orElseThrow(() -> new RuntimeException("Lỗi khi tải lại báo giá"));
     }
 
     //API LẤY DANH SÁCH BÁO GIÁ
