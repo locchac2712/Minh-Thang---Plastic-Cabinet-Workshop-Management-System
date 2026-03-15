@@ -81,10 +81,10 @@ export function FilterTabs({ tabs, active, onChange }) {
   )
 }
 
-export function Table({ headers, children }) {
+export function Table({ headers, children, className = '', containerClassName = 'overflow-x-auto' }) {
   return (
-    <Card className="overflow-hidden animate-fade-in-up delay-200">
-      <div className="overflow-x-auto">
+    <Card className={`animate-fade-in-up delay-200 ${className}`}>
+      <div className={containerClassName}>
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-100">
@@ -119,7 +119,7 @@ export function Badge({ variant = 'gray', children }) {
   return <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ring-inset ${c[variant] || c.gray}`}>{children}</span>
 }
 
-export function Field({ label, children, error, required, ...props }) {
+export function Field({ label, children, error, required, icon, ...props }) {
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
@@ -128,9 +128,16 @@ export function Field({ label, children, error, required, ...props }) {
           {required && <span className="text-red-500">*</span>}
         </label>
       )}
-      {children || (
-        <input {...props} className={`w-full bg-white border ${error ? 'border-red-500 bg-red-50' : 'border-gray-200'} rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all placeholder:text-gray-400 shadow-sm`} />
-      )}
+      <div className="relative">
+        {icon && (
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300">
+            {icon}
+          </span>
+        )}
+        {children || (
+          <input {...props} className={`w-full bg-white border ${error ? 'border-red-500 bg-red-50' : 'border-gray-200'} rounded-xl ${icon ? 'pl-11' : 'px-4'} py-3 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all placeholder:text-gray-400 shadow-sm`} />
+        )}
+      </div>
       {error && <p className="text-xs font-medium text-red-500">{error}</p>}
     </div>
   )
@@ -166,6 +173,156 @@ export function Select({ label, options = [], value, onChange, error, required, 
         {!hidePlaceholder && <option value="">{placeholder}</option>}
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
+      {error && <p className="text-xs font-medium text-red-500">{error}</p>}
+    </div>
+  )
+}
+
+export function Dropdown({ value, onChange, options = [], placeholder = 'Chọn...', label, required, error, className = '' }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+
+  const selected = options.find(o => String(o.value) === String(value))
+
+  return (
+    <div className={`flex flex-col gap-1.5 relative ${className}`} ref={ref}>
+      {label && (
+        <label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+          {label}
+          {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
+      
+      <div 
+        className={`w-full bg-white border ${error ? 'border-red-500' : 'border-gray-200'} rounded-xl px-4 py-3 text-sm flex items-center justify-between cursor-pointer hover:border-purple-300 transition-all shadow-sm group`}
+        onClick={() => setOpen(!open)}
+      >
+        <span className={`${!selected ? 'text-gray-400' : 'text-gray-900 font-medium'}`}>
+          {selected ? selected.label : placeholder}
+        </span>
+        <svg className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        </svg>
+      </div>
+
+      {open && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[110] animate-fade-in py-1 max-h-60 overflow-y-auto custom-scrollbar">
+          {placeholder && !required && (
+            <button 
+              onClick={() => { onChange(''); setOpen(false) }}
+              className={`w-full px-4 py-2.5 text-left text-sm hover:bg-purple-50 transition-colors ${!value ? 'text-purple-600 font-bold' : 'text-gray-600'}`}
+            >
+              {placeholder}
+            </button>
+          )}
+          {options.map(o => (
+            <button 
+              key={o.value} 
+              onClick={() => { onChange(o.value); setOpen(false) }}
+              className={`w-full px-4 py-2.5 text-left text-sm hover:bg-purple-50 transition-colors ${String(value) === String(o.value) ? 'text-purple-600 font-bold bg-purple-50/50' : 'text-gray-600'}`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {error && <p className="text-xs font-medium text-red-500">{error}</p>}
+    </div>
+  )
+}
+
+export function ComboBox({ value, onChange, options = [], placeholder = 'Tìm kiếm...', label, required, error, onCreateNew }) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+
+  const selected = options.find(o => String(o.value) === String(value))
+  
+  const filtered = search 
+    ? options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()))
+    : options.slice(0, 3)
+
+  return (
+    <div className="flex flex-col gap-1.5 relative" ref={ref}>
+      {label && (
+        <label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+          {label}
+          {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
+      
+      <div 
+        className={`w-full bg-white border ${error ? 'border-red-500' : 'border-gray-200'} rounded-xl px-4 py-3 text-sm flex items-center justify-between cursor-pointer hover:border-purple-300 transition-all shadow-sm group`}
+        onClick={() => setOpen(!open)}
+      >
+        <span className={`${!selected ? 'text-gray-400' : 'text-gray-900 font-medium'}`}>
+          {selected ? selected.label : placeholder}
+        </span>
+        <svg className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        </svg>
+      </div>
+
+      {open && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[100] animate-fade-in flex flex-col max-h-72">
+          <div className="p-3 border-b border-gray-50 flex items-center gap-2 bg-gray-50/50">
+            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+            <input 
+              autoFocus
+              className="bg-transparent border-none outline-none text-sm w-full placeholder:text-gray-300 font-medium"
+              placeholder="Gõ để tìm..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onClick={e => e.stopPropagation()}
+            />
+          </div>
+          
+          <div className="overflow-y-auto custom-scrollbar flex-1 py-1">
+            {onCreateNew && (
+              <button 
+                className="w-full px-4 py-2.5 text-left text-sm text-purple-600 font-bold hover:bg-purple-50 transition-colors flex items-center gap-2 border-b border-gray-50"
+                onClick={(e) => { e.stopPropagation(); onCreateNew(); setOpen(false) }}
+              >
+                <span className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center text-xs">+</span>
+                Thêm mới nhanh...
+              </button>
+            )}
+
+            {!search && filtered.length > 0 && (
+              <div className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/30">Gần đây</div>
+            )}
+
+            {filtered.length > 0 ? filtered.map(o => (
+              <button 
+                key={o.value} 
+                onClick={() => { onChange(o.value); setOpen(false); setSearch('') }}
+                className={`w-full px-4 py-2.5 text-left text-sm hover:bg-purple-50 transition-colors flex items-center justify-between group ${String(value) === String(o.value) ? 'bg-purple-50/50 text-purple-700 font-bold' : 'text-gray-600'}`}
+              >
+                <span>{o.label}</span>
+                {String(value) === String(o.value) && <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
+              </button>
+            )) : (
+              <div className="px-4 py-8 text-center">
+                <p className="text-gray-400 text-xs italic">Không tìm thấy kết quả</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {error && <p className="text-xs font-medium text-red-500">{error}</p>}
     </div>
   )
@@ -281,56 +438,6 @@ export function ActionBtn({ icon, onClick, title }) {
   )
 }
 
-export function Dropdown({ value, onChange, options, placeholder, label }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-
-  useEffect(() => {
-    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
-  }, [])
-
-  const selected = options.find(o => o.value === value)
-
-  return (
-    <div className="relative" ref={ref}>
-      {label && <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{label}</p>}
-      <button 
-        onClick={() => setOpen(!open)}
-        className="w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-sm flex items-center justify-between hover:bg-gray-100 transition-all text-gray-700 font-medium"
-      >
-        <span>{selected ? selected.label : placeholder}</span>
-        <svg className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-        </svg>
-      </button>
-
-      {open && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-30 animate-fade-in py-1">
-          {placeholder && (
-            <button 
-              onClick={() => { onChange(''); setOpen(false) }}
-              className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors ${!value ? 'text-purple-600 font-semibold' : 'text-gray-600'}`}
-            >
-              {placeholder}
-            </button>
-          )}
-          {options.map(o => (
-            <button 
-              key={o.value} 
-              onClick={() => { onChange(o.value); setOpen(false) }}
-              className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors ${value === o.value ? 'text-purple-600 font-semibold' : 'text-gray-600'}`}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 export function Pagination({ currentPage, totalItems, pageSize, onPageChange, onPageSizeChange }) {
   const totalPages = Math.ceil(totalItems / pageSize)
   if (totalItems === 0) return null
@@ -384,12 +491,12 @@ export function Pagination({ currentPage, totalItems, pageSize, onPageChange, on
   )
 }
 
-export function Modal({ isOpen, onClose, title, children }) {
+export function Modal({ isOpen, onClose, title, children, maxWidth = 'max-w-md' }) {
   if (!isOpen) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose}></div>
-      <div className="relative bg-white rounded-[32px] shadow-2xl border border-gray-100 w-full max-w-md overflow-hidden animate-scale-in">
+      <div className={`relative bg-white rounded-[32px] shadow-2xl border border-gray-100 w-full ${maxWidth} overflow-hidden animate-scale-in`}>
         <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-900 transition-colors text-2xl">&times;</button>
@@ -400,18 +507,45 @@ export function Modal({ isOpen, onClose, title, children }) {
   )
 }
 
+export function Drawer({ isOpen, onClose, title, children, width = 'max-w-2xl' }) {
+  return (
+    <div className={`fixed inset-0 z-50 flex justify-end transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose}></div>
+      <div className={`relative bg-white h-full w-full ${width} shadow-2xl border-l border-gray-100 flex flex-col transform transition-transform duration-500 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="px-8 py-6 border-b border-gray-50 flex items-center justify-between flex-shrink-0 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+          <h3 className="text-xl font-bold text-gray-900 tracking-tight">{title}</h3>
+          <button onClick={onClose} className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-all text-2xl">&times;</button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmLabel = 'Xác nhận', cancelLabel = 'Hủy', variant = 'primary' }) {
-  const s = {
-    primary: 'bg-black text-white hover:bg-gray-800',
-    danger: 'bg-red-600 text-white hover:bg-red-700',
-    purple: 'bg-purple-600 text-white hover:bg-purple-700',
+  if (!isOpen) return null
+  const variantClasses = {
+    primary: 'bg-purple-600 hover:bg-purple-700 focus:ring-purple-500',
+    danger: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
   }
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title}>
-      <p className="text-gray-600 mb-8">{message}</p>
-      <div className="flex gap-3 justify-end">
-        <button onClick={onClose} className="px-5 py-2.5 rounded-full text-sm font-medium text-gray-600 hover:bg-gray-100 transition-all">{cancelLabel}</button>
-        <button onClick={onConfirm} className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all shadow-lg ${s[variant] || s.primary}`}>{confirmLabel}</button>
+      <p className="text-gray-600 mb-6">{message}</p>
+      <div className="flex justify-end gap-3">
+        <button
+          onClick={onClose}
+          className="px-5 py-2.5 rounded-full text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+        >
+          {cancelLabel}
+        </button>
+        <button
+          onClick={onConfirm}
+          className={`px-5 py-2.5 rounded-full text-sm font-semibold text-white shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 ${variantClasses[variant]}`}
+        >
+          {confirmLabel}
+        </button>
       </div>
     </Modal>
   )
@@ -430,6 +564,9 @@ export const Icons = {
   Check: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>,
   Loading: <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>,
   close: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>,
+  print: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.821V7.443c0-1.216.925-2.256 2.141-2.296A51.964 51.964 0 0115 5.147c1.216.037 2.141 1.077 2.141 2.296v6.378m-10.421 0c-1.091-.039-2.145.118-3.13.46a2.25 2.25 0 00-1.53 2.106v1.942c0 .91.666 1.674 1.53 2.106a24.948 24.948 0 003.13.46m10.421-7.074c1.091-.039 2.145.118 3.13.46a2.25 2.25 0 011.53 2.106v1.942c0 .91-.666 1.674-1.53 2.106a24.948 24.948 0 01-3.13.46M12 18.75a6 6 0 006-6H6a6 6 0 006 6z" /></svg>,
+  save: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>,
+  search: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>,
 }
 
 export const fmt = (v) => v != null ? new Intl.NumberFormat('vi-VN').format(v) : '—'

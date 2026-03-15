@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { 
-  PageHeader, Card, Alert, Table, Td, Field, TextArea, Btn, 
-  LinkBtn, Icons, fmtCurrency, GlassCard, Badge 
+  LinkBtn, Icons, fmtCurrency, GlassCard, Badge, Select, Dropdown, Modal, ComboBox, PageHeader, Btn,
+  Alert, Field, Card, Table, Td, TextArea
 } from '../../components/ui'
 import customerService from '../../services/customerService'
 import productService from '../../services/productService'
@@ -50,7 +50,10 @@ export default function QuotationForm() {
   const [notes, setNotes] = useState('')
   const [items, setItems] = useState([emptyItem()])
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [errors, setErrors] = useState({}) // State lưu trữ nhiều lỗi theo từng trường
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
+  const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', email: '' })
+  const [customerSaving, setCustomerSaving] = useState(false)
 
   useEffect(() => {
     customerService.getAll().then((data) => setCustomers(data || [])).catch(() => {})
@@ -91,6 +94,7 @@ export default function QuotationForm() {
   // Auto-fill customer info
   const handleCustomerChange = (cid) => {
     setCustomerId(cid)
+    setErrors(prev => ({ ...prev, customerId: '' })) // Xóa lỗi khi thay đổi
     const customer = customers.find(c => String(c.id) === String(cid))
     if (customer) {
       setCustomerEmail(customer.email || '')
@@ -123,12 +127,22 @@ export default function QuotationForm() {
       updated[index] = current
       return updated
     })
+    
+    // Xóa lỗi cho dòng này khi có thay đổi
+    if (errors.items?.[index]) {
+      setErrors(prev => {
+        const newItemsErrors = { ...prev.items }
+        delete newItemsErrors[index]
+        return { ...prev, items: newItemsErrors }
+      })
+    }
   }
 
   const addItem = () => setItems((prev) => [...prev, emptyItem()])
   const removeItem = (index) => {
     if (items.length <= 1) return
     setItems((prev) => prev.filter((_, i) => i !== index))
+    // Xóa/Cập nhật lại lỗi index nếu cần
   }
 
   const totals = useMemo(() => {
@@ -139,18 +153,58 @@ export default function QuotationForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    
+    // VALIDATIONS
+    const newErrors = {}
+    if (!customerId) newErrors.customerId = 'Vui lòng chọn khách hàng'
+    if (!validUntil) newErrors.validUntil = 'Vui lòng chọn ngày hiệu lực'
+    
+    if (validUntil) {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const selectedDate = new Date(validUntil)
+      const diffDays = Math.ceil((selectedDate - today) / (1000 * 60 * 60 * 24))
+      
+      if (selectedDate < today) newErrors.validUntil = 'Ngày hiệu lực không được chọn ngày trong quá khứ'
+      else if (diffDays < 10) newErrors.validUntil = 'Ngày hiệu lực phải cách ngày tạo ít nhất 10 ngày'
+    }
+    
+    const itemErrors = {}
+    items.forEach((it, idx) => {
+      const errs = {}
+      if (!it.productId) errs.productId = 'Chọn sản phẩm'
+      if (it.quantity <= 0) errs.quantity = 'Lỗi qty'
+      if (it.unitPrice < 0) errs.unitPrice = 'Lỗi giá'
+      if (it.discount < 0) errs.discount = 'Âm %'
+      if (it.discount > 30) errs.discount = '> 30%'
+      
+      if (Object.keys(errs).length > 0) {
+        itemErrors[idx] = errs
+      }
+    })
+    
+    if (Object.keys(itemErrors).length > 0) {
+      newErrors.items = itemErrors
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+
     setSaving(true)
-    setError('')
+    setErrors({})
     try {
       // Lấy thông tin nhân viên từ localStorage
       const userStr = localStorage.getItem('user')
       const user = userStr ? JSON.parse(userStr) : null
-      const staffId = user?.staffId || user?.id || 1 // Fallback to 1 if not found
+      const staffId = user?.staffId || user?.id || 1 
 
       const payload = {
         customerId: Number(customerId),
         staffId: Number(staffId),
-        validUntil: validUntil ? `${validUntil}T23:59:59` : null, // Chuyển sang định dạng LocalDateTime
+        validUntil: validUntil ? `${validUntil}T23:59:59` : null,
+        status: status,
         note: notes,
         items: items.map((it) => ({
           productId: Number(it.productId),
@@ -166,7 +220,7 @@ export default function QuotationForm() {
       }
       navigate('/quotations')
     } catch (err) {
-      setError(err.response?.data?.message || 'Có lỗi xảy ra khi lưu báo giá')
+      setErrors({ server: err.response?.data?.message || 'Có lỗi xảy ra khi lưu báo giá' })
     } finally {
       setSaving(false)
     }
@@ -177,6 +231,11 @@ export default function QuotationForm() {
       <PageHeader title={isEdit ? 'Hiệu chỉnh Báo giá' : 'Tạo Báo giá Mới'}>
         <div className="flex items-center gap-2">
           <LinkBtn to="/quotations" variant="ghost">{Icons.back} Quay lại</LinkBtn>
+          {(isEdit || !saving) && (
+            <Btn variant="secondary" onClick={() => window.print()} className="bg-white border-gray-200">
+              {Icons.print} In Báo giá
+            </Btn>
+          )}
           <Btn type="submit" onClick={handleSubmit} disabled={saving} className="shadow-lg shadow-purple-600/20">
             {saving ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Xác nhận Báo giá'}
           </Btn>
@@ -185,10 +244,10 @@ export default function QuotationForm() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <Alert type="error" message={error} onClose={() => setError('')} />
+          <Alert type="error" message={errors.server} onClose={() => setErrors(prev => ({ ...prev, server: '' }))} />
 
           {/* Header Info Card */}
-          <GlassCard className="p-8">
+          <GlassCard className="p-8 relative z-20">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 pb-6 border-b border-gray-100">
               <div>
                 <span className="text-[10px] font-bold text-purple-600 uppercase tracking-widest mb-1 block">Mã báo giá</span>
@@ -196,125 +255,129 @@ export default function QuotationForm() {
               </div>
               <div className="flex flex-col items-end">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Trạng thái</span>
-                <select 
-                  value={status} 
-                  onChange={(e) => setStatus(e.target.value)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${
-                    status === 'DRAFT' ? 'bg-gray-50 border-gray-200 text-gray-600' :
-                    status === 'SENT' ? 'bg-blue-50 border-blue-200 text-blue-600' :
-                    status === 'APPROVED' ? 'bg-green-50 border-green-200 text-green-600' :
-                    'bg-red-50 border-red-200 text-red-600'
-                  }`}
-                >
-                  <option value="DRAFT">Nháp (Draft)</option>
-                  <option value="SENT">Đã gửi (Sent)</option>
-                  <option value="ACCEPTED">Đã chốt (Accepted)</option>
-                  <option value="REJECTED">Đã hủy (Rejected)</option>
-                  <option value="EXPIRED">Hết hạn (Expired)</option>
-                </select>
+                <Badge variant={
+                  status === 'DRAFT' ? 'gray' :
+                  status === 'SENT' ? 'blue' :
+                  status === 'ACCEPTED' ? 'green' : 'red'
+                }>
+                  {status === 'DRAFT' ? 'Nháp' :
+                   status === 'SENT' ? 'Đã gửi' :
+                   status === 'ACCEPTED' ? 'Đã chốt' : 
+                   status === 'REJECTED' ? 'Đã hủy' : 'Hết hạn'}
+                </Badge>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <Field label="Khách hàng">
-                <select
-                  value={customerId}
-                  onChange={(e) => handleCustomerChange(e.target.value)}
-                  required
-                  className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-100 transition-all font-medium"
-                >
-                  <option value="">Chọn khách hàng...</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Loại khách hàng">
-                <select 
-                  value={customerType} 
-                  onChange={(e) => setCustomerType(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3.5 text-sm outline-none font-medium"
-                >
-                  <option value="Retail">Khách lẻ (Retail)</option>
-                  <option value="Dealer">Đại lý (Dealer)</option>
-                  <option value="Distributor">Nhà phân phối (Distributor)</option>
-                </select>
-              </Field>
-              <Field label="Email liên hệ">
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300">
-                    {Icons.eye}
-                  </span>
-                  <input type="text" value={customerEmail} readOnly className="w-full bg-gray-50 border border-transparent rounded-2xl pl-11 pr-5 py-3.5 text-sm text-gray-500 font-medium" />
-                </div>
-              </Field>
-              <Field label="Số điện thoại">
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300">
-                    {Icons.eye}
-                  </span>
-                  <input type="text" value={customerPhone} readOnly className="w-full bg-gray-50 border border-transparent rounded-2xl pl-11 pr-5 py-3.5 text-sm text-gray-500 font-medium" />
-                </div>
-              </Field>
+              <ComboBox
+                label="Khách hàng"
+                required
+                placeholder="Tìm hoặc chọn khách hàng..."
+                value={customerId}
+                onChange={(val) => handleCustomerChange(val)}
+                options={customers.map(c => ({ value: c.id, label: c.name }))}
+                onCreateNew={() => setIsCustomerModalOpen(true)}
+                error={errors.customerId}
+              />
+
+              <div className="flex flex-col gap-8">
+                <Dropdown
+                  label="Loại khách hàng"
+                  value={customerType}
+                  onChange={(val) => setCustomerType(val)}
+                  options={[
+                    { value: 'Retail', label: 'Khách lẻ' },
+                    { value: 'Dealer', label: 'Đại lý' },
+                    { value: 'Distributor', label: 'Nhà phân phối' },
+                  ]}
+                />
+
+                {isEdit && (
+                  <Dropdown
+                    label="Trạng thái báo giá"
+                    value={status}
+                    onChange={(val) => setStatus(val)}
+                    options={[
+                      { value: 'DRAFT', label: 'Nháp' },
+                      { value: 'SENT', label: 'Đã gửi' },
+                      { value: 'ACCEPTED', label: 'Đã chốt' },
+                      { value: 'REJECTED', label: 'Hủy' },
+                      { value: 'EXPIRED', label: 'Hết hạn' },
+                    ]}
+                  />
+                )}
+              </div>
+              
+              <Field label="Email liên hệ" icon={Icons.eye} value={customerEmail} readOnly disabled className="opacity-70" />
+              <Field label="Số điện thoại" icon={Icons.eye} value={customerPhone} readOnly disabled className="opacity-70" />
             </div>
           </GlassCard>
 
           {/* Items Section */}
-          <Card className="p-0 overflow-hidden overflow-x-auto border-none shadow-xl shadow-gray-200/50">
-            <div className="p-6 bg-white border-b border-gray-50 flex items-center justify-between">
+          <Card className="border-none shadow-xl shadow-gray-200/50 min-h-[400px]">
+            <div className="p-6 bg-white border-b border-gray-50 flex items-center justify-between rounded-t-[32px]">
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Sản phẩm & Dịch vụ</h3>
               <Btn variant="ghost" type="button" onClick={addItem} className="text-purple-600 hover:bg-purple-50">
                 {Icons.plus} Thêm dòng mới
               </Btn>
             </div>
-            <Table headers={['Sản phẩm / SKU', 'Số lượng', 'Đơn giá', 'Chiết khấu %', 'Thành tiền', '']}>
+            <Table 
+              headers={['Sản phẩm / SKU', 'Số lượng', 'Đơn giá', 'Chiết khấu %', 'Thành tiền', '']}
+              className="border-none shadow-none"
+              containerClassName="overflow-visible"
+            >
               {items.map((item, idx) => (
                 <tr key={item.key} className="group hover:bg-gray-50/50 transition-colors">
-                  <Td className="min-w-[250px]">
-                    <div className="flex flex-col gap-1">
-                      <select
+                  <Td className="min-w-[280px]">
+                    <div className="flex flex-col gap-1 pt-1">
+                      <ComboBox
+                        placeholder="Tìm sản phẩm..."
                         value={item.productId}
-                        onChange={(e) => updateItem(idx, 'productId', e.target.value)}
-                        required
-                        className="w-full border-none bg-transparent rounded-xl px-0 py-1 text-sm font-bold text-gray-800 focus:ring-0"
-                      >
-                        <option value="">Chọn sản phẩm...</option>
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
-                      <span className="text-[10px] font-mono text-gray-400">{item.sku || '—'}</span>
+                        onChange={(val) => updateItem(idx, 'productId', val)}
+                        options={products.map(p => ({ value: p.id, label: p.name }))}
+                        error={errors.items?.[idx]?.productId}
+                      />
+                      <span className="text-[10px] font-mono text-gray-400 px-2 uppercase tracking-tighter">{item.sku || '—'}</span>
                     </div>
                   </Td>
                   <Td>
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
-                      className="w-20 bg-gray-50 border-transparent rounded-xl px-3 py-2 text-sm font-bold focus:bg-white focus:border-purple-200 transition-all outline-none"
-                    />
+                    <div className="flex flex-col gap-1">
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
+                        className={`w-20 bg-gray-50 border ${errors.items?.[idx]?.quantity ? 'border-red-500' : 'border-transparent'} rounded-xl px-3 py-2 text-sm font-bold focus:bg-white focus:border-purple-200 transition-all outline-none`}
+                      />
+                      {errors.items?.[idx]?.quantity && <span className="text-[9px] text-red-500 font-bold">{errors.items[idx].quantity}</span>}
+                    </div>
                   </Td>
                   <Td>
-                    <input
-                      type="number"
-                      min="0"
-                      value={item.unitPrice}
-                      onChange={(e) => updateItem(idx, 'unitPrice', e.target.value)}
-                      className="w-32 bg-gray-50 border-transparent rounded-xl px-3 py-2 text-sm font-bold focus:bg-white focus:border-purple-200 transition-all outline-none"
-                    />
-                  </Td>
-                  <Td>
-                    <div className="flex items-center gap-1">
+                    <div className="flex flex-col gap-1">
                       <input
                         type="number"
                         min="0"
-                        max="100"
-                        value={item.discount}
-                        onChange={(e) => updateItem(idx, 'discount', e.target.value)}
-                        className="w-16 bg-orange-50/50 border-transparent text-orange-600 rounded-xl px-3 py-2 text-sm font-bold focus:bg-white focus:border-orange-200 transition-all outline-none"
+                        value={item.unitPrice}
+                        onChange={(e) => updateItem(idx, 'unitPrice', e.target.value)}
+                        className={`w-32 bg-gray-50 border ${errors.items?.[idx]?.unitPrice ? 'border-red-500' : 'border-transparent'} rounded-xl px-3 py-2 text-sm font-bold focus:bg-white focus:border-purple-200 transition-all outline-none`}
                       />
-                      <span className="text-xs text-orange-400 font-bold">%</span>
+                      {errors.items?.[idx]?.unitPrice && <span className="text-[9px] text-red-500 font-bold">{errors.items[idx].unitPrice}</span>}
+                    </div>
+                  </Td>
+                  <Td>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={item.discount}
+                          onChange={(e) => updateItem(idx, 'discount', e.target.value)}
+                          className={`w-16 bg-orange-50/50 border ${errors.items?.[idx]?.discount ? 'border-red-500' : 'border-transparent'} text-orange-600 rounded-xl px-3 py-2 text-sm font-bold focus:bg-white focus:border-orange-200 transition-all outline-none`}
+                        />
+                        <span className="text-xs text-orange-400 font-bold">%</span>
+                      </div>
+                      {errors.items?.[idx]?.discount && <span className="text-[9px] text-red-500 font-bold">{errors.items[idx].discount}</span>}
                     </div>
                   </Td>
                   <Td className="font-black text-gray-900 tracking-tight">{fmtCurrency(item.totalPrice)}</Td>
@@ -336,7 +399,17 @@ export default function QuotationForm() {
           <GlassCard className="p-8 sticky top-32">
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-6 pb-4 border-b border-gray-100">Tổng kết Báo giá</h3>
             <div className="flex flex-col gap-5">
-              <Field label="Hiệu lực đến (Valid until)" type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
+              <Field 
+                label="Hiệu lực đến (Valid until)" 
+                required 
+                type="date" 
+                value={validUntil} 
+                onChange={(e) => {
+                  setValidUntil(e.target.value)
+                  setErrors(prev => ({ ...prev, validUntil: '' }))
+                }} 
+                error={errors.validUntil}
+              />
               
               <div className="space-y-4 pt-4">
                 <div className="flex justify-between items-center text-sm font-medium">
@@ -359,19 +432,77 @@ export default function QuotationForm() {
             </div>
           </GlassCard>
           
-          <div className="px-6 py-5 bg-blue-50/50 rounded-[32px] border border-blue-100 flex items-start gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-blue-500 flex items-center justify-center text-white shrink-0">
-               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-blue-900 uppercase mb-1">Hướng dẫn</h4>
-              <p className="text-[10px] text-blue-600 leading-relaxed font-medium">
-                Chọn khách hàng để hệ thống tự động điền thông tin liên hệ. Thêm sản phẩm và áp dụng mức chiết khấu phù hợp để tối ưu hóa giá trị đơn hàng.
-              </p>
-            </div>
-          </div>
         </div>
       </div>
+
+      <Modal 
+        isOpen={isCustomerModalOpen} 
+        onClose={() => setIsCustomerModalOpen(false)} 
+        title="Tạo nhanh Khách hàng"
+        maxWidth="max-w-lg"
+      >
+        <div className="space-y-4">
+          <Field 
+            label="Tên khách hàng" 
+            required 
+            value={newCustomer.name} 
+            onChange={e => {
+              setNewCustomer({...newCustomer, name: e.target.value})
+              setErrors(prev => ({ ...prev, newCus_name: '' }))
+            }} 
+            error={errors.newCus_name}
+          />
+          <Field 
+            label="Số điện thoại" 
+            value={newCustomer.phone} 
+            onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})} 
+          />
+          <Field 
+            label="Email" 
+            value={newCustomer.email} 
+            onChange={e => setNewCustomer({...newCustomer, email: e.target.value})} 
+          />
+          <div className="flex justify-end gap-3 pt-4">
+            <Btn variant="ghost" onClick={() => setIsCustomerModalOpen(false)}>Hủy</Btn>
+            <Btn onClick={async () => {
+              if(!newCustomer.name) {
+                setErrors(prev => ({ ...prev, newCus_name: 'Vui lòng nhập tên khách hàng' }))
+                return
+              }
+              setCustomerSaving(true)
+              try {
+                const res = await customerService.create({ 
+                  name: newCustomer.name, 
+                  phoneNumber: newCustomer.phone,
+                  email: newCustomer.email,
+                  address: 'Chưa cập nhật'
+                })
+                
+                const list = await customerService.getAll()
+                setCustomers(list)
+                
+                const createdCus = res?.data || res
+                if (createdCus?.id) {
+                  handleCustomerChange(createdCus.id)
+                }
+                
+                setIsCustomerModalOpen(false)
+                setNewCustomer({ name: '', phone: '', email: '' })
+                setErrors(prev => ({ ...prev, newCus_name: '' }))
+              } catch (err) {
+                console.error("Create Customer Error:", err)
+                const msg = err.response?.data?.message || 'Không thể tạo khách hàng mới. Vui lòng kiểm tra lại dữ liệu hoặc tên khách hàng đã tồn tại.'
+                setErrors(prev => ({ ...prev, newCus_server: msg }))
+              } finally { 
+                setCustomerSaving(false) 
+              }
+            }} disabled={customerSaving}>
+              {customerSaving ? 'Đang tạo...' : 'Tạo khách hàng'}
+            </Btn>
+          </div>
+          {errors.newCus_server && <p className="text-xs text-red-500 font-bold mt-2">{errors.newCus_server}</p>}
+        </div>
+      </Modal>
     </DashboardLayout>
   )
 }

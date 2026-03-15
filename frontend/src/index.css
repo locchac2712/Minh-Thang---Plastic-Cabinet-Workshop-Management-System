@@ -76,3 +76,16 @@ body {
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+@media print {
+  .no-print, button, .btn, .Btn, .LinkBtn, nav, aside {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+  }
+  .GlassCard, .Card {
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+}

@@ -33,18 +33,22 @@ public class QuotationDetailResponse {
         this.createdDate = q.getCreatedDate();
         this.validUntil = q.getValidUntil();
 
-        // Lọc thông tin Khách hàng (Bỏ bớt nợ nần, mã số thuế nếu không cần thiết hiển thị ở BG)
-        this.customer = new CustomerDto(q.getCustomer().getId(), q.getCustomer().getName(), q.getCustomer().getEmail(), q.getCustomer().getPhoneNumber(), q.getCustomer().getAddress());
+        // Lọc thông tin Khách hàng
+        if (q.getCustomer() != null) {
+            this.customer = new CustomerDto(q.getCustomer().getId(), q.getCustomer().getName(), q.getCustomer().getEmail(), q.getCustomer().getPhoneNumber(), q.getCustomer().getAddress());
+        }
 
-        // Lọc thông tin Sales (Cực sạch, không dính dáng đến User/Password)
-        this.staff = new StaffDto(q.getStaff().getId(), q.getStaff().getFullname(), q.getStaff().getEmployeeId());
+        // Lọc thông tin Sales
+        if (q.getStaff() != null) {
+            this.staff = new StaffDto(q.getStaff().getId(), q.getStaff().getFullname(), q.getStaff().getEmployeeId());
+        }
 
         // Lọc mảng Sản phẩm chi tiết
         this.details = q.getDetails().stream().map(d -> new ItemDto(
                 d.getId(),
-                d.getProduct().getId(),
-                d.getProduct().getName(),
-                d.getProduct().getSku(),
+                d.getProduct() != null ? d.getProduct().getId() : null,
+                d.getProduct() != null ? d.getProduct().getName() : "Sản phẩm không xác định",
+                d.getProduct() != null ? d.getProduct().getSku() : "N/A",
                 d.getQuantity(),
                 d.getUnitPrice(),
                 d.getDiscount(),

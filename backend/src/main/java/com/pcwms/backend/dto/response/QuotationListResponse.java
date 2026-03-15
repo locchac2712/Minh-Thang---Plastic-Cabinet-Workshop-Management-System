@@ -22,8 +22,8 @@ public class QuotationListResponse {
     public QuotationListResponse(Quotation q) {
         this.id = q.getId();
         this.quotationNumber = q.getQuotationNumber();
-        this.customerName = q.getCustomer().getName();
-        this.staffName = q.getStaff().getFullname();
+        this.customerName = (q.getCustomer() != null) ? q.getCustomer().getName() : "Vãng lai";
+        this.staffName = (q.getStaff() != null) ? q.getStaff().getFullname() : "Chưa gán";
         this.totalAmount = q.getTotalAmount();
         this.status = q.getStatus();
         this.createdDate = q.getCreatedDate();

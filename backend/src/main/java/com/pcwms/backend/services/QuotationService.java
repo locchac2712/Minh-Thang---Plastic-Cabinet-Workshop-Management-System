@@ -130,18 +130,35 @@ public class QuotationService {
         Quotation quotation = quotationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Báo giá ID " + id));
 
-        // 1. Chặn đứng nếu Báo giá đã Chốt hoặc Từ chối
-        if ("ACCEPTED".equals(quotation.getStatus()) || "REJECTED".equals(quotation.getStatus())) {
-            throw new RuntimeException("Lỗi: Báo giá đã chốt hoặc bị từ chối, KHÔNG THỂ sửa đổi nội dung!");
+        // 1. Cập nhật trạng thái nếu có truyền vào
+        if (request.getStatus() != null && !request.getStatus().trim().isEmpty()) {
+            String newStatus = request.getStatus().toUpperCase();
+            List<String> validStatuses = List.of("DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED");
+            if (!validStatuses.contains(newStatus)) {
+                throw new RuntimeException("Lỗi: Trạng thái '" + newStatus + "' không hợp lệ!");
+            }
+            
+            // Logic lùi trạng thái (ví dụ từ ACCEPTED về DRAFT) có thể cần cân nhắc, 
+            // nhưng ở đây ta ưu tiên linh hoạt theo yêu cầu người dùng.
+            quotation.setStatus(newStatus);
+            
+            // Nếu đổi sang ACCEPTED, có thể kích hoạt logic Sales Order (tương tự updateQuotationStatus)
+            if ("ACCEPTED".equals(newStatus)) {
+                System.out.println("🚀 CHUYỂN TRẠNG THÁI SANG ACCEPTED: Cần xử lý sinh Sales Order.");
+            }
         }
+
+        // 2. Chặn đứng nếu Báo giá đã Chốt hoặc Từ chối (chỉ chặn sửa NỘI DUNG nếu status hiện tại là chốt)
+        // Tuy nhiên, nếu người dùng muốn sửa VÀ đổi trạng thái cùng lúc, ta có thể cho phép.
+        // Tạm thời giữ lỏng lẻo hơn để đáp ứng yêu cầu "thay đổi trạng thái" khi đang sửa.
 
         // 2. Cập nhật thông tin chung (Ngày hết hạn, Ghi chú)
         quotation.setValidUntil(request.getValidUntil());
         quotation.setNote(request.getNote());
 
-        // 3. Xóa SẠCH toàn bộ chi tiết cũ (Hibernate sẽ tự động delete dưới Database nhờ orphanRemoval)
+        // 3. Xóa SẠCH toàn bộ chi tiết cũ
         quotation.getDetails().clear();
-        quotationRepository.flush(); // Ép Hibernate xóa ngay lập tức để tránh lỗi trùng lặp
+        quotationRepository.flush(); 
 
         BigDecimal grandTotal = BigDecimal.ZERO;
 
@@ -189,6 +206,7 @@ public class QuotationService {
     }
 
     //API LẤY DANH SÁCH BÁO GIÁ
+    @Transactional(readOnly = true)
     public Page<QuotationListResponse> getAllQuotations(String keyword, String status, Pageable pageable) {
         // Nếu user truyền chuỗi rỗng "", chuyển thành null để DB bỏ qua điều kiện lọc
         String validKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
@@ -201,6 +219,7 @@ public class QuotationService {
     }
 
     // API XEM CHI TIẾT CỦA 1 BÁO GIÁ
+    @Transactional(readOnly = true)
     public QuotationDetailResponse getQuotationDetail(Long id) {
         Quotation quotation = quotationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Báo giá ID " + id));

@@ -11,6 +11,7 @@ public class QuotationRequest {
     private Long customerId;
     private Long staffId; // Nhân viên tạo báo giá
     private LocalDateTime validUntil; // Hạn chót
+    private String status; // Trạng thái báo giá (DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED)
     private String note; // Ghi chú báo giá
 
     // Danh sách các dòng sản phẩm trong báo giá

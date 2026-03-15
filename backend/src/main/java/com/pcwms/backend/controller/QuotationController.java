@@ -92,8 +92,9 @@ public class QuotationController {
                     new ResponseObject("SUCCESS", "Lấy danh sách Báo giá thành công!", quotations)
             );
         } catch (Exception e) {
+            // Trả về e.toString() để thấy rõ loại Exception (ví dụ NullPointerException)
             return ResponseEntity.badRequest().body(
-                    new ResponseObject("ERROR", e.getMessage(), null)
+                    new ResponseObject("ERROR", "Lỗi: " + e.toString(), null)
             );
         }
     }
