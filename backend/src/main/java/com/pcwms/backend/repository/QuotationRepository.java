@@ -10,8 +10,13 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface QuotationRepository extends JpaRepository<Quotation, Long> {
-    @Query("SELECT q FROM Quotation q WHERE " +
-            "(:keyword IS NULL OR LOWER(q.quotationNumber) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(q.customer.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-            "AND (:status IS NULL OR q.status = :status)")
-    Page<Quotation> searchQuotations(@Param("keyword") String keyword, @Param("status") String status, Pageable pageable);
+    @Query("SELECT q FROM Quotation q JOIN q.customer c WHERE " +
+            "(:keyword IS NULL OR LOWER(CAST(q.quotationNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
+            "OR LOWER(CAST(c.name AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))) " +
+            "AND (:status IS NULL OR q.status = CAST(:status AS string))")
+    Page<Quotation> searchQuotations(
+            @Param("keyword") String keyword,
+            @Param("status")  String status,
+            Pageable pageable
+    );
 }
