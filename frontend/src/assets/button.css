@@ -1,0 +1,50 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.btn--login {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn--login:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+
+.btn--logout {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid rgba(247, 107, 107, 0.25);
+}
+
+.btn--logout:hover {
+  background: rgba(247, 107, 107, 0.1);
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: #fff;
+  justify-content: center;
+}
+
+.btn--primary:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 20px var(--accent-glow);
+}
+
+.btn--full {
+  width: 100%;
+  padding: 12px;
+}
