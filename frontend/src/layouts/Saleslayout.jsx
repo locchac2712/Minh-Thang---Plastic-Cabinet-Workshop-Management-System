@@ -16,6 +16,15 @@ const NAV = [
     { id: "delivery",  label: "Giao hàng",    icon: "◻" },
 ];
 
+const PAGE_TITLES = {
+    dashboard: "Dashboard Bán hàng",
+    products:  "Sản phẩm",
+    customers: "Khách hàng",
+    quotes:    "Báo giá",
+    orders:    "Đơn bán hàng",
+    delivery:  "Giao hàng",
+};
+
 export const SalesLayout = () => {
     const { user, logout } = useAuth();
     const [page, setPage] = useState("dashboard");
@@ -58,7 +67,15 @@ export const SalesLayout = () => {
             {/* Main */}
             <div className="sl-main">
                 <header className="sl-header">
-                    <div className="sl-header__right">
+                    <div className="sl-header__left">
+                        <button className="sl-menu-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                            </svg>
+                        </button>
+                        <span className="sl-header__title">{PAGE_TITLES[page] || "Dashboard"}</span>
+                    </div>
+                    <div className="sl-header__right sl-header__right--push">
                         <button className="sl-notif-btn">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>

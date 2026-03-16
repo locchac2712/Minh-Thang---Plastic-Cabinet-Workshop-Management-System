@@ -143,6 +143,7 @@
 }
 
 .sl-header__right { display: flex; align-items: center; gap: 14px; }
+.sl-header__right--push { margin-left: auto; }
 
 .sl-notif-btn {
     position: relative;
