@@ -163,23 +163,25 @@ export const SalesQuotes = () => {
 
             {/* Toolbar */}
             <div className="sq-toolbar">
-                <div className="sp-search">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
-                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
-                    <input placeholder="Tìm báo giá hoặc khách hàng..."
-                           value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
-                </div>
-                <div className="sq-toolbar__right">
+                <div className="sq-toolbar__left">
+                    <div className="sp-search">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <input placeholder="Tìm báo giá hoặc khách hàng..."
+                               value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
+                    </div>
                     <select className="sq-status-filter"
                             value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }}>
                         <option value="">Tất cả trạng thái</option>
                         {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
+                </div>
+                <div className="sq-toolbar__right">
                     <div className="sq-stats">
                         <div className="sq-stat">
-                            <span className="sq-stat__label">TỔNG BÁO GIÁ</span>
-                            <span className="sq-stat__val">{total}</span>
+                            <span className="sq-stat__label">{total} BÁO GIÁ</span>
+                            {/*<span className="sq-stat__val">{total}</span>*/}
                         </div>
                     </div>
                 </div>

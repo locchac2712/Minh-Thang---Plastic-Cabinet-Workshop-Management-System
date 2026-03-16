@@ -39,6 +39,8 @@ public class DatabaseSeeder implements CommandLineRunner {
     private BillOfMaterialRepository billOfMaterialRepository;
     @Autowired
     private QuotationRepository quotationRepository;
+    @Autowired
+    private SalesOrderRepository salesOrderRepository;
 
     @Override
     @Transactional
@@ -230,6 +232,71 @@ public class DatabaseSeeder implements CommandLineRunner {
                 quotationRepository.save(q1);
 
                 System.out.println("-> Đã tạo 1 Báo giá (Quotation) chuẩn Form UI thành công!");
+            }
+        }
+
+        // =========================================================
+        // 🚀 SEEDER: TẠO DỮ LIỆU ĐƠN HÀNG MẪU (SALES ORDERS)
+        // =========================================================
+        if (salesOrderRepository.count() == 0) {
+            System.out.println("⏳ Đang tạo dữ liệu Đơn hàng mẫu...");
+
+            // Lấy tạm Khách hàng VIP và 2 Sản phẩm có sẵn trong DB (Bàn và Ghế)
+            // LƯU Ý: Đảm bảo Customer ID=1 và Product ID=1, ID=2 đã được tạo ở trên rồi nhé.
+            Customer customerVIP = customerRepository.findById(1L).orElse(null);
+            Product banGo = productRepository.findById(1L).orElse(null);
+            Product gheXoay = productRepository.findById(2L).orElse(null);
+
+            if (customerVIP != null && banGo != null && gheXoay != null) {
+
+                // 📦 ĐƠN HÀNG SỐ 1: Đơn mới tinh, Khách chưa trả tiền (Cho Kế toán vào đòi nợ)
+                SalesOrder order1 = new SalesOrder();
+                order1.setOrderNumber("SO-2026-1001");
+                order1.setCustomer(customerVIP);
+                order1.setCreatedDate(java.time.LocalDateTime.now().minusDays(2)); // Đặt cách đây 2 ngày
+                order1.setStatus("PENDING");
+                order1.setPaymentStatus("UNPAID");
+
+                // Mua 5 cái bàn Sồi
+                SalesOrderDetail detail1_1 = new SalesOrderDetail();
+                detail1_1.setProduct(banGo);
+                detail1_1.setQuantity(5);
+                detail1_1.setUnitPrice(new java.math.BigDecimal("2500000"));
+                detail1_1.setDiscount(new java.math.BigDecimal("0"));
+                order1.addDetail(detail1_1);
+
+                order1.setTotalAmount(detail1_1.getTotalLineAmount());
+                salesOrderRepository.save(order1);
+
+
+                // 📦 ĐƠN HÀNG SỐ 2: Khách sộp, đã thanh toán, Xưởng đang làm (Cho Xưởng xem)
+                SalesOrder order2 = new SalesOrder();
+                order2.setOrderNumber("SO-2026-9999");
+                order2.setCustomer(customerVIP);
+                order2.setCreatedDate(java.time.LocalDateTime.now());
+                order2.setStatus("PROCESSING"); // Xưởng đang làm
+                order2.setPaymentStatus("PAID"); // Đã thanh toán 100%
+
+                // Mua 10 cái Ghế và 2 cái Bàn (Có giảm giá)
+                SalesOrderDetail detail2_1 = new SalesOrderDetail();
+                detail2_1.setProduct(gheXoay);
+                detail2_1.setQuantity(10);
+                detail2_1.setUnitPrice(new java.math.BigDecimal("850000"));
+                detail2_1.setDiscount(new java.math.BigDecimal("0"));
+                order2.addDetail(detail2_1);
+
+                SalesOrderDetail detail2_2 = new SalesOrderDetail();
+                detail2_2.setProduct(banGo);
+                detail2_2.setQuantity(2);
+                detail2_2.setUnitPrice(new java.math.BigDecimal("2500000"));
+                detail2_2.setDiscount(new java.math.BigDecimal("500000")); // Giảm 500k
+                order2.addDetail(detail2_2);
+
+                java.math.BigDecimal total2 = detail2_1.getTotalLineAmount().add(detail2_2.getTotalLineAmount());
+                order2.setTotalAmount(total2);
+                salesOrderRepository.save(order2);
+
+                System.out.println("✅ Đã tạo xong 2 Đơn hàng mẫu!");
             }
         }
 
