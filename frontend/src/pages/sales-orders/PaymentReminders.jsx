@@ -23,7 +23,8 @@ export default function PaymentReminders() {
     const fetch = async () => {
       try {
         setLoading(true)
-        const items = await salesOrderService.getAll()
+        const res = await salesOrderService.getAll()
+        const items = res?.content || res || []
         const unpaid = Array.isArray(items)
           ? items.filter(o => o.paymentStatus === 'UNPAID' || o.paymentStatus === 'PARTIAL')
           : []

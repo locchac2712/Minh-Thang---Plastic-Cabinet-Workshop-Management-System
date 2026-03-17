@@ -41,7 +41,8 @@ export default function DeliveryTracking() {
     const fetch = async () => {
       try {
         setLoading(true)
-        const items = await salesOrderService.getAll()
+        const res = await salesOrderService.getAll()
+        const items = res?.content || res || []
         setOrders(Array.isArray(items) ? items.filter(o => DELIVERY_STATUSES.includes(o.status)) : [])
       } catch {
         setError('Không thể tải dữ liệu đơn hàng')

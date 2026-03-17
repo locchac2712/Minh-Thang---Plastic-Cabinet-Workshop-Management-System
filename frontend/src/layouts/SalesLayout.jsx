@@ -1,11 +1,11 @@
 import { useState } from "react";
-import "./Saleslayout.css";
+import "./SalesLayout.css";
 import { useAuth } from "../context/AuthContext";
 import { SalesDashboard } from "../pages/sales/SalesDashboard";
-import { SalesProducts }  from "../pages/sales/Salesproducts";
-import { SalesCustomers } from "../pages/sales/Salescustomers";
-import { SalesQuotes }    from "../pages/sales/Salesquotes";
-import { SalesOrders }    from "../pages/sales/Salesorders";
+import { SalesProducts }  from "../pages/sales/SalesProducts";
+import { SalesCustomers } from "../pages/sales/SalesCustomers";
+import { SalesQuotes }    from "../pages/sales/SalesQuotes";
+import { SalesOrders }    from "../pages/sales/SalesOrders";
 
 const NAV = [
     { id: "dashboard", label: "Dashboard",    icon: "⊞" },

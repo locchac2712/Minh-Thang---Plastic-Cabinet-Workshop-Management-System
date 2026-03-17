@@ -34,8 +34,10 @@ export default function SalesOrderList() {
     try {
       setLoading(true)
       const params = status ? { status } : {}
-      const data = await salesOrderService.getAll(params)
-      setOrders(data || [])
+      const res = await salesOrderService.getAll(params)
+      // res is a Page object, data is in res.content
+      const data = res?.content || res || []
+      setOrders(Array.isArray(data) ? data : [])
     } catch {
       setOrders([])
     } finally {

@@ -31,7 +31,8 @@ export default function FinancialOverview() {
           salesOrderService.getAll(),
         ])
         setStats(statsData)
-        setOrders((orderData || []).slice(0, 10))
+        const items = orderData?.content || orderData || []
+        setOrders(items.slice(0, 10))
       } catch {
         setStats(null)
         setOrders([])

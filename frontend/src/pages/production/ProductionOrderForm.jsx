@@ -28,7 +28,10 @@ export default function ProductionOrderForm() {
 
   useEffect(() => {
     productService.getAll().then((data) => setProducts(data || [])).catch(() => {})
-    salesOrderService.getAll().then((data) => setSalesOrders(data || [])).catch(() => {})
+    salesOrderService.getAll().then((res) => {
+      const data = res?.content || res || []
+      setSalesOrders(Array.isArray(data) ? data : [])
+    }).catch(() => {})
     bomService.getAll().then((data) => setBoms(data || [])).catch(() => {})
   }, [])
 

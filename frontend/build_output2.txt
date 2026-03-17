@@ -1,0 +1,45 @@
+﻿[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+transforming...
+[32mâœ“[39m 221 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                 [39m[1m[2m  0.83 kB[22m[1m[22m[2m â”‚ gzip:   0.46 kB[22m
+[2mdist/[22m[35massets/index-FlluQnLL.css  [39m[1m[2m128.03 kB[22m[1m[22m[2m â”‚ gzip:  19.22 kB[22m
+[2mdist/[22m[36massets/index-D-51Sd2l.js   [39m[1m[33m504.55 kB[39m[22m[2m â”‚ gzip: 130.92 kB[22m
+node.exe : [33m
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Users\mituz\AppData
+\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: ([33m:String)   
+  [], RemoteExcepti    
+on
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+(!) Some chunks are 
+larger than 500 kB 
+after minification. 
+Consider:
+- Using dynamic 
+import() to code-split 
+the application
+- Use build.rollupOptio
+ns.output.manualChunks 
+to improve chunking: ht
+tps://rollupjs.org/conf
+iguration-options/#outp
+ut-manualchunks
+- Adjust chunk size 
+limit for this warning 
+via build.chunkSizeWarn
+ingLimit.[39m
+[32mâœ“ built in 3.46s[39m

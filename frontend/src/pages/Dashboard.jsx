@@ -35,8 +35,10 @@ export default function Dashboard() {
           productionOrderService.getAll({ status: 'IN_PROGRESS' }),
         ])
         setStats(statsData)
-        setRecentOrders(Array.isArray(ordersData) ? ordersData.slice(0, 5) : [])
-        setProdOrders(Array.isArray(prodData) ? prodData.slice(0, 5) : [])
+        const list = ordersData?.content || ordersData || []
+        setRecentOrders(Array.isArray(list) ? list.slice(0, 5) : [])
+        const prodList = prodData?.content || prodData || []
+        setProdOrders(Array.isArray(prodList) ? prodList.slice(0, 5) : [])
       } catch {
         setStats(null)
       } finally {

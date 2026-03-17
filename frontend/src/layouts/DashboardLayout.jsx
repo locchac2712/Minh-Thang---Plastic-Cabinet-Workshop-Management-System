@@ -6,7 +6,7 @@ import { ManageBOM }         from "../pages/ManageBOM";
 import { PlanProduction }    from "../pages/PlanProduction";
 import { ExecuteWorkOrder }  from "../pages/ExecuteWorkOrder";
 import { ControlMaterial }   from "../pages/ControlMaterial";
-import { MaterialDetail }    from "../pages/Materialdetail";
+import { MaterialDetail }    from "../pages/MaterialDetail";
 import { ProductList }       from "../pages/ProductList";
 import { ProductDetail }     from "../pages/ProductDetail";
 import { MonitorProduction } from "../pages/MonitorProduction";

@@ -10,8 +10,9 @@ export default function ProfitReport() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await salesOrderService.getAll()
-        setOrders(data || [])
+        const res = await salesOrderService.getAll()
+        const data = res?.content || res || []
+        setOrders(data)
       } catch {
         setOrders([])
       } finally {
