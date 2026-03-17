@@ -35,7 +35,7 @@ const StatusModal = ({ quote, onClose, onSaved }) => {
         }
     };
 
-    const cur = getQuoteStatus(quote.status);
+    const cur = quotationService.getStatus(quote.status);
 
     return (
         <div className="sq-modal-overlay" onClick={onClose}>
@@ -58,7 +58,7 @@ const StatusModal = ({ quote, onClose, onSaved }) => {
                         <label className="sq-modal__label">Chuyển sang trạng thái mới</label>
                         <div className="sq-status-options">
                             {STATUS_OPTIONS.map(opt => {
-                                const s = getQuoteStatus(opt.value);
+                                const s = quotationService.getStatus(opt.value);
                                 return (
                                     <button
                                         key={opt.value}
@@ -211,7 +211,7 @@ export const SalesQuotes = () => {
                                 <div className="sq-empty"><div className="sq-empty__icon">📋</div><p>Không có báo giá nào</p></div>
                             </td></tr>
                         ) : quotes.map(q => {
-                            const s = getQuoteStatus(q.status);
+                            const s = quotationService.getStatus(q.status);
                             return (
                                 <tr key={q.id} className="sp-table__row">
                                     <td><span className="sq-quote-id">{q.quotationNumber}</span></td>
