@@ -7,11 +7,11 @@ const BASE = "/quotations";
 // QuotationDetailResponse: { id, quotationNumber, customer{}, staff{}, totalAmount, status, note, createdDate, validUntil, details[] }
 
 const STATUS_LABEL = {
-    DRAFT:    { text: "Nháp (Draft)",      cls: "sq-badge--draft"    },
-    SENT:     { text: "Đã gửi (Sent)",     cls: "sq-badge--sent"     },
-    ACCEPTED: { text: "Đã chốt (Accepted)",cls: "sq-badge--accepted" },
-    REJECTED: { text: "Đã hủy (Rejected)", cls: "sq-badge--rejected" },
-    EXPIRED:  { text: "Hết hạn (Expired)", cls: "sq-badge--expired"  },
+    DRAFT:    { text: "Nh??p (Draft)",      cls: "sq-badge--draft"    },
+    SENT:     { text: "???? g???i (Sent)",     cls: "sq-badge--sent"     },
+    ACCEPTED: { text: "???? ch???t (Accepted)",cls: "sq-badge--accepted" },
+    REJECTED: { text: "???? h???y (Rejected)", cls: "sq-badge--rejected" },
+    EXPIRED:  { text: "H???t h???n (Expired)", cls: "sq-badge--expired"  },
 };
 
 export const getQuoteStatus = (status) =>
@@ -20,23 +20,23 @@ export const getQuoteStatus = (status) =>
 const quotationService = {
     // GET /quotations?keyword=&status=&page=0&size=10&sortBy=createdDate&sortDir=desc
     getAll: (params = {}) =>
-        api.get(BASE, { params }).then((res) => res.data?.data ?? res.data),
+        api.get(BASE, { params }).then((res) => res.data.data?.content || res.data.data || []),
 
     // GET /quotations/{id}
     getById: (id) =>
-        api.get(`${BASE}/${id}`).then((res) => res.data?.data ?? res.data),
+        api.get(`${BASE}/${id}`).then((res) => res.data.data || res.data),
 
     // POST /quotations/create
     create: (payload) =>
-        api.post(`${BASE}/create`, payload).then((res) => res.data?.data ?? res.data),
+        api.post(`${BASE}/create`, payload).then((res) => res.data.data || res.data),
 
     // PUT /quotations/{id}/update
     update: (id, payload) =>
-        api.put(`${BASE}/${id}/update`, payload).then((res) => res.data?.data ?? res.data),
+        api.put(`${BASE}/${id}/update`, payload).then((res) => res.data.data || res.data),
 
     // POST /quotations/{id}/status?status=SENT
     updateStatus: (id, status) =>
-        api.post(`${BASE}/${id}/status`, null, { params: { status } }).then((res) => res.data?.data ?? res.data),
+        api.post(`${BASE}/${id}/status`, null, { params: { status } }).then((res) => res.data.data || res.data),
 };
 
-export default quotationService;
+export default quotationService;

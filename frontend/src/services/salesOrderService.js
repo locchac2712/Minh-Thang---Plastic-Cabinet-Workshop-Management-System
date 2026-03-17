@@ -21,14 +21,14 @@ export const PAYMENT_STATUS_MAP = {
 const salesOrderService = {
     // GET /sales-orders?keyword=&status=&paymentStatus=&page=0&size=10
     getAll: (params = {}) =>
-        api.get(BASE, { params }).then((res) => res.data?.data ?? res.data),
+        api.get(BASE, { params }).then((res) => res.data.data?.content || res.data.data || []),
 
     // GET /sales-orders/{id}
     getById: (id) =>
-        api.get(`${BASE}/${id}`).then((res) => res.data?.data ?? res.data),
+        api.get(`${BASE}/${id}`).then((res) => res.data.data || res.data),
 
     processApproval: (id, payload) =>
-        api.put(`${BASE}/${id}/approval`, payload).then((res) => res.data?.data ?? res.data),
+        api.put(`${BASE}/${id}/approval`, payload).then((res) => res.data.data || res.data),
 };
 
 export default salesOrderService;
