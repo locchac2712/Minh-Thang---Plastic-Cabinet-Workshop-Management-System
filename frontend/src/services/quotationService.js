@@ -37,6 +37,8 @@ const quotationService = {
     // POST /quotations/{id}/status?status=SENT
     updateStatus: (id, status) =>
         api.post(`${BASE}/${id}/status`, null, { params: { status } }).then((res) => res.data.data || res.data),
+
+    getStatus: getQuoteStatus,
 };
 
 export default quotationService;
