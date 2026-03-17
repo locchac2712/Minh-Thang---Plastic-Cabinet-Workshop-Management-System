@@ -1,8 +1,10 @@
 package com.pcwms.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Entity
 @Table(name = "customer")
@@ -30,16 +32,17 @@ public class Customer {
     @Column(name = "tax_code")
     private String taxCode;
 
-    @Column(name = "credit_limit")
+    @Column(name = "credit_limit",precision = 15, scale = 2)
     private BigDecimal creditLimit;
 
-    @Column(name = "current_debt")
+    @Column(name = "current_debt",precision = 15, scale = 2)
     private BigDecimal currentDebt;
 
-    // Tạm thời cứ comment lại OneToMany, khi nào cần truy vấn ngược từ Khách hàng ra danh sách Đơn hàng/Báo giá thì mở ra sau để tránh nặng Database.
-    // @OneToMany(mappedBy = "customer")
-    // private List<Quotation> quotations;
+    @OneToMany(mappedBy = "customer")
+    @JsonIgnore
+    private List<Quotation> quotations;
 
-    // @OneToMany(mappedBy = "customer")
-    // private List<SalesOrder> salesOrders;
+    @OneToMany(mappedBy = "customer")
+    @JsonIgnore
+    private List<SalesOrder> salesOrders;
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./SalesPages.css";
+import { AddCustomer } from "./AddCustomer.jsx";
 
 const MOCK = [
     { code: "", name: "Công ty TNHH Khách Hàng VIP", contact: "—", phone: "—", limit: 50_000_000, status: "INACTIVE" },
@@ -9,11 +10,14 @@ const MOCK = [
 const fmt = (v) => v.toLocaleString("vi-VN") + " đ";
 
 export const SalesCustomers = () => {
-    const [search, setSearch] = useState("");
+    const [search,  setSearch]  = useState("");
+    const [showAdd, setShowAdd] = useState(false);
 
     const filtered = MOCK.filter(c =>
         c.name.toLowerCase().includes(search.toLowerCase())
     );
+
+    if (showAdd) return <AddCustomer onBack={() => setShowAdd(false)} onSaved={() => setShowAdd(false)} />;
 
     return (
         <div className="sp-page">
@@ -29,7 +33,7 @@ export const SalesCustomers = () => {
                         </svg>
                         <input placeholder="Tìm kiếm khách hàng..." value={search} onChange={e => setSearch(e.target.value)} />
                     </div>
-                    <button className="sp-btn-primary sp-btn-primary--pill">
+                    <button className="sp-btn-primary sp-btn-primary--pill" onClick={() => setShowAdd(true)}>
                         Thêm khách hàng
                         <span className="sp-btn-plus">+</span>
                     </button>

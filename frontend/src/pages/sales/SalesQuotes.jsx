@@ -1,10 +1,10 @@
 import { useState } from "react";
 import "./SalesPages.css";
-import { CreateQuote } from "./CreateQuote";
-import { EditQuote }   from "./EditQuote";
+import { CreateQuote } from "./CreateQuote.jsx";
+import { EditQuote }   from "./EditQuote.jsx";
 import { useQuotations } from "../../hooks/useQuotations";
-import { getQuoteStatus } from "../../services/quotationService";
-import quotationService from "../../services/quotationService";
+import { getQuoteStatus } from "../../services/quotationService.js";
+import quotationService from "../../services/quotationService.js";
 
 const fmt = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "—";
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";

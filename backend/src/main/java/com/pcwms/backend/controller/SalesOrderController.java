@@ -1,8 +1,10 @@
 package com.pcwms.backend.controller;
 
+import com.pcwms.backend.dto.request.ApprovalRequest;
 import com.pcwms.backend.dto.response.ResponseObject;
 import com.pcwms.backend.dto.response.SalesOrderDetailResponse;
 import com.pcwms.backend.dto.response.SalesOrderListResponse;
+import com.pcwms.backend.entity.SalesOrder;
 import com.pcwms.backend.services.SalesOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -56,6 +58,43 @@ public class SalesOrderController {
             SalesOrderDetailResponse detail = salesOrderService.getSalesOrderDetail(id);
             return ResponseEntity.ok(
                     new ResponseObject("SUCCESS", "Lấy chi tiết Đơn hàng thành công!", detail)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", e.getMessage(), null)
+            );
+        }
+    }
+    @PostMapping("/from-quotation/{quotationId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
+    public ResponseEntity<ResponseObject> createOrderFromQuotation(@PathVariable Long quotationId) {
+        try {
+            // Gọi hàm check tín dụng và đúc đơn hàng từ Service
+            SalesOrder newOrder = salesOrderService.generateFromQuotation(quotationId);
+            SalesOrderDetailResponse responseDto = new SalesOrderDetailResponse(newOrder);
+            return ResponseEntity.ok(
+                    new ResponseObject("SUCCESS", "Đã khởi tạo Đơn hàng " + newOrder.getOrderNumber() + " thành công!", responseDto)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", e.getMessage(), null)
+            );
+        }
+    }
+
+    //API Director Approval
+    @PutMapping("/{id}/approval")
+    @PreAuthorize("hasRole('DIRECTOR') or hasRole('ADMIN')")
+    public ResponseEntity<ResponseObject> approveOrRejectOrder(
+            @PathVariable Long id,
+            @RequestBody ApprovalRequest request
+    ){
+        try{
+            Long directorId = 1L; // TODO: Lấy từ UserDetails (SecurityContext)
+            SalesOrder updatedOrder = salesOrderService.processApproval(id, request, directorId);
+            String msg = request.isApproved() ? "Đã PHÊ DUYỆT đơn hàng thành công!" : "Đã TỪ CHỐI đơn hàng!";
+            return ResponseEntity.ok(
+                    new ResponseObject("SUCCESS", msg, new SalesOrderDetailResponse(updatedOrder))
             );
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(

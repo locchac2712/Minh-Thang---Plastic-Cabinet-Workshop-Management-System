@@ -1,13 +1,15 @@
-import api from './api';
-
-const BASE = '/customers';
+import api from "./api";
 
 const customerService = {
-  getAll: (query) => api.get(BASE + (query ? `?q=${query}` : '')).then(res => res.data?.data ?? res.data),
-  getById: (id) => api.get(`${BASE}/${id}`).then(res => res.data?.data ?? res.data),
-  create: (payload) => api.post(BASE, payload).then(res => res.data?.data ?? res.data),
-  update: (id, payload) => api.put(`${BASE}/${id}`, payload).then(res => res.data?.data ?? res.data),
-  toggleActive: (id) => api.put(`${BASE}/${id}/toggle`).then(res => res.data?.data ?? res.data),
+    getAll: () =>
+        api.get("/customers").then((res) => {
+            const body = res.data;
+            if (Array.isArray(body))       return body;
+            if (Array.isArray(body?.data)) return body.data;
+            // paginated
+            if (body?.data?.content)       return body.data.content;
+            return [];
+        }),
 };
 
 export default customerService;

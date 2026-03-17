@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import "./SalesPages.css";
-import salesOrderService, { ORDER_STATUS_MAP, PAYMENT_STATUS_MAP } from "../../services/salesOrderService";
+import salesOrderService, { ORDER_STATUS_MAP, PAYMENT_STATUS_MAP } from "../../services/salesOrderService.js";
 
 const fmt     = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "—";
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";

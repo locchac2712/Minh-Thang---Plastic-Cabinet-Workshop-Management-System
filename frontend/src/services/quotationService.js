@@ -7,11 +7,11 @@ const BASE = "/quotations";
 // QuotationDetailResponse: { id, quotationNumber, customer{}, staff{}, totalAmount, status, note, createdDate, validUntil, details[] }
 
 const STATUS_LABEL = {
-    DRAFT:    { text: "Nh??p (Draft)",      cls: "sq-badge--draft"    },
-    SENT:     { text: "???? g???i (Sent)",     cls: "sq-badge--sent"     },
-    ACCEPTED: { text: "???? ch???t (Accepted)",cls: "sq-badge--accepted" },
-    REJECTED: { text: "???? h???y (Rejected)", cls: "sq-badge--rejected" },
-    EXPIRED:  { text: "H???t h???n (Expired)", cls: "sq-badge--expired"  },
+    DRAFT:    { text: "Nháp (Draft)",      cls: "sq-badge--draft"    },
+    SENT:     { text: "Đã gửi (Sent)",     cls: "sq-badge--sent"     },
+    ACCEPTED: { text: "Đã chốt (Accepted)",cls: "sq-badge--accepted" },
+    REJECTED: { text: "Đã hủy (Rejected)", cls: "sq-badge--rejected" },
+    EXPIRED:  { text: "Hết hạn (Expired)", cls: "sq-badge--expired"  },
 };
 
 export const getQuoteStatus = (status) =>
@@ -39,4 +39,4 @@ const quotationService = {
         api.post(`${BASE}/${id}/status`, null, { params: { status } }).then((res) => res.data?.data ?? res.data),
 };
 
-export default quotationService;
+export default quotationService;

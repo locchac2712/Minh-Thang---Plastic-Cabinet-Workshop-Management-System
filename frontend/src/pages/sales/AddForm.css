@@ -1,0 +1,111 @@
+/* ── Shared Add/Detail Form styles ──────────────────────── */
+.af-page     { display: flex; flex-direction: column; gap: 16px; }
+.af-header   { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.af-title    { font-size: 26px; font-weight: 700; color: #111827; letter-spacing: -.5px; }
+.af-subtitle { font-size: 13.5px; color: #9ca3af; margin-top: -10px; }
+.af-header__right { display: flex; align-items: center; gap: 10px; }
+
+.af-btn-edit {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border: 1.5px solid #e5e7eb; border-radius: 8px;
+    background: #fff; font-family: 'Inter',sans-serif; font-size: 13px;
+    font-weight: 500; color: #374151; cursor: pointer; transition: all .15s;
+}
+.af-btn-edit:hover:not(:disabled) { border-color: #7c3aed; color: #7c3aed; }
+.af-btn-edit:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Error banner */
+.af-error-banner {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px;
+    padding: 12px 16px; font-size: 13.5px; color: #ef4444;
+}
+.af-error-close { background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 16px; padding: 0 4px; }
+
+/* Body layout */
+.af-body { display: grid; grid-template-columns: 1fr 240px; gap: 16px; align-items: start; }
+
+/* Cards */
+.af-card { background: #fff; border: 1px solid #f0f0f5; border-radius: 14px; padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; }
+.af-card--narrow { max-width: 600px; }
+
+/* Fields */
+.af-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.af-field  { display: flex; flex-direction: column; gap: 6px; }
+.af-label  { font-size: 13px; color: #374151; }
+.af-required { color: #ef4444; }
+
+.af-input {
+    padding: 10px 14px; border: 1px solid #e5e7eb; border-radius: 8px;
+    font-family: 'Inter',sans-serif; font-size: 13.5px; color: #374151;
+    outline: none; width: 100%; background: #fafafa;
+    transition: border-color .15s, background .15s;
+}
+.af-input:focus { border-color: #7c3aed; background: #fff; }
+.af-input::placeholder { color: #c4c9d4; }
+.af-input--half { max-width: 240px; }
+.af-input--url  { color: #7c3aed; }
+.af-input--url::placeholder { color: #c4c9d4; }
+
+.af-textarea {
+    padding: 10px 14px; border: 1px solid #e5e7eb; border-radius: 8px;
+    font-family: 'Inter',sans-serif; font-size: 13.5px; color: #374151;
+    outline: none; resize: vertical; width: 100%; background: #fafafa;
+    transition: border-color .15s;
+}
+.af-textarea:focus { border-color: #7c3aed; background: #fff; }
+.af-textarea::placeholder { color: #c4c9d4; }
+
+.af-select {
+    width: 100%; padding: 9px 12px; border: 1px solid #e5e7eb; border-radius: 8px;
+    font-family: 'Inter',sans-serif; font-size: 13px; color: #374151;
+    outline: none; background: #fafafa; cursor: pointer;
+}
+.af-select:focus { border-color: #7c3aed; }
+
+/* Actions */
+.af-actions { display: flex; align-items: center; gap: 12px; padding-top: 4px; }
+.af-btn-save {
+    background: #7c3aed; color: #fff; border: none; border-radius: 8px;
+    padding: 10px 22px; font-family: 'Inter',sans-serif; font-size: 13.5px;
+    font-weight: 600; cursor: pointer; transition: background .15s;
+}
+.af-btn-save:hover:not(:disabled) { background: #6d28d9; }
+.af-btn-save:disabled { opacity: .6; cursor: not-allowed; }
+.af-btn-save--dark { background: #111827; border-radius: 24px; }
+.af-btn-save--dark:hover:not(:disabled) { background: #1f2937; }
+
+.af-btn-cancel {
+    background: transparent; border: none; color: #6b7280;
+    font-family: 'Inter',sans-serif; font-size: 13.5px; font-weight: 500;
+    cursor: pointer; padding: 10px 4px; transition: color .15s;
+}
+.af-btn-cancel:hover { color: #111827; }
+
+/* Side cards */
+.af-side { display: flex; flex-direction: column; gap: 12px; }
+.af-side-card { background: #fff; border: 1px solid #f0f0f5; border-radius: 14px; padding: 18px 20px; }
+.af-side-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #9ca3af; margin-bottom: 14px; }
+
+.af-status-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.af-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.af-status-dot--green { background: #22c55e; }
+.af-status-text  { font-size: 14px; font-weight: 600; color: #111827; flex: 1; }
+.af-status-badge { background: #f3f4f6; color: #6b7280; font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 6px; }
+
+.af-status-select-wrap { margin-bottom: 10px; }
+
+.af-btn-deactivate {
+    width: 100%; padding: 10px; border: 1.5px solid #fecaca;
+    border-radius: 10px; background: #fef2f2; color: #ef4444;
+    font-family: 'Inter',sans-serif; font-size: 13px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    gap: 6px; transition: all .15s;
+}
+.af-btn-deactivate:hover { background: #fee2e2; }
+
+.af-info-row  { display: flex; flex-direction: column; gap: 4px; }
+.af-info-label { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; }
+.af-info-value { font-size: 14px; font-weight: 600; color: #374151; }
+
+@media (max-width: 800px) { .af-body { grid-template-columns: 1fr; } }

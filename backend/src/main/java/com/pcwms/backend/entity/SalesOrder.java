@@ -52,6 +52,17 @@ public class SalesOrder {
     @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount = BigDecimal.ZERO;
 
+    @Column(name = "approved_by_id")
+    private Long approvedById;
+
+    // Thời gian duyệt để sau này Kế toán đối soát
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    // Ghi chú khi duyệt (VD: "Đã duyệt tăng hạn mức vì là khách VIP lâu năm")
+    @Column(name = "approval_note", columnDefinition = "TEXT")
+    private String approvalNote;
+
     // ==========================================
     // CÁC MỐI QUAN HỆ THEO ERD
     // ==========================================
