@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./SalesPages.css";
+import { AddProduct } from "./AddProduct.jsx";
 
 const MOCK = [
     { sku: "SP-BAN-001", name: "Bàn làm việc Gỗ Sồi",              unit: "Cái", price: null, status: "DEACTIVATED" },
@@ -14,14 +15,17 @@ const STATUS = {
 };
 
 export const SalesProducts = () => {
-    const [search, setSearch] = useState("");
-    const [page,   setPage]   = useState(1);
-    const [size,   setSize]   = useState(10);
+    const [search,     setSearch]     = useState("");
+    const [page,       setPage]       = useState(1);
+    const [size,       setSize]       = useState(10);
+    const [showAdd,    setShowAdd]    = useState(false);
 
     const filtered = MOCK.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.sku.toLowerCase().includes(search.toLowerCase())
     );
+
+    if (showAdd) return <AddProduct onBack={() => setShowAdd(false)} onSaved={() => setShowAdd(false)} />;
 
     return (
         <div className="sp-page">
@@ -44,7 +48,7 @@ export const SalesProducts = () => {
                         </svg>
                     </button>
                 </div>
-                <button className="sp-btn-primary">Thêm sản phẩm</button>
+                <button className="sp-btn-primary" onClick={() => setShowAdd(true)}>Thêm sản phẩm</button>
             </div>
 
             <div className="sp-card">

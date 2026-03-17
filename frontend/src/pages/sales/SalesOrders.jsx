@@ -1,10 +1,12 @@
 import { useState } from "react";
 import "./SalesPages.css";
-import { CreateOrder } from "./CreateOrder";
-import { SalesOrderDetail } from "./SalesOrderDetail";
+import { CreateOrder } from "./CreateOrder.jsx";
+import { SalesOrderDetail } from "./SalesOrderDetail.jsx";
 import { useAuth } from "../../context/AuthContext";
 import { useSalesOrders } from "../../hooks/useSalesOrders";
-import { ORDER_STATUS_MAP, PAYMENT_STATUS_MAP } from "../../services/salesOrderService";
+import { ApprovalModal } from "./ApprovalModal";
+import salesOrderService, { ORDER_STATUS_MAP, PAYMENT_STATUS_MAP } from "../../services/salesOrderService.js";
+
 
 const fmt     = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "—";
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
@@ -16,6 +18,8 @@ export const SalesOrders = () => {
     const [page,       setPage]       = useState(0);
     const [showCreate, setShowCreate] = useState(false);
     const [viewId,     setViewId]     = useState(null);
+    const [selectedForApproval, setSelectedForApproval] = useState(null);
+    const isDirector = user?.role === "ROLE_DIRECTOR" || user?.role === "ROLE_ADMIN";
 
     const isSalesStaff = user?.role === "ROLE_SALES_STAFF";
 
@@ -24,6 +28,22 @@ export const SalesOrders = () => {
         paymentStatus: payFilter     || undefined,
         page, size: 10,
     });
+
+    const handleApprovalSubmit = async (isApproved, limit, note) => {
+        try {
+            const payload = {
+                isApproved: isApproved,
+                newCreditLimit: limit,
+                approvalNote: note
+            };
+            await salesOrderService.processApproval(selectedForApproval.id, payload);
+            alert(isApproved ? "Đã phê duyệt!" : "Đã từ chối đơn hàng!");
+            setSelectedForApproval(null);
+            refetch(); // Load lại danh sách
+        } catch (err) {
+            alert("Lỗi: " + (err.response?.data?.message || "Không thể xử lý"));
+        }
+    };
 
     const orders = data?.content ?? [];
     const total  = data?.totalElements ?? 0;
@@ -109,6 +129,18 @@ export const SalesOrders = () => {
                                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                                             </svg>
                                         </button>
+                                        {o.status === "PENDING" && (isDirector || isSalesStaff) && (
+                                            <button
+                                                className="sp-action-btn"
+                                                title={isDirector ? "Phê duyệt đơn" : "Gửi yêu cầu phê duyệt"}
+                                                style={{ color: "#a855f7", marginLeft: "10px" }}
+                                                onClick={() => setSelectedForApproval(o)}
+                                            >
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                                                </svg>
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             );
@@ -129,6 +161,13 @@ export const SalesOrders = () => {
                         </div>
                     )}
                 </div>
+            )}
+            {selectedForApproval && (
+                <ApprovalModal
+                    order={selectedForApproval}
+                    onClose={() => setSelectedForApproval(null)}
+                    onConfirm={handleApprovalSubmit}
+                />
             )}
         </div>
     );

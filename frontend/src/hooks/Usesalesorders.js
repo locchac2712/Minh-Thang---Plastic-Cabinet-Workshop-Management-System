@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import salesOrderService from "../services/salesOrderService";
+import salesOrderService from "../services/salesOrderService.js";
 
 export const useSalesOrders = (params = {}) => {
     const [data,    setData]    = useState({ content: [], totalElements: 0, totalPages: 0 });

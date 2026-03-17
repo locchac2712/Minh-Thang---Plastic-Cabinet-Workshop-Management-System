@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import quotationService from "../services/quotationService";
+import quotationService from "../services/quotationService.js";
 
 export const useQuotations = (params = {}) => {
     const [data,    setData]    = useState({ content: [], totalElements: 0, totalPages: 0 });

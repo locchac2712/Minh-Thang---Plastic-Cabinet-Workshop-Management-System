@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "./CreateForms.css";
 import api from "../../services/api";
-import quotationService from "../../services/quotationService";
+import quotationService from "../../services/quotationService.js";
 import { useAuth } from "../../context/AuthContext";
 
 const fmt = (v) => new Intl.NumberFormat("vi-VN").format(v ?? 0) + " đ";

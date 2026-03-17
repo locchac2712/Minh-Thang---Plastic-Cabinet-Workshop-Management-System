@@ -26,6 +26,9 @@ const salesOrderService = {
     // GET /sales-orders/{id}
     getById: (id) =>
         api.get(`${BASE}/${id}`).then((res) => res.data?.data ?? res.data),
+
+    processApproval: (id, payload) =>
+        api.put(`${BASE}/${id}/approval`, payload).then((res) => res.data?.data ?? res.data),
 };
 
 export default salesOrderService;
