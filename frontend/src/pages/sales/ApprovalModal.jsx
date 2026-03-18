@@ -27,7 +27,7 @@ export const ApprovalModal = ({ order, onClose, onConfirm }) => {
                     </div>
 
                     <div className="form-group" style={{ marginTop: '16px' }}>
-                        <label>Ghi chú gửi Director:</label>
+                        <label>Ghi chú:</label>
                         <textarea
                             className="sp-textarea-light"
                             rows="3"

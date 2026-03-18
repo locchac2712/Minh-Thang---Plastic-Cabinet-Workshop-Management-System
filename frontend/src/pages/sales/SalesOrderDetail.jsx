@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import "./SalesPages.css";
 import salesOrderService, { ORDER_STATUS_MAP, PAYMENT_STATUS_MAP } from "../../services/salesOrderService.js";
+import { PaymentModal } from "./PaymentModal.jsx";
 
 const fmt     = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "—";
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
@@ -13,9 +14,12 @@ const InfoRow = ({ label, value }) => (
 );
 
 export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
-    const [order,   setOrder]   = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error,   setError]   = useState(null);
+    const [order,        setOrder]        = useState(null);
+    const [loading,      setLoading]      = useState(true);
+    const [error,        setError]        = useState(null);
+    const [showPayModal, setShowPayModal] = useState(false);
+    const [totalPaid,    setTotalPaid]    = useState(0);
+    const [paymentType,  setPaymentType]  = useState(null); // 'full' | 'deposit' | null
 
     useEffect(() => {
         salesOrderService.getById(orderId)
@@ -40,8 +44,27 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
     const os = ORDER_STATUS_MAP[order.status]          || { text: order.status,        cls: "" };
     const py = PAYMENT_STATUS_MAP[order.paymentStatus] || { text: order.paymentStatus, cls: "" };
 
-    const totalPaid = 0; // TODO: khi có payment history từ API
-    const remaining = Number(order.totalAmount || 0) - totalPaid;
+    const total     = Number(order.totalAmount || 0);
+    const remaining = total - totalPaid;
+
+    // Trạng thái thanh toán hiển thị sau khi cập nhật local
+    const localPaymentLabel = paymentType === "full"
+        ? "Đã thanh toán"
+        : paymentType === "deposit"
+            ? "Thanh toán một phần"
+            : py.text;
+    const localPaymentCls = paymentType === "full"
+        ? "so-badge--green"
+        : paymentType === "deposit"
+            ? "so-badge--yellow"
+            : py.cls;
+
+    const handlePayConfirm = (paid, type) => {
+        setTotalPaid(paid);
+        setPaymentType(type);
+    };
+
+    const isProcessing = order.status === "PROCESSING";
 
     return (
         <div className="sod-page">
@@ -65,12 +88,12 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
                     <div className="sod-card">
                         <div className="sod-card__title">📋 Thông tin chung</div>
                         <div className="sod-info-grid">
-                            <InfoRow label="Mã đơn hàng"    value={order.orderNumber} />
-                            <InfoRow label="Ngày tạo"        value={fmtDate(order.createdDate)} />
-                            <InfoRow label="Khách hàng"      value={order.customer?.name} />
-                            <InfoRow label="Email"           value={order.customer?.email} />
-                            <InfoRow label="Số điện thoại"   value={order.customer?.phone} />
-                            <InfoRow label="Địa chỉ"         value={order.customer?.address} />
+                            <InfoRow label="Mã đơn hàng"   value={order.orderNumber} />
+                            <InfoRow label="Ngày tạo"       value={fmtDate(order.createdDate)} />
+                            <InfoRow label="Khách hàng"     value={order.customer?.name} />
+                            <InfoRow label="Email"          value={order.customer?.email} />
+                            <InfoRow label="Số điện thoại"  value={order.customer?.phone} />
+                            <InfoRow label="Địa chỉ"        value={order.customer?.address} />
                             {order.quotationNumber && (
                                 <InfoRow label="Từ báo giá" value={order.quotationNumber} />
                             )}
@@ -114,7 +137,7 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
                         </table>
                     </div>
 
-                    {/* 3. Production Progress — placeholder */}
+                    {/* 3. Production Progress */}
                     <div className="sod-card">
                         <div className="sod-card__title">🏭 Tiến độ sản xuất</div>
                         <div className="sod-timeline">
@@ -159,13 +182,14 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
                     {isSalesStaff && (
                         <div className="sod-card">
                             <div className="sod-card__title">💳 Thông tin thanh toán</div>
+
                             <div className="sod-side-row">
                                 <span className="sod-side-label">Trạng thái</span>
-                                <span className={`so-badge ${py.cls}`}>{py.text}</span>
+                                <span className={`so-badge ${localPaymentCls}`}>{localPaymentLabel}</span>
                             </div>
                             <div className="sod-side-row">
                                 <span className="sod-side-label">Tổng đơn hàng</span>
-                                <span className="sod-side-value sod-side-value--purple">{fmt(order.totalAmount)}</span>
+                                <span className="sod-side-value sod-side-value--purple">{fmt(total)}</span>
                             </div>
                             <div className="sod-side-row">
                                 <span className="sod-side-label">Đã thanh toán</span>
@@ -176,6 +200,44 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
                                 <span className="sod-side-label" style={{fontWeight:600}}>Còn lại</span>
                                 <span className="sod-side-value sod-side-value--red">{fmt(remaining)}</span>
                             </div>
+
+                            {/* Nút thanh toán — chỉ hiện khi đơn PROCESSING và chưa thanh toán đủ */}
+                            {isProcessing && totalPaid < total && (
+                                <button
+                                    className="pm-trigger-btn"
+                                    onClick={() => setShowPayModal(true)}
+                                >
+                                    {totalPaid === 0 ? "💳 Thanh toán / Đặt cọc" : "💳 Thanh toán thêm"}
+                                </button>
+                            )}
+
+                            {/* Đã thanh toán đủ */}
+                            {totalPaid >= total && total > 0 && (
+                                <div className="pm-paid-tag">✓ Đã thanh toán đầy đủ</div>
+                            )}
+
+                            <style>{`
+                                .pm-trigger-btn {
+                                    margin-top: 14px; width: 100%;
+                                    padding: 10px 0; border-radius: 10px; border: none;
+                                    background: linear-gradient(135deg,#7c3aed,#5b21b6);
+                                    color: #fff; font-size: 13px; font-weight: 700;
+                                    font-family: inherit; cursor: pointer;
+                                    transition: all .15s;
+                                    box-shadow: 0 2px 10px rgba(124,58,237,.25);
+                                }
+                                .pm-trigger-btn:hover {
+                                    transform: translateY(-1px);
+                                    box-shadow: 0 4px 16px rgba(124,58,237,.35);
+                                }
+                                .pm-paid-tag {
+                                    margin-top: 14px; text-align: center;
+                                    padding: 8px 0; border-radius: 8px;
+                                    background: #f0fdf4; color: #15803d;
+                                    font-size: 13px; font-weight: 700;
+                                    border: 1.5px solid #bbf7d0;
+                                }
+                            `}</style>
                         </div>
                     )}
 
@@ -191,6 +253,15 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
                     )}
                 </div>
             </div>
+
+            {/* Payment Modal */}
+            {showPayModal && (
+                <PaymentModal
+                    order={order}
+                    onClose={() => setShowPayModal(false)}
+                    onConfirm={handlePayConfirm}
+                />
+            )}
         </div>
     );
 };
