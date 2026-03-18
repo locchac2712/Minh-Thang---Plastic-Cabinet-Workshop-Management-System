@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import DashboardLayout from '../../components/DashboardLayout'
+import DashboardLayout from '../../layouts/DashboardLayout'
 import { PageHeader, Card, Field, TextArea, Select, Badge, Btn, LinkBtn, Alert, Loading, Icons, fmtCurrency, fmtDate } from '../../components/ui'
 import productService from '../../services/productService'
 import api from '../../services/api' // For direct image upload

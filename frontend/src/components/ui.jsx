@@ -178,7 +178,164 @@ export function Select({ label, options = [], value, onChange, error, required, 
   )
 }
 
-export function Dropdown({ value, onChange, options = [], placeholder = 'Chọn...', label, required, error, className = '' }) {
+export function DatePicker({ label, value, onChange, error, required, icon, placeholder = 'Chọn ngày...' }) {
+  const [isOpen, setIsOpen] = useState(false)
+  
+  // Parse YYYY-MM-DD to local Date
+  const parseLocalDate = (dateStr) => {
+    if (!dateStr) return new Date()
+    const [y, m, d] = dateStr.split('-').map(Number)
+    return new Date(y, m - 1, d)
+  }
+
+  const [viewDate, setViewDate] = useState(parseLocalDate(value))
+  const ref = useRef(null)
+
+  // Update viewDate when value changes externally
+  useEffect(() => {
+    if (value) setViewDate(parseLocalDate(value))
+  }, [value])
+
+  useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+
+  const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate()
+  const startDayOfMonth = (year, month) => new Date(year, month, 1).getDay()
+
+  const handlePrevMonth = (e) => {
+    e.stopPropagation()
+    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))
+  }
+  const handleNextMonth = (e) => {
+    e.stopPropagation()
+    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))
+  }
+
+  const handleSelectDate = (day) => {
+    const selected = new Date(viewDate.getFullYear(), viewDate.getMonth(), day)
+    // Format to YYYY-MM-DD in local time
+    const y = selected.getFullYear()
+    const m = String(selected.getMonth() + 1).padStart(2, '0')
+    const d = String(selected.getDate()).padStart(2, '0')
+    onChange(`${y}-${m}-${d}`)
+    setIsOpen(false)
+  }
+
+  const year = viewDate.getFullYear()
+  const month = viewDate.getMonth()
+  const days = []
+  const startDay = startDayOfMonth(year, month)
+  const totalDays = daysInMonth(year, month)
+
+  const prevMonthTotalDays = daysInMonth(year, month - 1)
+  for (let i = startDay - 1; i >= 0; i--) {
+    days.push({ day: prevMonthTotalDays - i, current: false })
+  }
+  for (let i = 1; i <= totalDays; i++) {
+    days.push({ day: i, current: true })
+  }
+  const remaining = 42 - days.length
+  for (let i = 1; i <= remaining; i++) {
+    days.push({ day: i, current: false })
+  }
+
+  const monthNames = ["Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"]
+  const dayNames = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]
+
+  const isToday = (d) => {
+    const today = new Date()
+    return today.getDate() === d && today.getMonth() === month && today.getFullYear() === year
+  }
+
+  const isSelected = (d) => {
+    if (!value) return false
+    const sel = new Date(value)
+    return sel.getDate() === d && sel.getMonth() === month && sel.getFullYear() === year
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5 relative w-full" ref={ref}>
+      {label && (
+        <label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+          {label}
+          {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
+      
+      <div 
+        className={`w-full h-11 bg-white border ${error ? 'border-red-500' : 'border-gray-200'} rounded-xl px-4 flex items-center gap-3 cursor-pointer hover:border-purple-300 transition-all shadow-sm group`}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className="text-gray-400 group-hover:text-purple-500 transition-colors">
+          {icon || Icons.calendar}
+        </span>
+        <span className={`text-sm font-medium ${!value ? 'text-gray-300' : 'text-gray-900'}`}>
+          {value ? new Date(value).toLocaleDateString('vi-VN') : placeholder}
+        </span>
+      </div>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 p-4 bg-white rounded-2xl shadow-2xl border border-gray-100 z-[120] w-[280px] animate-fade-in animate-scale-in origin-top-left">
+          <div className="flex items-center justify-between mb-4 px-1">
+            <button onClick={handlePrevMonth} className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-all">
+              {Icons.ChevronLeft}
+            </button>
+            <span className="text-sm font-bold text-gray-900">{monthNames[month]} {year}</span>
+            <button onClick={handleNextMonth} className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-all">
+              <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-7 gap-1 mb-2 text-center text-[10px] font-bold text-gray-300 uppercase">
+            {dayNames.map(d => <div key={d}>{d}</div>)}
+          </div>
+
+          <div className="grid grid-cols-7 gap-1">
+            {days.map((item, i) => (
+              <button
+                key={i}
+                disabled={!item.current}
+                onClick={(e) => { e.stopPropagation(); handleSelectDate(item.day) }}
+                className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all ${
+                  !item.current 
+                    ? 'text-gray-100 cursor-default' 
+                    : isSelected(item.day)
+                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-200'
+                      : isToday(item.day)
+                        ? 'text-purple-600 bg-purple-50'
+                        : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {item.day}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between">
+             <button 
+                onClick={(e) => { e.stopPropagation(); onChange(''); setIsOpen(false) }}
+                className="text-[10px] font-bold text-gray-400 hover:text-red-500 transition-colors uppercase px-2"
+              >
+                Xóa
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setIsOpen(false) }}
+                className="text-[10px] font-bold text-purple-600 hover:text-purple-700 transition-colors uppercase px-2"
+              >
+                Đóng
+              </button>
+          </div>
+        </div>
+      )}
+      {error && <p className="text-xs font-medium text-red-500 ml-1">{error}</p>}
+    </div>
+  )
+}
+
+export function Dropdown({ value, onChange, options = [], placeholder = 'Chọn...', label, required, error, className = '', up = false }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -212,7 +369,7 @@ export function Dropdown({ value, onChange, options = [], placeholder = 'Chọn.
       </div>
 
       {open && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[110] animate-fade-in py-1 max-h-60 overflow-y-auto custom-scrollbar">
+        <div className={`absolute ${up ? 'bottom-full mb-2' : 'top-full mt-2'} left-0 right-0 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[110] animate-fade-in py-1 max-h-60 overflow-y-auto custom-scrollbar`}>
           {placeholder && !required && (
             <button 
               onClick={() => { onChange(''); setOpen(false) }}
@@ -446,15 +603,7 @@ export function Pagination({ currentPage, totalItems, pageSize, onPageChange, on
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-6 border-t border-gray-50 bg-[#FAFAFF] rounded-b-[32px]">
       <div className="flex items-center gap-4">
         <span className="text-xs text-gray-500">Hiển thị</span>
-        <select 
-          value={pageSize} 
-          onChange={(e) => onPageSizeChange(Number(e.target.value))}
-          className="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-purple-100"
-        >
-          {[5, 10, 15, 20].map(size => (
-            <option key={size} value={size}>{size}</option>
-          ))}
-        </select>
+        <Dropdown value={pageSize} onChange={(val) => onPageSizeChange(Number(val))} options={[5, 10, 15, 20].map(s => ({ value: s, label: String(s) }))} className="min-w-max w-20" placeholder={null} required={true} up={true} />
         <span className="text-xs text-gray-500">trên {totalItems} kết quả</span>
       </div>
 
@@ -564,9 +713,11 @@ export const Icons = {
   Check: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>,
   Loading: <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>,
   close: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>,
-  print: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.821V7.443c0-1.216.925-2.256 2.141-2.296A51.964 51.964 0 0115 5.147c1.216.037 2.141 1.077 2.141 2.296v6.378m-10.421 0c-1.091-.039-2.145.118-3.13.46a2.25 2.25 0 00-1.53 2.106v1.942c0 .91.666 1.674 1.53 2.106a24.948 24.948 0 003.13.46m10.421-7.074c1.091-.039 2.145.118 3.13.46a2.25 2.25 0 011.53 2.106v1.942c0 .91-.666 1.674-1.53 2.106a24.948 24.948 0 01-3.13.46M12 18.75a6 6 0 006-6H6a6 6 0 006 6z" /></svg>,
+  print: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.821V7.443c0-1.216.925-2.256 2.141-2.296A51.964 51.964 0 0115 5.147c1.216.037 2.141 1.077 2.141 2.296v6.378m-10.421 0c-1.091-.039-2.145.118-3.13.46a2.25 2.25 0 00-1.53 2.106v1.942c0 .91.666 1.674 1.53 2.106a24.948 24.948 0 003.13.46m10.421-7.074c1.091-.039 2.145.118-3.13.46a2.25 2.25 0 011.53 2.106v1.942c0 .91-.666 1.674-1.53 2.106a24.948 24.948 0 01-3.13.46M12 18.75a6 6 0 006-6H6a6 6 0 006 6z" /></svg>,
   save: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>,
   search: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>,
+  calendar: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>,
+  currency: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
 }
 
 export const fmt = (v) => v != null ? new Intl.NumberFormat('vi-VN').format(v) : '—'

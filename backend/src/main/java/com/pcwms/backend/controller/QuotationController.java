@@ -11,6 +11,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import static org.springframework.http.ResponseEntity.ok;
 
@@ -74,30 +77,34 @@ public class QuotationController {
     public ResponseEntity<ResponseObject> getAllQuotation(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdDate") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir){
         try {
-            // Setup phân trang và sắp xếp (Mặc định: Mới nhất nổi lên đầu)
             org.springframework.data.domain.Sort sort = sortDir.equalsIgnoreCase("asc") ?
                     org.springframework.data.domain.Sort.by(sortBy).ascending() :
                     org.springframework.data.domain.Sort.by(sortBy).descending();
 
             org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
 
-            Page<QuotationListResponse> quotations = quotationService.getAllQuotations(keyword, status, pageable);
+            Page<QuotationListResponse> quotations = quotationService.getAllQuotations(
+                    keyword, status, minPrice, maxPrice, startDate, endDate, pageable);
 
             return ResponseEntity.ok(
                     new ResponseObject("SUCCESS", "Lấy danh sách Báo giá thành công!", quotations)
             );
         } catch (Exception e) {
-            // Trả về e.toString() để thấy rõ loại Exception (ví dụ NullPointerException)
             return ResponseEntity.badRequest().body(
                     new ResponseObject("ERROR", "Lỗi: " + e.toString(), null)
             );
         }
     }
+
     // 👉 API Xem chi tiết 1 Báo giá
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")

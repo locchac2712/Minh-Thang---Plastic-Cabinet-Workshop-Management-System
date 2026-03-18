@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import DashboardLayout from '../../components/DashboardLayout'
+import DashboardLayout from '../../layouts/DashboardLayout'
 import { PageHeader, Card, DetailGrid, Table, Td, Badge, Btn, LinkBtn, Loading, EmptyState, Icons, fmt, fmtDate } from '../../components/ui'
 import stockCountService from '../../services/stockCountService'
 

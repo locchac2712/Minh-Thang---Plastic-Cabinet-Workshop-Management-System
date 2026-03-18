@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import DashboardLayout from '../../components/DashboardLayout'
+import DashboardLayout from '../../layouts/DashboardLayout'
 import { PageHeader, Table, Td, Badge, ActionLink, Icons, Loading, Alert, EmptyState, fmtDate } from '../../components/ui'
 import bomService from '../../services/bomService'
 

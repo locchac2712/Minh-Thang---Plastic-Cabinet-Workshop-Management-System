@@ -10,13 +10,24 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface QuotationRepository extends JpaRepository<Quotation, Long> {
-    @Query("SELECT q FROM Quotation q JOIN q.customer c WHERE " +
-            "(:keyword IS NULL OR LOWER(CAST(q.quotationNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) " +
-            "OR LOWER(CAST(c.name AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))) " +
-            "AND (:status IS NULL OR q.status = CAST(:status AS string))")
+
+    // Dùng :keyword = '' thay vì IS NULL hoặc COALESCE để tránh lỗi PostgreSQL explicit type cast.
+    // Service sẽ luôn truyền "" (empty string) khi không có filter, không bao giờ truyền null.
+    @Query("SELECT q FROM Quotation q LEFT JOIN q.customer c WHERE " +
+            "(:keyword = '' OR LOWER(q.quotationNumber) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (:status = '' OR q.status = :status) " +
+            "AND (:minPrice IS NULL OR q.totalAmount >= :minPrice) " +
+            "AND (:maxPrice IS NULL OR q.totalAmount <= :maxPrice) " +
+            "AND (cast(:startDate as timestamp) IS NULL OR q.createdDate >= :startDate) " +
+            "AND (cast(:endDate as timestamp) IS NULL OR q.createdDate <= :endDate)")
     Page<Quotation> searchQuotations(
             @Param("keyword") String keyword,
             @Param("status")  String status,
+            @Param("minPrice") java.math.BigDecimal minPrice,
+            @Param("maxPrice") java.math.BigDecimal maxPrice,
+            @Param("startDate") java.time.LocalDateTime startDate,
+            @Param("endDate") java.time.LocalDateTime endDate,
             Pageable pageable
     );
 }

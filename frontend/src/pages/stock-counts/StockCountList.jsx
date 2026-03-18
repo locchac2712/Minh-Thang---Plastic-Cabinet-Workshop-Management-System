@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import DashboardLayout from '../../components/DashboardLayout'
+import DashboardLayout from '../../layouts/DashboardLayout'
 import { PageHeader, Table, Td, Badge, Loading, EmptyState, ActionLink, Icons, fmtDate } from '../../components/ui'
 import stockCountService from '../../services/stockCountService'
 

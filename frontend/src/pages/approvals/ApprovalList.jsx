@@ -1,4 +1,4 @@
-import DashboardLayout from '../../components/DashboardLayout'
+import DashboardLayout from '../../layouts/DashboardLayout'
 import { PageHeader, Card, EmptyState } from '../../components/ui'
 
 export default function ApprovalList() {

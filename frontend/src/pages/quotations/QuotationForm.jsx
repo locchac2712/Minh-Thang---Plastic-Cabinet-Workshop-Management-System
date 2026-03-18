@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import DashboardLayout from '../../components/DashboardLayout'
+import DashboardLayout from '../../layouts/DashboardLayout'
 import { 
   LinkBtn, Icons, fmtCurrency, GlassCard, Badge, Select, Dropdown, Modal, ComboBox, PageHeader, Btn,
-  Alert, Field, Card, Table, Td, TextArea
+  Alert, Field, Card, Table, Td, TextArea, DatePicker
 } from '../../components/ui'
+import { QuotationPrint } from '../../components/QuotationPrint'
 import customerService from '../../services/customerService'
 import productService from '../../services/productService'
 import quotationService from '../../services/quotationService'
@@ -44,7 +45,7 @@ export default function QuotationForm() {
   const [customerId, setCustomerId] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
-  const [customerType, setCustomerType] = useState('Retail')
+  const [customerType, setCustomerType] = useState('Khách lẻ')
   
   const [validUntil, setValidUntil] = useState('')
   const [notes, setNotes] = useState('')
@@ -99,17 +100,26 @@ export default function QuotationForm() {
     if (customer) {
       setCustomerEmail(customer.email || '')
       setCustomerPhone(customer.phoneNumber || '')
-      // Assume type is retail if not present
-      setCustomerType(customer.type || 'Retail')
+      // Default to "Khách lẻ"
+      setCustomerType(customer.type || 'Khách lẻ')
     }
   }
 
   const updateItem = (index, field, value) => {
     setItems((prev) => {
       const updated = [...prev]
-      let current = { ...updated[index], [field]: value }
+      let current = { ...updated[index] }
+
+      // Validate non-negative numbers & strip leading zeros
+      let cleanValue = value === '' ? 0 : Number(value);
+      if (isNaN(cleanValue)) cleanValue = 0;
       
-      // Auto-fill product details
+      if (field === 'quantity') cleanValue = Math.max(1, Math.floor(cleanValue))
+      if (field === 'discount') cleanValue = Math.max(0, Math.min(100, cleanValue))
+      
+      current[field] = cleanValue
+      
+      // Auto-fill product details (Unit Price is READ-ONLY now)
       if (field === 'productId') {
         const prod = products.find(p => String(p.id) === String(value))
         if (prod) {
@@ -163,10 +173,8 @@ export default function QuotationForm() {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       const selectedDate = new Date(validUntil)
-      const diffDays = Math.ceil((selectedDate - today) / (1000 * 60 * 60 * 24))
       
-      if (selectedDate < today) newErrors.validUntil = 'Ngày hiệu lực không được chọn ngày trong quá khứ'
-      else if (diffDays < 10) newErrors.validUntil = 'Ngày hiệu lực phải cách ngày tạo ít nhất 10 ngày'
+      if (selectedDate < today) newErrors.validUntil = 'Ngày hiệu lực không được nhỏ hơn ngày hiện tại'
     }
     
     const itemErrors = {}
@@ -233,7 +241,7 @@ export default function QuotationForm() {
           <LinkBtn to="/quotations" variant="ghost">{Icons.back} Quay lại</LinkBtn>
           {(isEdit || !saving) && (
             <Btn variant="secondary" onClick={() => window.print()} className="bg-white border-gray-200">
-              {Icons.print} In Báo giá
+               In Báo giá
             </Btn>
           )}
           <Btn type="submit" onClick={handleSubmit} disabled={saving} className="shadow-lg shadow-purple-600/20">
@@ -286,9 +294,9 @@ export default function QuotationForm() {
                   value={customerType}
                   onChange={(val) => setCustomerType(val)}
                   options={[
-                    { value: 'Retail', label: 'Khách lẻ' },
-                    { value: 'Dealer', label: 'Đại lý' },
-                    { value: 'Distributor', label: 'Nhà phân phối' },
+                    { value: 'Khách lẻ', label: 'Khách lẻ' },
+                    { value: 'Đại lý', label: 'Đại lý' },
+                    { value: 'Nhà phân phối', label: 'Nhà phân phối' },
                   ]}
                 />
 
@@ -314,9 +322,9 @@ export default function QuotationForm() {
           </GlassCard>
 
           {/* Items Section */}
-          <Card className="border-none shadow-xl shadow-gray-200/50 min-h-[400px]">
-            <div className="p-6 bg-white border-b border-gray-50 flex items-center justify-between rounded-t-[32px]">
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Sản phẩm & Dịch vụ</h3>
+          <Card className="border-none shadow-xl shadow-gray-200/50 min-h-[400px] overflow-hidden">
+            <div className="p-6 bg-white border-b border-gray-50 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">SẢN PHẨM</h3>
               <Btn variant="ghost" type="button" onClick={addItem} className="text-purple-600 hover:bg-purple-50">
                 {Icons.plus} Thêm dòng mới
               </Btn>
@@ -324,7 +332,7 @@ export default function QuotationForm() {
             <Table 
               headers={['Sản phẩm / SKU', 'Số lượng', 'Đơn giá', 'Chiết khấu %', 'Thành tiền', '']}
               className="border-none shadow-none"
-              containerClassName="overflow-visible"
+              containerClassName="overflow-x-auto"
             >
               {items.map((item, idx) => (
                 <tr key={item.key} className="group hover:bg-gray-50/50 transition-colors">
@@ -334,7 +342,10 @@ export default function QuotationForm() {
                         placeholder="Tìm sản phẩm..."
                         value={item.productId}
                         onChange={(val) => updateItem(idx, 'productId', val)}
-                        options={products.map(p => ({ value: p.id, label: p.name }))}
+                        options={products
+                          .filter(p => !items.some((it, i) => i !== idx && String(it.productId) === String(p.id)))
+                          .map(p => ({ value: p.id, label: p.name }))
+                        }
                         error={errors.items?.[idx]?.productId}
                       />
                       <span className="text-[10px] font-mono text-gray-400 px-2 uppercase tracking-tighter">{item.sku || '—'}</span>
@@ -347,35 +358,28 @@ export default function QuotationForm() {
                         min="1"
                         value={item.quantity}
                         onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
-                        className={`w-20 bg-gray-50 border ${errors.items?.[idx]?.quantity ? 'border-red-500' : 'border-transparent'} rounded-xl px-3 py-2 text-sm font-bold focus:bg-white focus:border-purple-200 transition-all outline-none`}
+                        className={`w-20 bg-gray-50/50 border ${errors.items?.[idx]?.quantity ? 'border-red-500' : 'border-gray-100'} rounded-2xl px-4 py-2.5 text-sm font-bold focus:bg-white focus:border-purple-400 transition-all outline-none shadow-sm`}
                       />
                       {errors.items?.[idx]?.quantity && <span className="text-[9px] text-red-500 font-bold">{errors.items[idx].quantity}</span>}
                     </div>
                   </Td>
                   <Td>
-                    <div className="flex flex-col gap-1">
-                      <input
-                        type="number"
-                        min="0"
-                        value={item.unitPrice}
-                        onChange={(e) => updateItem(idx, 'unitPrice', e.target.value)}
-                        className={`w-32 bg-gray-50 border ${errors.items?.[idx]?.unitPrice ? 'border-red-500' : 'border-transparent'} rounded-xl px-3 py-2 text-sm font-bold focus:bg-white focus:border-purple-200 transition-all outline-none`}
-                      />
-                      {errors.items?.[idx]?.unitPrice && <span className="text-[9px] text-red-500 font-bold">{errors.items[idx].unitPrice}</span>}
+                    <div className="flex items-center gap-1 bg-gray-50/30 px-3 py-2.5 rounded-2xl border border-gray-50">
+                      <span className="text-sm font-bold text-gray-700">{fmtCurrency(item.unitPrice)}</span>
                     </div>
                   </Td>
                   <Td>
                     <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2">
                         <input
                           type="number"
                           min="0"
                           max="100"
                           value={item.discount}
                           onChange={(e) => updateItem(idx, 'discount', e.target.value)}
-                          className={`w-16 bg-orange-50/50 border ${errors.items?.[idx]?.discount ? 'border-red-500' : 'border-transparent'} text-orange-600 rounded-xl px-3 py-2 text-sm font-bold focus:bg-white focus:border-orange-200 transition-all outline-none`}
+                          className={`w-20 bg-orange-50/30 border ${errors.items?.[idx]?.discount ? 'border-red-500' : 'border-orange-100'} text-orange-600 rounded-2xl px-4 py-2.5 text-sm font-bold focus:bg-white focus:border-orange-400 transition-all outline-none shadow-sm`}
                         />
-                        <span className="text-xs text-orange-400 font-bold">%</span>
+                        <span className="text-xs text-orange-400 font-black">%</span>
                       </div>
                       {errors.items?.[idx]?.discount && <span className="text-[9px] text-red-500 font-bold">{errors.items[idx].discount}</span>}
                     </div>
@@ -398,15 +402,26 @@ export default function QuotationForm() {
         <div className="space-y-6">
           <GlassCard className="p-8 sticky top-32">
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-6 pb-4 border-b border-gray-100">Tổng kết Báo giá</h3>
-            <div className="flex flex-col gap-5">
-              <Field 
+            <div className="flex flex-col gap-6">
+              <DatePicker 
                 label="Hiệu lực đến (Valid until)" 
                 required 
-                type="date" 
                 value={validUntil} 
-                onChange={(e) => {
-                  setValidUntil(e.target.value)
-                  setErrors(prev => ({ ...prev, validUntil: '' }))
+                onChange={(val) => {
+                  setValidUntil(val)
+                  // Real-time validation
+                  if (val) {
+                    const selectedDate = new Date(val);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    if (selectedDate < today) {
+                      setErrors(prev => ({ ...prev, validUntil: 'Ngày hiệu lực không được nhỏ hơn ngày hiện tại' }));
+                    } else {
+                      setErrors(prev => ({ ...prev, validUntil: '' }));
+                    }
+                  } else {
+                    setErrors(prev => ({ ...prev, validUntil: 'Vui lòng chọn ngày hiệu lực' }));
+                  }
                 }} 
                 error={errors.validUntil}
               />
@@ -503,6 +518,18 @@ export default function QuotationForm() {
           {errors.newCus_server && <p className="text-xs text-red-500 font-bold mt-2">{errors.newCus_server}</p>}
         </div>
       </Modal>
+      <QuotationPrint 
+        data={{
+          quotationNumber: quotationNumber || 'CHƯA CÓ MÃ',
+          customerName: customers.find(c => String(c.id) === String(customerId))?.name,
+          customerType,
+          customerPhone,
+          customerEmail,
+          validUntil,
+          items,
+          totals
+        }} 
+      />
     </DashboardLayout>
   )
 }

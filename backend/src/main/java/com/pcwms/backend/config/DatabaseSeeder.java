@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -183,55 +184,38 @@ public class DatabaseSeeder implements CommandLineRunner {
         }
 
         // ==========================================
-        // 7. TẠO BÁO GIÁ MẪU (QUOTATION) CHUẨN MÃ UI
+        // 7. TẠO BÁO GIÁ MẪU (QUOTATION) ĐA DẠNG ĐỂ TEST BỘ LỌC
         // ==========================================
-        if (quotationRepository.count() == 0) {
+        if (quotationRepository.count() <= 1) { // Chỉ seed nếu chưa có hoặc mới có 1 cái từ trước
             Customer vipCustomer = customerRepository.findAll().stream().filter(c -> c.getName().contains("VIP")).findFirst().orElse(null);
+            Customer retailCustomer = customerRepository.findAll().stream().filter(c -> c.getName().contains("Tuấn")).findFirst().orElse(null);
             Staff saleStaff = staffRepository.findAll().stream().filter(s -> s.getUser().getUsername().equals("sale_staff_1")).findFirst().orElse(null);
             Product banSoi = productRepository.findAll().stream().filter(p -> p.getSku().equals("SP-BAN-001")).findFirst().orElse(null);
             Product gheXoay = productRepository.findAll().stream().filter(p -> p.getSku().equals("SP-GHE-001")).findFirst().orElse(null);
+            Product tuHoSo = productRepository.findAll().stream().filter(p -> p.getSku().equals("SP-TU-002")).findFirst().orElse(null);
 
-            if (vipCustomer != null && saleStaff != null && banSoi != null && gheXoay != null) {
-                Quotation q1 = new Quotation();
+            if (vipCustomer != null && retailCustomer != null && saleStaff != null && banSoi != null && gheXoay != null) {
+                // 1. DRAFT - Giá nhỏ (5M), Ngày gần đây
+                createQuotationSeed("BG-2026-0001", vipCustomer, saleStaff, LocalDateTime.now(), "DRAFT", 
+                    List.of(new SeedItem(banSoi, 2, "0")));
 
-                String year = String.valueOf(java.time.LocalDateTime.now().getYear());
-                int randomNum = 1000 + new java.util.Random().nextInt(9000);
-                q1.setQuotationNumber("BG-" + year + "-" + randomNum);
+                // 2. SENT - Giá trung bình (~35M), 7 ngày trước
+                createQuotationSeed("BG-2026-0002", retailCustomer, saleStaff, LocalDateTime.now().minusDays(7), "SENT", 
+                    List.of(new SeedItem(tuHoSo, 10, "0.1"), new SeedItem(gheXoay, 5, "0")));
 
-                q1.setCustomer(vipCustomer);
-                q1.setStaff(saleStaff);
-                q1.setValidUntil(java.time.LocalDateTime.now().plusDays(15));
-                q1.setNote("Báo giá setup văn phòng mới, đã áp dụng chiết khấu 10% cho Bàn làm việc.");
-                q1.setStatus("DRAFT");
+                // 3. ACCEPTED - Giá lớn (120M), 15 ngày trước
+                createQuotationSeed("BG-2026-0003", vipCustomer, saleStaff, LocalDateTime.now().minusDays(15), "ACCEPTED", 
+                    List.of(new SeedItem(tuHoSo, 30, "0.05"), new SeedItem(banSoi, 10, "0.05")));
 
-                BigDecimal grandTotal = BigDecimal.ZERO;
+                // 4. REJECTED - Giá cực lớn (700M), 30 ngày trước
+                createQuotationSeed("BG-2026-0004", retailCustomer, saleStaff, LocalDateTime.now().minusDays(30), "REJECTED", 
+                    List.of(new SeedItem(tuHoSo, 200, "0.2")));
 
-                QuotationDetail d1 = new QuotationDetail();
-                d1.setProduct(banSoi);
-                d1.setQuantity(5);
-                d1.setUnitPrice(banSoi.getSellingPrice());
-                BigDecimal basePrice1 = banSoi.getSellingPrice().multiply(new BigDecimal(5));
-                BigDecimal discount1 = basePrice1.multiply(new BigDecimal("0.10"));
-                d1.setDiscount(discount1);
-                BigDecimal lineTotal1 = basePrice1.subtract(discount1);
-                d1.setTotalLineAmount(lineTotal1);
-                q1.addDetail(d1);
-                grandTotal = grandTotal.add(lineTotal1);
+                // 5. EXPIRED - Giá nhỏ (2.5M), 45 ngày trước
+                createQuotationSeed("BG-2026-0005", vipCustomer, saleStaff, LocalDateTime.now().minusDays(45), "EXPIRED", 
+                    List.of(new SeedItem(banSoi, 1, "0")));
 
-                QuotationDetail d2 = new QuotationDetail();
-                d2.setProduct(gheXoay);
-                d2.setQuantity(10);
-                d2.setUnitPrice(gheXoay.getSellingPrice());
-                d2.setDiscount(BigDecimal.ZERO);
-                BigDecimal lineTotal2 = gheXoay.getSellingPrice().multiply(new BigDecimal(10));
-                d2.setTotalLineAmount(lineTotal2);
-                q1.addDetail(d2);
-                grandTotal = grandTotal.add(lineTotal2);
-
-                q1.setTotalAmount(grandTotal);
-                quotationRepository.save(q1);
-
-                System.out.println("-> Đã tạo 1 Báo giá (Quotation) chuẩn Form UI thành công!");
+                System.out.println("-> Đã tạo 5 Báo giá (Quotation) đa dạng để test bộ lọc thành công!");
             }
         }
 
@@ -336,6 +320,42 @@ public class DatabaseSeeder implements CommandLineRunner {
     // ==========================================
     // HÀM HELPER HỖ TRỢ TẠO DỮ LIỆU
     // ==========================================
+    private void createQuotationSeed(String number, Customer customer, Staff staff, LocalDateTime createdDate, String status, List<SeedItem> items) {
+        Quotation q = new Quotation();
+        q.setQuotationNumber(number);
+        q.setCustomer(customer);
+        q.setStaff(staff);
+        q.setCreatedDate(createdDate);
+        q.setValidUntil(createdDate.plusDays(30));
+        q.setStatus(status);
+        q.setNote("Dữ liệu mẫu cho Báo giá " + number);
+
+        BigDecimal grandTotal = BigDecimal.ZERO;
+        for (SeedItem si : items) {
+            QuotationDetail d = new QuotationDetail();
+            d.setProduct(si.product);
+            d.setQuantity(si.quantity);
+            d.setUnitPrice(si.product.getSellingPrice());
+            
+            BigDecimal baseTotal = si.product.getSellingPrice().multiply(new BigDecimal(si.quantity));
+            BigDecimal discount = baseTotal.multiply(new BigDecimal(si.discountPercent));
+            d.setDiscount(discount);
+            d.setTotalLineAmount(baseTotal.subtract(discount));
+            
+            q.addDetail(d);
+            grandTotal = grandTotal.add(d.getTotalLineAmount());
+        }
+        q.setTotalAmount(grandTotal);
+        quotationRepository.save(q);
+    }
+
+    private static class SeedItem {
+        Product product;
+        int quantity;
+        String discountPercent;
+        SeedItem(Product p, int q, String d) { this.product = p; this.quantity = q; this.discountPercent = d; }
+    }
+
     private BillOfMaterialDetail createBomDetail(Material material, String quantityStr) {
         BillOfMaterialDetail detail = new BillOfMaterialDetail();
         detail.setMaterial(material);

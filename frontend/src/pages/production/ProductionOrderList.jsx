@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import DashboardLayout from '../../components/DashboardLayout'
+import DashboardLayout from '../../layouts/DashboardLayout'
 import { PageHeader, FilterTabs, Table, Td, Badge, Loading, EmptyState, ActionLink, Icons, fmt, fmtDate } from '../../components/ui'
 import productionOrderService from '../../services/productionOrderService'
 

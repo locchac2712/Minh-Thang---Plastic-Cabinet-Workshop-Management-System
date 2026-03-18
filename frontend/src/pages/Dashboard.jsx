@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import DashboardLayout from '../components/DashboardLayout'
+import DashboardLayout from '../layouts/DashboardLayout'
 import { StatCard, Card, Table, Td, Badge, Loading, fmtCurrency, fmt } from '../components/ui'
 import salesOrderService from '../services/salesOrderService'
 import productionOrderService from '../services/productionOrderService'

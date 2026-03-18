@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import DashboardLayout from '../../components/DashboardLayout'
+import DashboardLayout from '../../layouts/DashboardLayout'
 import { PageHeader, Card, Field, TextArea, Select, Btn, LinkBtn, Alert, Loading } from '../../components/ui'
 import bomService from '../../services/bomService'
 import productService from '../../services/productService'

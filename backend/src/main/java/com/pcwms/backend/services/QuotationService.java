@@ -207,12 +207,17 @@ public class QuotationService {
 
     //API LẤY DANH SÁCH BÁO GIÁ
     @Transactional(readOnly = true)
-    public Page<QuotationListResponse> getAllQuotations(String keyword, String status, Pageable pageable) {
-        // Nếu user truyền chuỗi rỗng "", chuyển thành null để DB bỏ qua điều kiện lọc
-        String validKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
-        String validStatus = (status != null && !status.trim().isEmpty()) ? status.trim().toUpperCase() : null;
+    public Page<QuotationListResponse> getAllQuotations(
+            String keyword, String status, 
+            BigDecimal minPrice, BigDecimal maxPrice, 
+            LocalDateTime startDate, LocalDateTime endDate, 
+            Pageable pageable) {
+        
+        String validKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : "";
+        String validStatus = (status != null && !status.trim().isEmpty()) ? status.trim().toUpperCase() : "";
 
-        Page<Quotation> quotationPage = quotationRepository.searchQuotations(validKeyword, validStatus, pageable);
+        Page<Quotation> quotationPage = quotationRepository.searchQuotations(
+                validKeyword, validStatus, minPrice, maxPrice, startDate, endDate, pageable);
 
         // Map nguyên mảng Entity sang DTO siêu nhẹ
         return quotationPage.map(QuotationListResponse::new);

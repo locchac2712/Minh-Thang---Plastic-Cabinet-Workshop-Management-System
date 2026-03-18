@@ -19,8 +19,18 @@ export const getQuoteStatus = (status) =>
 
 const quotationService = {
     // GET /quotations?keyword=&status=&page=0&size=10&sortBy=createdDate&sortDir=desc
+    // Trả về { content, totalPages, totalElements, number, size }
     getAll: (params = {}) =>
-        api.get(BASE, { params }).then((res) => res.data.data?.content || res.data.data || []),
+        api.get(BASE, { params }).then((res) => {
+            const pageData = res.data.data;
+            // Nếu BE trả về Page object (có content), giữ nguyên; nếu là mảng thì wrap lại
+            if (pageData && Array.isArray(pageData.content)) {
+                return pageData; // { content, totalPages, totalElements, number, size, ... }
+            }
+            // fallback: trả về dạng Page giả lập
+            const items = Array.isArray(pageData) ? pageData : [];
+            return { content: items, totalPages: 1, totalElements: items.length, number: 0, size: items.length };
+        }),
 
     // GET /quotations/{id}
     getById: (id) =>

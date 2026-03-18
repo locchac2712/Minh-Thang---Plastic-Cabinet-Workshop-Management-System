@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import DashboardLayout from '../../components/DashboardLayout'
+import DashboardLayout from '../../layouts/DashboardLayout'
 import { PageHeader, SearchBar, Table, Td, Badge, Alert, Loading, EmptyState, ActionLink, ActionBtn, Icons, ConfirmModal, Pagination, LinkBtn, Dropdown } from '../../components/ui'
 import userService from '../../services/userService'
 

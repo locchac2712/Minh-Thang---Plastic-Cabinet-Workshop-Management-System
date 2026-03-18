@@ -1,4 +1,4 @@
-import DashboardLayout from '../../components/DashboardLayout'
+import DashboardLayout from '../../layouts/DashboardLayout'
 import { PageHeader, Card, LinkBtn, EmptyState, Icons } from '../../components/ui'
 
 export default function ApprovalDetail() {
