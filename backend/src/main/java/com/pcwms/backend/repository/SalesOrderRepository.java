@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
 
@@ -22,4 +24,6 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
             @Param("status") String status,
             @Param("paymentStatus") String paymentStatus,
             Pageable pageable);
+    @Query("SELECT s FROM SalesOrder s JOIN FETCH s.customer WHERE s.id = :id")
+    Optional<SalesOrder> findByIdWithCustomer(@Param("id") Long id);
 }
