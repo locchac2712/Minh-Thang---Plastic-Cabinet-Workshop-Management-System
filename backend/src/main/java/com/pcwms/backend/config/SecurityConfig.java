@@ -52,6 +52,7 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/api/v1/user/**").hasAnyAuthority("ADMIN", "DIRECTOR", "ROLE_ADMIN", "ROLE_DIRECTOR")
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/payments/payos/webhook").permitAll()
                         .anyRequest().authenticated()
                 );
 
