@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -137,10 +136,10 @@ public class PaymentService {
 
         // ⚠️ Khi test local với Postman: comment dòng if bên dưới
         // ⚠️ Khi deploy production: bỏ comment để bật verify
-        // if (!payOSClient.verifyWebhookSignature(webhookData, payload.getSignature())) {
-        //     log.warn("Webhook signature invalid!");
-        //     return;
-        // }
+         if (!payOSClient.verifyWebhookSignature(webhookData, payload.getSignature())) {
+             log.warn("Webhook signature invalid!");
+             return;
+         }
 
         log.info("Webhook received | orderCode={} | code={}", d.getOrderCode(), payload.getCode());
 
@@ -154,18 +153,24 @@ public class PaymentService {
                         payment -> {
                             if ("PAID".equals(payment.getPayosStatus())) return;
 
+                            // Đánh dấu giao dịch PayOS thành công
                             payment.setPayosStatus("PAID");
                             payment.setPayosPaidAt(LocalDateTime.now());
                             payment.setTransactionDate(LocalDateTime.now());
                             paymentRepository.save(payment);
 
-                            // Cập nhật paymentStatus trên SalesOrder
+                            // ── Cập nhật paymentStatus trên SalesOrder ──
+                            // DEPOSIT → "DEPOSIT" (đặt cọc một phần)
+                            // FULL    → "PAID"    (đã thanh toán đủ)
                             SalesOrder order = payment.getSalesOrder();
-                            order.setPaymentStatus("PAID");
+                            String newPaymentStatus = "DEPOSIT".equals(payment.getPayosPaymentType())
+                                    ? "DEPOSIT"
+                                    : "PAID";
+                            order.setPaymentStatus(newPaymentStatus);
                             salesOrderRepository.save(order);
 
-                            log.info("Payment PAID | salesOrderId={} | amount={}",
-                                    order.getId(), payment.getAmount());
+                            log.info("SalesOrder {} paymentStatus → {} | amount={}",
+                                    order.getId(), newPaymentStatus, payment.getAmount());
                         },
                         () -> log.warn("Webhook: không tìm thấy payment với orderCode={}", d.getOrderCode())
                 );
@@ -177,6 +182,7 @@ public class PaymentService {
         return paymentRepository.findByPayosPaymentLinkId(paymentLinkId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy payment: " + paymentLinkId));
     }
+
 
     @Transactional
     public void syncStatus(Payment payment, String payosStatus) {
@@ -194,6 +200,7 @@ public class PaymentService {
         paymentRepository.save(payment);
     }
 
+
     private PaymentDTO.StatusResponse toStatusResponse(Payment p) {
         PaymentDTO.StatusResponse res = new PaymentDTO.StatusResponse();
         res.setStatus(p.getPayosStatus());
@@ -204,15 +211,18 @@ public class PaymentService {
         return res;
     }
 
+
     private long generateOrderCode(Long salesOrderId) {
         long epoch = System.currentTimeMillis() / 1000 % 100000;
         String code = salesOrderId + String.format("%05d", epoch);
         return Long.parseLong(code.length() > 9 ? code.substring(code.length() - 9) : code);
     }
 
+
     private String buildDescription(String orderNumber, String paymentType) {
         String prefix = "DEPOSIT".equals(paymentType) ? "DC" : "TT";
         String raw    = prefix + " " + orderNumber;
         return raw.length() > 25 ? raw.substring(0, 25) : raw;
     }
+
 }

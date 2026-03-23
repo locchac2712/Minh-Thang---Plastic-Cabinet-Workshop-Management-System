@@ -675,4 +675,12 @@
     background: #6d28d9;
     box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);
 }
+.so-badge--approval {
+    background: #fef9c3;
+    color: #854d0e;
+}
+.so-badge--deposit {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
 @media (max-width:900px) { .sod-grid { grid-template-columns:1fr; } .sod-info-grid { grid-template-columns:1fr; } }

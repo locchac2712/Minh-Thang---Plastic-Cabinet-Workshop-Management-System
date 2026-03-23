@@ -47,7 +47,9 @@ public class SalesOrderDetailResponse {
                     order.getCustomer().getName(),
                     order.getCustomer().getEmail(),
                     order.getCustomer().getPhoneNumber(),
-                    order.getCustomer().getAddress()
+                    order.getCustomer().getAddress(),
+                    order.getCustomer().getCreditLimit(),   // ← thêm
+                    order.getCustomer().getCurrentDebt()    // ← thêm
             );
         }
 
@@ -69,17 +71,48 @@ public class SalesOrderDetailResponse {
     // ================= CLASS NỘI BỘ (Để nhét dữ liệu gọn gàng) =================
     @Getter @Setter
     public static class CustomerDto {
-        private Long id; private String name; private String email; private String phone; private String address;
-        public CustomerDto(Long id, String name, String email, String phone, String address) { this.id = id; this.name = name; this.email = email; this.phone = phone; this.address = address; }
+        private Long       id;
+        private String     name;
+        private String     email;
+        private String     phone;
+        private String     address;
+        private BigDecimal creditLimit;   // hạn mức tín dụng
+        private BigDecimal currentDebt;   // công nợ hiện tại
+
+        public CustomerDto(Long id, String name, String email, String phone,
+                           String address, BigDecimal creditLimit, BigDecimal currentDebt) {
+            this.id          = id;
+            this.name        = name;
+            this.email       = email;
+            this.phone       = phone;
+            this.address     = address;
+            this.creditLimit = creditLimit;
+            this.currentDebt = currentDebt;
+        }
     }
 
     @Getter @Setter
     public static class ItemDto {
-        private Long id; private Long productId; private String productName; private String productSku;
-        private Integer quantity; private BigDecimal unitPrice; private BigDecimal discount; private BigDecimal totalLineAmount;
-        public ItemDto(Long id, Long productId, String productName, String productSku, Integer quantity, BigDecimal unitPrice, BigDecimal discount, BigDecimal totalLineAmount) {
-            this.id = id; this.productId = productId; this.productName = productName; this.productSku = productSku;
-            this.quantity = quantity; this.unitPrice = unitPrice; this.discount = discount; this.totalLineAmount = totalLineAmount;
+        private Long       id;
+        private Long       productId;
+        private String     productName;
+        private String     productSku;
+        private Integer    quantity;
+        private BigDecimal unitPrice;
+        private BigDecimal discount;
+        private BigDecimal totalLineAmount;
+
+        public ItemDto(Long id, Long productId, String productName, String productSku,
+                       Integer quantity, BigDecimal unitPrice,
+                       BigDecimal discount, BigDecimal totalLineAmount) {
+            this.id              = id;
+            this.productId       = productId;
+            this.productName     = productName;
+            this.productSku      = productSku;
+            this.quantity        = quantity;
+            this.unitPrice       = unitPrice;
+            this.discount        = discount;
+            this.totalLineAmount = totalLineAmount;
         }
     }
 }
