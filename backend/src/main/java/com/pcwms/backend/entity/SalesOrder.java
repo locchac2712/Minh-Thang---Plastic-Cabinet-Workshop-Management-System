@@ -87,4 +87,8 @@ public class SalesOrder {
         details.add(detail);
         detail.setSalesOrder(this);
     }
+
+    @OneToMany(mappedBy = "salesOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Payment> payments = new ArrayList<>();
 }
