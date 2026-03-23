@@ -1,11 +1,15 @@
 package com.pcwms.backend.controller;
 
 import com.pcwms.backend.dto.request.ApprovalRequest;
+import com.pcwms.backend.dto.response.PaymentHistoryResponse;
 import com.pcwms.backend.dto.response.ResponseObject;
 import com.pcwms.backend.dto.response.SalesOrderDetailResponse;
 import com.pcwms.backend.dto.response.SalesOrderListResponse;
 import com.pcwms.backend.entity.SalesOrder;
+import com.pcwms.backend.repository.PaymentRepository;
+import com.pcwms.backend.repository.SalesOrderRepository;
 import com.pcwms.backend.services.SalesOrderService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,12 +19,22 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/api/v1/sales-orders")
+@RequiredArgsConstructor
 public class SalesOrderController {
 
     @Autowired
     private SalesOrderService salesOrderService;
+
+    @Autowired
+    private SalesOrderRepository salesOrderRepository;
+
+    @Autowired
+    private final PaymentRepository paymentRepository;
 
     // 👉 API: LẤY DANH SÁCH ĐƠN HÀNG
     @GetMapping
@@ -54,7 +68,6 @@ public class SalesOrderController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF') or hasRole('ACCOUNTANT')")
     public ResponseEntity<ResponseObject> getSalesOrderDetail(@PathVariable Long id) {
         try {
-            // Nhớ import com.pcwms.backend.dto.response.SalesOrderDetailResponse;
             SalesOrderDetailResponse detail = salesOrderService.getSalesOrderDetail(id);
             return ResponseEntity.ok(
                     new ResponseObject("SUCCESS", "Lấy chi tiết Đơn hàng thành công!", detail)
@@ -99,6 +112,35 @@ public class SalesOrderController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(
                     new ResponseObject("ERROR", e.getMessage(), null)
+            );
+        }
+    }
+
+    // API: LẤY LỊCH SỬ THANH TOÁN CỦA 1 ĐƠN HÀNG CỤ THỂ
+    @GetMapping("/{id}/payments")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR', 'SALES_MANAGER', 'SALES_STAFF')") // Thêm role Kế toán vào đây nếu có
+    public ResponseEntity<ResponseObject> getOrderPaymentHistory(@PathVariable("id") Long orderId) {
+        try {
+            // 1. Kiểm tra xem đơn hàng có tồn tại không
+            if (!salesOrderRepository.existsById(orderId)) {
+                return ResponseEntity.badRequest().body(
+                        new ResponseObject("ERROR", "Không tìm thấy Đơn hàng ID: " + orderId, null)
+                );
+            }
+
+            // 2. Móc dữ liệu từ DB và Ép sang DTO
+            List<PaymentHistoryResponse> paymentHistory = paymentRepository
+                    .findBySalesOrderIdOrderByIdDesc(orderId)
+                    .stream()
+                    .map(PaymentHistoryResponse::new)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(
+                    new ResponseObject("SUCCESS", "Lấy lịch sử thanh toán thành công!", paymentHistory)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(
+                    new ResponseObject("ERROR", "Lỗi hệ thống: " + e.getMessage(), null)
             );
         }
     }
