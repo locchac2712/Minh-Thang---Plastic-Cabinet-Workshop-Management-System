@@ -22,13 +22,21 @@ export const PAYMENT_STATUS_MAP = {
 
 const salesOrderService = {
     getAll: (params = {}) =>
-        api.get(BASE, { params }).then((res) => res.data?.data ?? res.data),
+        api.get(BASE, { params })
+            .then((res) => res.data?.data ?? res.data),
 
     getById: (id) =>
-        api.get(`${BASE}/${id}`).then((res) => res.data?.data ?? res.data),
+        api.get(`${BASE}/${id}`)
+            .then((res) => res.data?.data ?? res.data),
 
     processApproval: (id, payload) =>
-        api.put(`${BASE}/${id}/approval`, payload).then((res) => res.data?.data ?? res.data),
+        api.put(`${BASE}/${id}/approval`, payload)
+            .then((res) => res.data?.data ?? res.data),
+
+    getPaymentHistory: (id) => {
+        return api.get(`${BASE}/${id}/payments`)
+            .then(res => res.data.data);
+    },
 };
 
 export default salesOrderService;

@@ -10,5 +10,6 @@ import java.util.Optional;
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<Payment> findByPayosPaymentLinkId(String payosPaymentLinkId);
     Optional<Payment> findByPayosOrderCode(Long payosOrderCode);
-    List<Payment> findBySalesOrderIdOrderByIdDesc(Long salesOrderId);
+    // Chỉ lấy những giao dịch đã thực sự nhận được tiền
+    List<Payment> findBySalesOrderIdAndPayosStatusOrderByIdDesc(Long orderId, String status);
 }

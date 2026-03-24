@@ -27,13 +27,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SalesOrderController {
 
-    @Autowired
+
     private SalesOrderService salesOrderService;
 
-    @Autowired
+
     private SalesOrderRepository salesOrderRepository;
 
-    @Autowired
+    
     private final PaymentRepository paymentRepository;
 
     // 👉 API: LẤY DANH SÁCH ĐƠN HÀNG
@@ -130,7 +130,7 @@ public class SalesOrderController {
 
             // 2. Móc dữ liệu từ DB và Ép sang DTO
             List<PaymentHistoryResponse> paymentHistory = paymentRepository
-                    .findBySalesOrderIdOrderByIdDesc(orderId)
+                    .findBySalesOrderIdAndPayosStatusOrderByIdDesc(orderId,"PAID")
                     .stream()
                     .map(PaymentHistoryResponse::new)
                     .collect(Collectors.toList());

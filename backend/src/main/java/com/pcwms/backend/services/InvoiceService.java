@@ -5,6 +5,7 @@ import com.google.zxing.EncodeHintType;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import com.itextpdf.io.font.PdfEncodings;
 import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
@@ -20,6 +21,7 @@ import com.itextpdf.layout.element.*;
 import com.itextpdf.layout.properties.HorizontalAlignment;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
+import com.itextpdf.layout.properties.VerticalAlignment;
 import com.pcwms.backend.config.PayOSClient;
 import com.pcwms.backend.config.PayOSClient.CreateLinkRequest;
 import com.pcwms.backend.config.PayOSClient.CreateLinkResponse;
@@ -40,6 +42,7 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.EnumMap;
 import java.util.List;
@@ -56,13 +59,13 @@ public class InvoiceService {
     private final PaymentRepository    paymentRepository;
     private final PayOSClient          payOSClient;
 
-    @Value("${app.seller.name:CONG TY SAN XUAT THUONG MAI VA DICH VU PCWMS}")
+    @Value("${app.seller.name:NỘI THẤT NHỰA MINH THẮNG}")
     private String sellerName;
 
-    @Value("${app.seller.tax:0102143568}")
+    @Value("${app.seller.tax:0}")
     private String sellerTax;
 
-    @Value("${app.seller.address:Ha Noi}")
+    @Value("${app.seller.address:Hà Nội}")
     private String sellerAddress;
 
     @Value("${app.seller.phone:0978533079}")
@@ -74,7 +77,7 @@ public class InvoiceService {
     @Value("${app.seller.bank-account:1234567890}")
     private String sellerBankAccount;
 
-    @Value("${app.invoice.serial:1C26THK}")
+    @Value("${app.invoice.serial:0}")
     private String invoiceSerial;
 
     @Value("${app.vat-rate:5}")
@@ -170,13 +173,15 @@ public class InvoiceService {
         Document doc = new Document(pdfDoc, PageSize.A4);
         doc.setMargins(20, 25, 20, 25);
 
-        PdfFont fontNormal = PdfFontFactory.createFont("Helvetica");
-        PdfFont fontBold   = PdfFontFactory.createFont("Helvetica-Bold");
-        PdfFont fontItalic = PdfFontFactory.createFont("Helvetica-Oblique");
+        PdfFont fontNormal = PdfFontFactory.createFont(
+                "ttf/DejaVuSans.ttf");
+        PdfFont fontBold = PdfFontFactory.createFont(
+                "ttf/DejaVuSans-Bold.ttf");
+        PdfFont fontItalic = PdfFontFactory.createFont("ttf/DejaVuSans-Oblique.ttf");
 
         String invoiceDate = order.getCreatedDate() != null
                 ? order.getCreatedDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                : java.time.LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                : LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
         String[] dp = invoiceDate.split("/");
 
         String customerName    = order.getCustomer() != null ? order.getCustomer().getName()    : "";
@@ -189,15 +194,15 @@ public class InvoiceService {
                 .useAllAvailableWidth();
         Cell left = new Cell().setBorder(Border.NO_BORDER).setPadding(0);
         left.add(new Paragraph(sellerName).setFont(fontBold).setFontSize(9).setFontColor(RED));
-        left.add(new Paragraph("Ma so thue (Tax Code): " + sellerTax).setFont(fontNormal).setFontSize(8));
-        left.add(new Paragraph("Dia chi (Address): " + sellerAddress).setFont(fontNormal).setFontSize(8));
-        left.add(new Paragraph("Dien thoai (Tel): " + sellerPhone).setFont(fontNormal).setFontSize(8));
+        left.add(new Paragraph("Mã số thuế : " + sellerTax).setFont(fontNormal).setFontSize(8));
+        left.add(new Paragraph("Địa chỉ : " + sellerAddress).setFont(fontNormal).setFontSize(8));
+        left.add(new Paragraph("Điện thoại : " + sellerPhone).setFont(fontNormal).setFontSize(8));
         headerTbl.addCell(left);
 
         Cell right = new Cell().setBorder(Border.NO_BORDER).setPadding(0);
-        right.add(new Paragraph("Mau so - Ky hieu (Serial No.): " + invoiceSerial)
+        right.add(new Paragraph("Mẫu số : " + invoiceSerial)
                 .setFont(fontBold).setFontSize(8).setTextAlignment(TextAlignment.RIGHT));
-        right.add(new Paragraph("So (Invoice No.): " + String.format("%08d", order.getId()))
+        right.add(new Paragraph("Số : " + String.format("%08d", order.getId()))
                 .setFont(fontBold).setFontSize(8).setTextAlignment(TextAlignment.RIGHT));
         headerTbl.addCell(right);
         doc.add(headerTbl);
@@ -205,37 +210,63 @@ public class InvoiceService {
         doc.add(new Paragraph(" ").setMargin(0)
                 .setBorderBottom(new SolidBorder(RED, 1.5f)));
 
-        // ── 2. TITLE ─────────────────────────────────────────
-        doc.add(new Paragraph("HOA DON GIA TRI GIA TANG")
-                .setFont(fontBold).setFontSize(16).setFontColor(RED)
-                .setTextAlignment(TextAlignment.CENTER).setMarginTop(6));
-        doc.add(new Paragraph("(VAT INVOICE)")
-                .setFont(fontItalic).setFontSize(10).setFontColor(RED)
-                .setTextAlignment(TextAlignment.CENTER).setMarginTop(-4));
-        doc.add(new Paragraph("Ngay (day) " + dp[0] + " thang (month) " + dp[1] + " nam (year) " + dp[2])
-                .setFont(fontNormal).setFontSize(9)
-                .setTextAlignment(TextAlignment.CENTER).setMarginBottom(8));
+// ── 2. TITLE & QR SECTION ─────────────────────────────
+        byte[] qrBytes = generateQrBytes(qrContent != null ? qrContent : order.getOrderNumber(), 250);
+        Image qrImage = new Image(ImageDataFactory.create(qrBytes))
+                .setWidth(90).setHeight(90)
+                .setHorizontalAlignment(HorizontalAlignment.RIGHT); // Đẩy ảnh sang phải trong cell
 
-        // ── 3. BUYER ─────────────────────────────────────────
-        doc.add(new Paragraph("Nguoi mua (Buyer):").setFont(fontNormal).setFontSize(9).setMarginBottom(1));
-        doc.add(new Paragraph("Don vi (Company name): " + customerName).setFont(fontBold).setFontSize(9).setMarginBottom(1));
-        doc.add(new Paragraph("Ma so thue (Tax Code): " + customerTax).setFont(fontNormal).setFontSize(9).setMarginBottom(1));
-        doc.add(new Paragraph("Dia chi (Address): " + customerAddress).setFont(fontNormal).setFontSize(9).setMarginBottom(1));
-        doc.add(new Paragraph("Hinh thuc thanh toan (Payment method): Chuyen khoan/Tien mat").setFont(fontNormal).setFontSize(9).setMarginBottom(4));
+        Table titleTable = new Table(UnitValue.createPercentArray(new float[]{65, 35}))
+                .useAllAvailableWidth().setMarginTop(5);
+
+
+        Cell titleCell = new Cell().setBorder(Border.NO_BORDER).setVerticalAlignment(VerticalAlignment.MIDDLE);
+        titleCell.add(new Paragraph("HOÁ ĐƠN GIÁ TRỊ GIA TĂNG (VAT)")
+                .setFont(fontBold).setFontSize(15).setFontColor(RED)
+                .setTextAlignment(TextAlignment.CENTER).setMarginLeft(40)); // Offset để bù khoảng trống QR
+        titleCell.add(new Paragraph("(VAT INVOICE)")
+                .setFont(fontItalic).setFontSize(9).setFontColor(RED)
+                .setTextAlignment(TextAlignment.CENTER).setMarginLeft(40).setMarginTop(-5));
+        titleCell.add(new Paragraph("Ngày (day) " + dp[0] + " tháng (month) " + dp[1] + " năm (year) " + dp[2])
+                .setFont(fontNormal).setFontSize(9)
+                .setTextAlignment(TextAlignment.CENTER).setMarginLeft(40));
+        titleTable.addCell(titleCell);
+
+
+        Cell qrCell = new Cell().setBorder(Border.NO_BORDER).setTextAlignment(TextAlignment.RIGHT);
+        qrCell.add(qrImage);
+
+        String payTypeLabel = "DEPOSIT".equals(paymentType) ? "Đặt cọc" : "Thanh toán";
+        qrCell.add(new Paragraph("Thanh toán qua PayOS")
+                .setFont(fontBold).setFontSize(8).setMarginTop(2));
+        qrCell.add(new Paragraph(payTypeLabel + ": " + fmtMoney(payAmount.longValue()) + " đ")
+                .setFont(fontBold).setFontSize(8).setFontColor(RED).setMarginTop(-2));
+        qrCell.add(new Paragraph("Đơn hàng: " + order.getOrderNumber())
+                .setFont(fontNormal).setFontSize(7).setMarginTop(-2));
+
+        titleTable.addCell(qrCell);
+        doc.add(titleTable);
+
+// ── 3. BUYER ─────────────────────────────────────────
+        doc.add(new Paragraph("Người mua :").setFont(fontNormal).setFontSize(9).setMarginTop(5));
+        doc.add(new Paragraph("Đơn vị (Công ty): " + customerName).setFont(fontBold).setFontSize(9).setMarginBottom(1));
+        doc.add(new Paragraph("Mã số thuế : " + customerTax).setFont(fontNormal).setFontSize(9).setMarginBottom(1));
+        doc.add(new Paragraph("Địa chỉ : " + customerAddress).setFont(fontNormal).setFontSize(9).setMarginBottom(1));
+        doc.add(new Paragraph("Hình thức thanh toán : Chuyển khoản qua PayOS/VietQR").setFont(fontNormal).setFontSize(9).setMarginBottom(4));
 
         // ── 4. ITEMS TABLE ────────────────────────────────────
         float[] colW = {12f, 35f, 12f, 11f, 15f, 15f};
         Table itemsTbl = new Table(UnitValue.createPercentArray(colW))
                 .useAllAvailableWidth().setMarginBottom(4);
 
-        for (String h : new String[]{"STT\n(No.)", "Ten hang hoa, dich vu\n(Description)",
-                "Don vi tinh\n(Unit)", "So luong\n(Qty)", "Don gia\n(Unit Price)", "Thanh tien\n(Amount)"}) {
+        for (String h : new String[]{"STT\n(No.)", "Tên hàng hoá, dịch vụ\n(Description)",
+                "Đơn vị tính\n(Unit)", "Số lượng\n(Qty)", "Đơn giá\n(Unit Price)", "Thành tiền\n(Amount)"}) {
             itemsTbl.addHeaderCell(new Cell()
                     .add(new Paragraph(h).setFont(fontBold).setFontSize(7.5f).setTextAlignment(TextAlignment.CENTER))
                     .setBackgroundColor(RED).setFontColor(ColorConstants.WHITE)
                     .setPadding(4).setBorder(new SolidBorder(ColorConstants.WHITE, 0.5f)));
         }
-        for (String s : new String[]{"1", "2", "3", "4", "5", "6 = 4 x 5"}) {
+        for (String s : new String[]{"1", "2", "3", "4", "5", "6"}) {
             itemsTbl.addCell(new Cell()
                     .add(new Paragraph(s).setFont(fontNormal).setFontSize(7.5f).setTextAlignment(TextAlignment.CENTER))
                     .setBackgroundColor(LGRAY).setPadding(3).setBorder(new SolidBorder(ColorConstants.GRAY, 0.5f)));
@@ -246,13 +277,13 @@ public class InvoiceService {
         if (details != null && !details.isEmpty()) {
             for (SalesOrderDetail d : details) {
                 addRow(itemsTbl, fontNormal, idx.getAndIncrement(),
-                        d.getProduct().getName(), "Cai",
+                        d.getProduct().getName(), d.getProduct().getUnit(),
                         d.getQuantity() != null ? d.getQuantity().doubleValue() : 0,
                         d.getUnitPrice() != null ? d.getUnitPrice().longValue() : 0,
                         d.getTotalLineAmount() != null ? d.getTotalLineAmount().longValue() : 0);
             }
         } else {
-            addRow(itemsTbl, fontNormal, 1, "Hang hoa don " + order.getOrderNumber(),
+            addRow(itemsTbl, fontNormal, 1, "Hàng hoá đơn" + order.getOrderNumber(),
                     "Lo", 1, subtotal.longValue(), subtotal.longValue());
         }
 
@@ -265,7 +296,7 @@ public class InvoiceService {
         }
 
         // Subtotal
-        itemsTbl.addCell(new Cell(1, 5).add(new Paragraph("Cong tien hang (Sub total):")
+        itemsTbl.addCell(new Cell(1, 5).add(new Paragraph("Cộng tiền hàng (Sub total):")
                         .setFont(fontBold).setFontSize(8).setTextAlignment(TextAlignment.RIGHT))
                 .setBorder(new SolidBorder(ColorConstants.BLACK, 0.8f)).setPadding(4));
         itemsTbl.addCell(new Cell().add(new Paragraph(fmtMoney(subtotal.longValue()))
@@ -273,10 +304,10 @@ public class InvoiceService {
                 .setBorder(new SolidBorder(ColorConstants.BLACK, 0.8f)).setPadding(4));
 
         // VAT
-        itemsTbl.addCell(new Cell(1, 3).add(new Paragraph("Thue suat GTGT (Tax rate): " + vatRate + "%")
+        itemsTbl.addCell(new Cell(1, 3).add(new Paragraph("Thuế xuất GTGT (Tax rate): " + vatRate + "%")
                         .setFont(fontNormal).setFontSize(8))
                 .setBorder(new SolidBorder(ColorConstants.GRAY, 0.5f)).setPadding(4));
-        itemsTbl.addCell(new Cell(1, 2).add(new Paragraph("Tien thue GTGT (VAT amount):")
+        itemsTbl.addCell(new Cell(1, 2).add(new Paragraph("Tiền thuế GTGT (VAT amount):")
                         .setFont(fontNormal).setFontSize(8).setTextAlignment(TextAlignment.RIGHT))
                 .setBorder(new SolidBorder(ColorConstants.GRAY, 0.5f)).setPadding(4));
         itemsTbl.addCell(new Cell().add(new Paragraph(fmtMoney(vatAmount.longValue()))
@@ -284,7 +315,7 @@ public class InvoiceService {
                 .setBorder(new SolidBorder(ColorConstants.GRAY, 0.5f)).setPadding(4));
 
         // Total
-        itemsTbl.addCell(new Cell(1, 5).add(new Paragraph("Tong cong tien thanh toan (Total payment):")
+        itemsTbl.addCell(new Cell(1, 5).add(new Paragraph("Tổng cộng tiền thanh toán (Total payment):")
                         .setFont(fontBold).setFontSize(8).setTextAlignment(TextAlignment.RIGHT))
                 .setBackgroundColor(PINK_BG).setBorder(new SolidBorder(ColorConstants.BLACK, 1f)).setPadding(4));
         itemsTbl.addCell(new Cell().add(new Paragraph(fmtMoney(total.longValue()))
@@ -293,51 +324,29 @@ public class InvoiceService {
 
         doc.add(itemsTbl);
 
-        // Total in words
-        doc.add(new Paragraph("So tien viet bang chu (Amount in words): " + fmtWords(total.longValue()))
-                .setFont(fontNormal).setFontSize(8).setMarginBottom(4));
-        doc.add(new Paragraph(" ").setMargin(0).setBorderBottom(new SolidBorder(ColorConstants.GRAY, 0.5f)));
-
         // ── 5. QR PayOS + SIGNATURES ──────────────────────────
         // Tạo QR từ chuỗi qrContent (chuỗi VietQR từ PayOS)
-        byte[]  qrBytes = generateQrBytes(qrContent != null ? qrContent : order.getOrderNumber(), 220);
-        Image   qrImage = new Image(ImageDataFactory.create(qrBytes))
-                .setWidth(100).setHeight(100)
-                .setHorizontalAlignment(HorizontalAlignment.CENTER);
+        Table sigTbl = new Table(UnitValue.createPercentArray(new float[]{50, 50}))
+                .useAllAvailableWidth().setMarginTop(20);
 
-        // Thông tin thanh toán dưới QR
-        String payTypeLabel = "DEPOSIT".equals(paymentType) ? "Dat coc" : "Thanh toan toan bo";
-        Div qrDiv = new Div().setTextAlignment(TextAlignment.CENTER);
-        qrDiv.add(qrImage);
-        qrDiv.add(new Paragraph("Thanh toan qua PayOS")
-                .setFont(fontBold).setFontSize(8).setTextAlignment(TextAlignment.CENTER).setMarginTop(4));
-        qrDiv.add(new Paragraph(payTypeLabel + ": " + fmtMoney(payAmount.longValue()) + " d")
-                .setFont(fontBold).setFontSize(9).setFontColor(RED).setTextAlignment(TextAlignment.CENTER));
-        qrDiv.add(new Paragraph("Don hang: " + order.getOrderNumber())
-                .setFont(fontNormal).setFontSize(7).setTextAlignment(TextAlignment.CENTER));
-        qrDiv.add(new Paragraph("Quet ma QR de thanh toan")
-                .setFont(fontItalic).setFontSize(7).setFontColor(GRAY).setTextAlignment(TextAlignment.CENTER));
-        if (checkoutUrl != null) {
-            qrDiv.add(new Paragraph("Hoac truy cap: " + checkoutUrl)
-                    .setFont(fontNormal).setFontSize(6).setFontColor(GRAY).setTextAlignment(TextAlignment.CENTER));
-        }
+        sigTbl.addCell(new Cell().setBorder(Border.NO_BORDER)
+                .add(new Paragraph("Người mua hàng")
+                        .setFont(fontBold).setFontSize(9).setTextAlignment(TextAlignment.CENTER))
+                .add(new Paragraph("(Ký, ghi rõ họ tên)")
+                        .setFont(fontItalic).setFontSize(7).setTextAlignment(TextAlignment.CENTER))
+                .add(new Paragraph("\n\n\n\n")));
 
-        Table sigTbl = new Table(UnitValue.createPercentArray(new float[]{33, 34, 33}))
-                .useAllAvailableWidth().setMarginTop(10);
         sigTbl.addCell(new Cell().setBorder(Border.NO_BORDER)
-                .add(new Paragraph("Nguoi mua hang (Buyer)\n\n\n\n(Ky, ghi ro ho ten)")
-                        .setFont(fontNormal).setFontSize(8).setTextAlignment(TextAlignment.CENTER)));
-        sigTbl.addCell(new Cell().setBorder(Border.NO_BORDER).add(qrDiv));
-        sigTbl.addCell(new Cell().setBorder(Border.NO_BORDER)
-                .add(new Paragraph("Nguoi ban hang (Seller)\n\n\n\n(Ky, ghi ro ho ten)")
-                        .setFont(fontNormal).setFontSize(8).setTextAlignment(TextAlignment.CENTER)));
+                .add(new Paragraph("Người bán hàng")
+                        .setFont(fontBold).setFontSize(9).setTextAlignment(TextAlignment.CENTER))
+                .add(new Paragraph("(Ký, ghi rõ họ tên)")
+                        .setFont(fontItalic).setFontSize(7).setTextAlignment(TextAlignment.CENTER))
+                .add(new Paragraph("\n\n\n\n")));
+
         doc.add(sigTbl);
 
         // Footer
         doc.add(new Paragraph(" ").setMargin(3).setBorderBottom(new SolidBorder(ColorConstants.GRAY, 0.5f)));
-        doc.add(new Paragraph("(Can kiem tra doi chieu khi lap, giao, nhan hoa don)")
-                .setFont(fontItalic).setFontSize(7).setFontColor(GRAY).setTextAlignment(TextAlignment.CENTER));
-
         doc.close();
         log.info("Invoice PDF built | order={} | size={}KB", order.getOrderNumber(), baos.size() / 1024);
         return baos.toByteArray();
@@ -368,9 +377,6 @@ public class InvoiceService {
                 .format(n).replace(",", ".");
     }
 
-    private String fmtWords(long amount) {
-        return fmtMoney(amount) + " dong chan./.";
-    }
 
     private byte[] generateQrBytes(String content, int size) throws Exception {
         QRCodeWriter writer = new QRCodeWriter();
