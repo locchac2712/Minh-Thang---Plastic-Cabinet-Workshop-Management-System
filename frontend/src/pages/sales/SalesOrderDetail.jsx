@@ -4,7 +4,7 @@ import salesOrderService, { ORDER_STATUS_MAP, PAYMENT_STATUS_MAP } from "../../s
 import { PaymentModal } from "./PaymentModal.jsx";
 
 const fmt     = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " \u0111" : "\u2014";
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "\u2014";
+const fmtDate = (d) => d ? new Date(d).toLocaleString("vi-VN") : "—";
 
 const POLL_INTERVAL = 4000;  // kiểm tra mỗi 4 giây
 const POLL_TIMEOUT  = 15 * 60 * 1000; // dừng sau 15 phút
@@ -32,8 +32,15 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
     // 1. Hàm load lịch sử thanh toán từ API
     const loadPaymentHistory = () => {
         return salesOrderService.getPaymentHistory(orderId)
-            .then(setPayments)
-            .catch(err => console.error("Lỗi load lịch sử thanh toán:", err));
+            .then(data => {
+                console.log("Dữ liệu nhận được tại Component:", data);
+                // Vì Service đã .then(res => res.data.data) nên data ở đây chính là Array
+                setPayments(Array.isArray(data) ? data : []);
+            })
+            .catch(err => {
+                console.error("Lỗi load history:", err);
+                setPayments([]);
+            });
     };
 
     // 2. Hàm load đơn hàng (Duy nhất 1 hàm)
@@ -56,7 +63,7 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
     // Kiểm tra kỹ nếu payments là null hoặc undefined thì mặc định là mảng rỗng []
     const paymentList = Array.isArray(payments) ? payments : [];
 
-// Tính toán số tiền thực tế từ lịch sử
+// Tính toán số tiền thực tế từ lịch sử (Dùng p.amount từ API)
     const actualPaidFromHistory = paymentList.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
 
@@ -212,23 +219,30 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
                         </div>
                     )}
 
-                    {/* LỊCH SỬ GIAO DỊCH THAY THẾ BÁO GIÁ GỐC */}
+                    {/* LỊCH SỬ GIAO DỊCH */}
                     <div className="sod-card">
                         <div className="sod-card__title"> Lịch sử giao dịch</div>
-                        {payments.length === 0 ? (
+                        {paymentList.length === 0 ? (
                             <div style={{fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "10px 0"}}>
                                 Chưa có giao dịch nào
                             </div>
                         ) : (
                             <div className="sod-payment-list">
-                                {payments.map((p, idx) => (
-                                    <div key={idx} className="sod-pay-item">
+                                {paymentList.map((p, idx) => (
+                                    <div key={p.id || idx} className="sod-pay-item">
                                         <div className="sod-pay-item__header">
+                                            {/* API trả về p.amount */}
                                             <span className="sod-pay-amount">{fmt(p.amount)}</span>
-                                            <span className="sod-pay-date">{fmtDate(p.paymentDate)}</span>
+                                            {/* API trả về p.transactionDate */}
+                                            <span className="sod-pay-date">{fmtDate(p.transactionDate)}</span>
                                         </div>
                                         <div className="sod-pay-method">
-                                            {p.paymentMethod} • <small>{p.transactionCode || 'N/A'}</small>
+                                            {p.paymentMethod} • <small>Ref: {p.payosOrderCode || 'N/A'}</small>
+                                            {p.payosStatus === "PAID" && (
+                                                <span style={{color: '#10b981', marginLeft: '8px', fontSize: '10px', fontWeight: 'bold'}}>
+                                ✓ THÀNH CÔNG
+                            </span>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

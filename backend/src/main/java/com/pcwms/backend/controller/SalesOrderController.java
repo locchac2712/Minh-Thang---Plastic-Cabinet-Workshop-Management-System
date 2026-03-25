@@ -26,14 +26,13 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/v1/sales-orders")
 @RequiredArgsConstructor
 public class SalesOrderController {
-
-
+    @Autowired
     private SalesOrderService salesOrderService;
 
-
+    @Autowired
     private SalesOrderRepository salesOrderRepository;
 
-    
+    @Autowired
     private final PaymentRepository paymentRepository;
 
     // 👉 API: LẤY DANH SÁCH ĐƠN HÀNG
@@ -130,8 +129,9 @@ public class SalesOrderController {
 
             // 2. Móc dữ liệu từ DB và Ép sang DTO
             List<PaymentHistoryResponse> paymentHistory = paymentRepository
-                    .findBySalesOrderIdAndPayosStatusOrderByIdDesc(orderId,"PAID")
+                    .findBySalesOrderIdOrderByIdDesc(orderId) // Lấy tất cả để check trước
                     .stream()
+                    .filter(p -> "PAID".equals(p.getPayosStatus())) // Lọc ở stream để dễ debug
                     .map(PaymentHistoryResponse::new)
                     .collect(Collectors.toList());
 

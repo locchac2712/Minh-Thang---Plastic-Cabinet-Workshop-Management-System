@@ -12,4 +12,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<Payment> findByPayosOrderCode(Long payosOrderCode);
     // Chỉ lấy những giao dịch đã thực sự nhận được tiền
     List<Payment> findBySalesOrderIdAndPayosStatusOrderByIdDesc(Long orderId, String status);
+
+    List<Payment> findBySalesOrderIdOrderByIdDesc(Long orderId);
 }
