@@ -157,7 +157,7 @@ public class SalesOrderController {
         try {
             Page<SalesOrderDetailResponse> queuePage = salesOrderService.getPaginatedProductionQueue(page, size);
             return ResponseEntity.ok(
-                    new ResponseObject("SUCCESS", "Lấy danh sách Đơn Hàng lên kế hoạch sản xuất thành công!", productionQueue)
+                    new ResponseObject("SUCCESS", "Lấy danh sách Đơn Hàng lên kế hoạch sản xuất thành công!", queuePage)
             );
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(
