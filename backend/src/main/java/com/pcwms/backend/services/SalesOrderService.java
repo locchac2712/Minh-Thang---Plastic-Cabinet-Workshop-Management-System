@@ -8,7 +8,9 @@ import com.pcwms.backend.repository.SalesOrderRepository;
 import com.pcwms.backend.dto.response.SalesOrderListResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -121,16 +123,17 @@ public class SalesOrderService {
 
         return new SalesOrderDetailResponse(order);
     }
+
     // =================================================================
     // 4. API: DIRECTOR APPROVAL/REJECTION
     // =================================================================
     @Transactional
-    public SalesOrder processApproval(Long orderId, ApprovalRequest request, Long directorId ){
+    public SalesOrder processApproval(Long orderId, ApprovalRequest request, Long directorId) {
         // 1. tìm đơn hàng
         SalesOrder order = salesOrderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Đơn hàng ID: " + orderId));
         //2. chặn lỗi thao tác: chỉ cho phép duyệt những đơn đang bị kẹt
-        if(!"PENDING_APPROVAL".equals(order.getStatus())){
+        if (!"PENDING_APPROVAL".equals(order.getStatus())) {
             throw new RuntimeException("Lỗi: Chỉ có thể duyệt những đơn đang ở trạng thái PENDING_APPROVAL!");
         }
 
@@ -139,20 +142,32 @@ public class SalesOrderService {
         order.setApprovedAt(LocalDateTime.now());
         order.setApprovalNote(request.getApprovalNote());
 
-        if(request.isApproved()){
+        if (request.isApproved()) {
             // TH Director approve -> Đơn được duyệt, chuyển sang trạng thái chờ đặt cọc
-            if(request.getNewCreditLimit() == null || request.getNewCreditLimit().compareTo(BigDecimal.ZERO) < 0){
+            if (request.getNewCreditLimit() == null || request.getNewCreditLimit().compareTo(BigDecimal.ZERO) < 0) {
                 throw new RuntimeException("Lỗi: Khi Phê duyệt, Sếp phải nhập Hạn mức tín dụng mới cho khách!");
             }
             order.setStatus("WAITING_FOR_DEPOSIT");
             // Cập nhật hạn mức vĩnh viên mới cho KH
             Customer customer = order.getCustomer();
             customer.setCreditLimit(request.getNewCreditLimit());
-        }else {
+        } else {
             //TH Director reject
             order.setStatus("CANCELLED");
         }
         return salesOrderRepository.save(order);
+    }
+
+    //Production manager lay danh sach don hang de len ke hoach san xuat
+    public Page<SalesOrderDetailResponse> getPaginatedProductionQueue(int page, int size) {
+        // Cấu hình phân trang: Trang số 'page', kích thước 'size', sắp xếp cũ nhất lên trước (FIFO)
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdDate").ascending());
+
+        // Gọi DB lấy data theo trang
+        Page<SalesOrder> orderPage = salesOrderRepository.findOrdersForProduction(pageable);
+
+        // Dùng hàm .map() thần thánh để convert toàn bộ Entity trong trang đó sang DTO
+        return orderPage.map(SalesOrderDetailResponse::new);
     }
 
 }

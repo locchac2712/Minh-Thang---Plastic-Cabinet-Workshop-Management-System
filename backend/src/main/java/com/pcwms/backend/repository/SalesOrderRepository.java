@@ -24,6 +24,12 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
             @Param("status") String status,
             @Param("paymentStatus") String paymentStatus,
             Pageable pageable);
+
     @Query("SELECT s FROM SalesOrder s JOIN FETCH s.customer WHERE s.id = :id")
     Optional<SalesOrder> findByIdWithCustomer(@Param("id") Long id);
+
+
+    //Production manager
+    @Query("SELECT s FROM SalesOrder s WHERE s.status = 'CONFIRMED' AND s.paymentStatus IN ('PARTIAL', 'PAID')")
+    Page<SalesOrder> findOrdersForProduction(Pageable pageable);
 }

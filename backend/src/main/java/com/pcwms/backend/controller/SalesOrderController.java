@@ -62,6 +62,7 @@ public class SalesOrderController {
             );
         }
     }
+
     // 👉 API: Xem chi tiết 1 Đơn hàng
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF') or hasRole('ACCOUNTANT')")
@@ -77,6 +78,7 @@ public class SalesOrderController {
             );
         }
     }
+
     @PostMapping("/from-quotation/{quotationId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> createOrderFromQuotation(@PathVariable Long quotationId) {
@@ -100,8 +102,8 @@ public class SalesOrderController {
     public ResponseEntity<ResponseObject> approveOrRejectOrder(
             @PathVariable Long id,
             @RequestBody ApprovalRequest request
-    ){
-        try{
+    ) {
+        try {
             Long directorId = 1L; // TODO: Lấy từ UserDetails (SecurityContext)
             SalesOrder updatedOrder = salesOrderService.processApproval(id, request, directorId);
             String msg = request.isApproved() ? "Đã PHÊ DUYỆT đơn hàng thành công!" : "Đã TỪ CHỐI đơn hàng!";
@@ -144,4 +146,26 @@ public class SalesOrderController {
             );
         }
     }
+
+    //API: Production manager lấy danh sách đơn hàng lên kế hoạch sản xuất
+    @GetMapping("/production-queue")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR', 'PRODUCTION_MANAGER')")
+    public ResponseEntity<ResponseObject> getProductionQueue(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        try {
+            Page<SalesOrderDetailResponse> queuePage = salesOrderService.getPaginatedProductionQueue(page, size);
+            return ResponseEntity.ok(
+                    new ResponseObject("SUCCESS", "Lấy danh sách Đơn Hàng lên kế hoạch sản xuất thành công!", productionQueue)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(
+                    new ResponseObject("ERROR", "Lỗi hệ thống: " + e.getMessage(), null)
+            );
+        }
+
+    }
+
+
 }
