@@ -30,6 +30,12 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
 
 
     //Production manager
-    @Query("SELECT s FROM SalesOrder s WHERE s.status = 'CONFIRMED' AND s.paymentStatus IN ('PARTIAL', 'PAID')")
-    Page<SalesOrder> findOrdersForProduction(Pageable pageable);
+    @Query("SELECT s FROM SalesOrder s WHERE s.status = 'CONFIRMED' AND s.paymentStatus IN ('PARTIAL', 'PAID') " +
+            "AND (:keyword IS NULL OR " +
+            "LOWER(s.orderNumber) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(s.customer.name) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<SalesOrder> findOrdersForProduction(
+            @Param("keyword") String keyword,
+            Pageable pageable
+    );
 }

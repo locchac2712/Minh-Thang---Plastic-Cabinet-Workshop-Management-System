@@ -151,21 +151,22 @@ public class SalesOrderController {
     @GetMapping("/production-queue")
     @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR', 'PRODUCTION_MANAGER')")
     public ResponseEntity<ResponseObject> getProductionQueue(
+            @RequestParam(required = false) String keyword, // 👉 THÊM DÒNG NÀY (Để hứng chữ cần tìm)
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         try {
-            Page<SalesOrderDetailResponse> queuePage = salesOrderService.getPaginatedProductionQueue(page, size);
+            // Truyền keyword xuống Service
+            Page<SalesOrderDetailResponse> queuePage = salesOrderService.getPaginatedProductionQueue(keyword, page, size);
+
             return ResponseEntity.ok(
-                    new ResponseObject("SUCCESS", "Lấy danh sách Đơn Hàng lên kế hoạch sản xuất thành công!", queuePage)
+                    new ResponseObject("SUCCESS", "Lấy danh sách chờ sản xuất thành công!", queuePage)
             );
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(
                     new ResponseObject("ERROR", "Lỗi hệ thống: " + e.getMessage(), null)
             );
         }
-
     }
-
 
 }
