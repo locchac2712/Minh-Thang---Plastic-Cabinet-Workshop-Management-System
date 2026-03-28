@@ -44,13 +44,32 @@ function generateProgressData(mode) {
 }
 
 // Chart 2 data: 4 priority levels × 4 status zones (stacked)
-function generateDelayData() {
-  return {
-    labels: ['Khẩn cấp', 'Cao', 'Trung bình', 'Thấp'],
-    planned: [2, 5, 8, 10],
-    inProgress: [4, 7, 12, 6],
-    completed: [3, 6, 9, 8],
-    overdue: [5, 3, 2, 1],
+function generateDelayData(mode) {
+  const priorities = ['Khẩn cấp', 'Cao', 'Trung bình', 'Thấp']
+  if (mode === 'day') {
+    return {
+      labels: priorities,
+      planned: [1, 3, 5, 7],
+      inProgress: [3, 4, 6, 3],
+      completed: [2, 2, 4, 5],
+      overdue: [4, 2, 1, 0],
+    }
+  } else if (mode === 'week') {
+    return {
+      labels: priorities,
+      planned: [5, 12, 20, 25],
+      inProgress: [10, 18, 30, 15],
+      completed: [8, 15, 22, 20],
+      overdue: [12, 8, 5, 3],
+    }
+  } else {
+    return {
+      labels: priorities,
+      planned: [15, 40, 65, 80],
+      inProgress: [30, 55, 90, 50],
+      completed: [25, 50, 70, 65],
+      overdue: [35, 20, 12, 8],
+    }
   }
 }
 
@@ -471,6 +490,7 @@ export default function ProductionDashboard() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [progressMode, setProgressMode] = useState('day')
+  const [delayMode, setDelayMode] = useState('day')
   const [popupChart, setPopupChart] = useState(null) // 'line' | 'bar' | null
 
   useEffect(() => {
@@ -480,7 +500,7 @@ export default function ProductionDashboard() {
   }, [])
 
   const progressData = useMemo(() => generateProgressData(progressMode), [progressMode])
-  const delayData = useMemo(() => generateDelayData(), [])
+  const delayData = useMemo(() => generateDelayData(delayMode), [delayMode])
 
   if (loading) return <DashboardLayout title="Dashboard Sản xuất"><Loading /></DashboardLayout>
 
@@ -531,7 +551,18 @@ export default function ProductionDashboard() {
             <h3 className="text-sm font-semibold text-gray-900" style={{ margin: 0 }}>
               Phân tích đơn hàng theo mức ưu tiên
             </h3>
-            <ExpandButton onClick={() => setPopupChart('bar')} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <TabGroup
+                options={[
+                  { value: 'day', label: 'Ngày' },
+                  { value: 'week', label: 'Tuần' },
+                  { value: 'month', label: 'Tháng' },
+                ]}
+                value={delayMode}
+                onChange={setDelayMode}
+              />
+              <ExpandButton onClick={() => setPopupChart('bar')} />
+            </div>
           </div>
           <StackedBarChart data={delayData} />
         </Card>
@@ -556,7 +587,18 @@ export default function ProductionDashboard() {
       )}
 
       {popupChart === 'bar' && (
-        <ChartPopup title=" Phân tích đơn hàng theo mức ưu tiên" onClose={() => setPopupChart(null)}>
+        <ChartPopup title="Phân tích đơn hàng theo mức ưu tiên" onClose={() => setPopupChart(null)}>
+          <div style={{ marginBottom: '16px' }}>
+            <TabGroup
+              options={[
+                { value: 'day', label: 'Ngày' },
+                { value: 'week', label: 'Tuần' },
+                { value: 'month', label: 'Tháng' },
+              ]}
+              value={delayMode}
+              onChange={setDelayMode}
+            />
+          </div>
           <StackedBarChart data={delayData} large />
         </ChartPopup>
       )}
