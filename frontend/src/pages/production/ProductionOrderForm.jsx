@@ -15,7 +15,7 @@ export default function ProductionOrderForm() {
     salesOrderId: '',
     bomId: '',
     quantity: '',
-    priority: 1,
+    priority: 'MEDIUM',
     startDate: '',
     endDate: '',
     notes: '',
@@ -50,7 +50,7 @@ export default function ProductionOrderForm() {
         salesOrder: form.salesOrderId ? { id: form.salesOrderId } : null,
         bom: form.bomId ? { id: form.bomId } : null,
         quantity: Number(form.quantity),
-        priority: Number(form.priority),
+        priority: form.priority,
         startDate: form.startDate || null,
         endDate: form.endDate || null,
         notes: form.notes || null,
@@ -101,7 +101,19 @@ export default function ProductionOrderForm() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <Field label={<>Số lượng <span className="text-red-500">*</span></>} name="quantity" type="number" min="1" value={form.quantity} onChange={handleChange} required />
-              <Field label="Độ ưu tiên (0-10)" name="priority" type="number" min="0" max="10" value={form.priority} onChange={handleChange} />
+              <Select
+                label={<>Mức độ ưu tiên <span className="text-red-500">*</span></>}
+                value={form.priority}
+                onChange={(e) => handleChange({ target: { name: 'priority', value: e.target.value } })}
+                options={[
+                  { value: 'URGENT', label: 'Cần gấp' },
+                  { value: 'HIGH', label: 'Cao' },
+                  { value: 'MEDIUM', label: 'Trung bình' },
+                  { value: 'LOW', label: 'Thấp' },
+                ]}
+                placeholder="-- Chọn mức ưu tiên --"
+                required
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
