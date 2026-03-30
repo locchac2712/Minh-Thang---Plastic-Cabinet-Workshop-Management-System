@@ -170,28 +170,40 @@ public class SalesOrderController {
     }
 
     //API: Sales staff cập nhật mức độ ưu tiên cho đơn hàng
-    @PatchMapping("{id}/priority")
+    @PatchMapping("/{id}/priority")
     @PreAuthorize("hasAnyRole('SALES_STAFF', 'SALES_MANAGER', 'ADMIN', 'DIRECTOR')")
     public ResponseEntity<ResponseObject> updateOrderPriority(
             @PathVariable Long id,
-            @RequestParam Integer level // Truyền lên 1, 2, hoặc 3
+            @RequestParam Integer level // 1 = CAO, 2 = TRUNG BÌNH, 3 = THẤP
     ) {
         try {
             SalesOrder order = salesOrderRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy Đơn hàng: " + id));
 
-            // Chỉ cho phép update nếu đơn chưa bị hủy
-            if ("CANCELLED".equals(order.getStatus())) {
-                throw new RuntimeException("Đơn hàng đã hủy, không thể đổi độ ưu tiên!");
+            // 1. CHẶN LỖI: Không cho phép thao tác trên đơn đã Hủy hoặc Hết hạn
+            String currentStatus = order.getStatus();
+            if ("CANCELLED".equals(currentStatus) || "EXPIRED".equals(currentStatus)) {
+                throw new RuntimeException("Lỗi: Đơn hàng đang ở trạng thái " + currentStatus + " nên không thể thao tác!");
             }
 
+            // 2. CẬP NHẬT ĐỘ ƯU TIÊN
             order.setPriorityLevel(level);
+
+            // 3. TỰ ĐỘNG CHỐT ĐƠN (CONFIRMED) KHI GẮN CỜ ƯU TIÊN
+            order.setStatus("CONFIRMED");
+
+            // Lưu xuống Database
             salesOrderRepository.save(order);
 
+            // Dịch số sang chữ để báo cáo cho đẹp
             String priorityText = level == 1 ? "CAO" : (level == 2 ? "TRUNG BÌNH" : "THẤP");
 
             return ResponseEntity.ok(
-                    new ResponseObject("SUCCESS", "Đã đổi mức độ ưu tiên thành: " + priorityText, new SalesOrderDetailResponse(order))
+                    new ResponseObject(
+                            "SUCCESS",
+                            "Đã CHỐT ĐƠN và đổi mức độ ưu tiên thành: " + priorityText,
+                            new SalesOrderDetailResponse(order)
+                    )
             );
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(
