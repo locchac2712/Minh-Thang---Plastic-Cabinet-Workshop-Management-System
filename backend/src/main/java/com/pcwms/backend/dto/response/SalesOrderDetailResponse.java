@@ -25,6 +25,7 @@ public class SalesOrderDetailResponse {
     private String paymentStatus;
     private LocalDateTime createdDate;
     private List<ItemDto> details;
+    private Integer priorityLevel; // Thêm trường này để ưu tiên hiển thị đơn hàng nào trước sau
 
     public SalesOrderDetailResponse(SalesOrder order) {
         this.id = order.getId();
@@ -33,6 +34,7 @@ public class SalesOrderDetailResponse {
         this.status = order.getStatus();
         this.paymentStatus = order.getPaymentStatus();
         this.createdDate = order.getCreatedDate();
+        this.priorityLevel = order.getPriorityLevel();
 
         // Trace back về Báo giá (Nếu có)
         if (order.getQuotation() != null) {

@@ -169,4 +169,35 @@ public class SalesOrderController {
         }
     }
 
+    //API: Sales staff cập nhật mức độ ưu tiên cho đơn hàng
+    @PatchMapping("{id}/priority")
+    @PreAuthorize("hasAnyRole('SALES_STAFF', 'SALES_MANAGER', 'ADMIN', 'DIRECTOR')")
+    public ResponseEntity<ResponseObject> updateOrderPriority(
+            @PathVariable Long id,
+            @RequestParam Integer level // Truyền lên 1, 2, hoặc 3
+    ) {
+        try {
+            SalesOrder order = salesOrderRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy Đơn hàng: " + id));
+
+            // Chỉ cho phép update nếu đơn chưa bị hủy
+            if ("CANCELLED".equals(order.getStatus())) {
+                throw new RuntimeException("Đơn hàng đã hủy, không thể đổi độ ưu tiên!");
+            }
+
+            order.setPriorityLevel(level);
+            salesOrderRepository.save(order);
+
+            String priorityText = level == 1 ? "CAO" : (level == 2 ? "TRUNG BÌNH" : "THẤP");
+
+            return ResponseEntity.ok(
+                    new ResponseObject("SUCCESS", "Đã đổi mức độ ưu tiên thành: " + priorityText, new SalesOrderDetailResponse(order))
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", e.getMessage(), null)
+            );
+        }
+    }
+
 }

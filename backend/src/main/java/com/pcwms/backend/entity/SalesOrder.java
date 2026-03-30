@@ -63,6 +63,9 @@ public class SalesOrder {
     @Column(name = "approval_note", columnDefinition = "TEXT")
     private String approvalNote;
 
+    @Column(name = "priority_level", nullable = false)
+    private Integer priorityLevel = 3; //default = 3, 1 = high, 2 = medium, 3 = low
+    
     // ==========================================
     // CÁC MỐI QUAN HỆ THEO ERD
     // ==========================================
