@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +66,9 @@ public class SalesOrder {
 
     @Column(name = "priority_level", nullable = false)
     private Integer priorityLevel = 3; //default = 3, 1 = high, 2 = medium, 3 = low
-    
+
+    @Column(name="due_date")
+    private LocalDate dueDate; // Thêm trường này để lưu ngày dự kiến giao
     // ==========================================
     // CÁC MỐI QUAN HỆ THEO ERD
     // ==========================================

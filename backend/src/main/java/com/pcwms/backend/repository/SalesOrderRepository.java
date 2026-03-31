@@ -15,8 +15,13 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
 
     boolean existsByQuotationId(Long quotationId);
 
-    @Query("SELECT s FROM SalesOrder s WHERE " +
-            "(LOWER(s.orderNumber) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(s.customer.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+    // 1. Cập nhật searchSalesOrders để tránh lỗi bytea khi keyword null/rỗng
+    @Query("SELECT s FROM SalesOrder s JOIN s.customer c WHERE " +
+            "(" +
+            "   :keyword IS NULL OR :keyword = '' " +
+            "   OR LOWER(s.orderNumber) LIKE LOWER(CAST(CONCAT('%', :keyword, '%') AS String)) " +
+            "   OR LOWER(c.name) LIKE LOWER(CAST(CONCAT('%', :keyword, '%') AS String)) " +
+            ") " +
             "AND (:status IS NULL OR s.status = :status) " +
             "AND (:paymentStatus IS NULL OR s.paymentStatus = :paymentStatus)")
     Page<SalesOrder> searchSalesOrders(
@@ -28,12 +33,14 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
     @Query("SELECT s FROM SalesOrder s JOIN FETCH s.customer WHERE s.id = :id")
     Optional<SalesOrder> findByIdWithCustomer(@Param("id") Long id);
 
-
-    //Production manager
-    @Query("SELECT s FROM SalesOrder s WHERE s.status = 'CONFIRMED' AND s.paymentStatus IN ('PARTIAL', 'PAID') " +
-            "AND (:keyword IS NULL OR " +
-            "LOWER(s.orderNumber) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(s.customer.name) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    @Query("SELECT s FROM SalesOrder s JOIN s.customer c WHERE " +
+            "s.status = 'CONFIRMED' " +
+            "AND s.paymentStatus IN ('PARTIAL', 'PAID') " +
+            "AND (" +
+            "   :keyword IS NULL OR :keyword = '' " +
+            "   OR LOWER(s.orderNumber) LIKE LOWER(CAST(CONCAT('%', :keyword, '%') AS String)) " +
+            "   OR LOWER(c.name) LIKE LOWER(CAST(CONCAT('%', :keyword, '%') AS String)) " +
+            ")")
     Page<SalesOrder> findOrdersForProduction(
             @Param("keyword") String keyword,
             Pageable pageable

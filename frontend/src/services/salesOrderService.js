@@ -37,10 +37,10 @@ const salesOrderService = {
         return api.get(`${BASE}/${id}/payments`)
             .then(res => res.data.data);
     },
-    updatePriority: (id, level) => {
-        return api.patch(`${BASE}/${id}/priority`, null, {
-            params: { level }
-        }).then(res => res.data?.data ?? res.data);
+    updatePriority: (id, data) => {
+
+        return api.patch(`${BASE}/${id}/priority`, data)
+            .then(res => res.data?.data ?? res.data);
     },
 };
 

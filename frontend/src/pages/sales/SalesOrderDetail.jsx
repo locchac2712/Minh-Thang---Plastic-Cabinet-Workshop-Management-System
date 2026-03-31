@@ -40,14 +40,25 @@ const ProductionOrderPopup = ({ order, onClose, onSend }) => {
 
     const selectedPriority = PRIORITY_OPTIONS.find(p => p.value === priority);
 
+    // Bên trong ProductionOrderPopup của SalesOrderDetail.jsx
+
     const handleUpdate = async () => {
+        // Kiểm tra nếu chưa chọn ngày
+        if (!dueDate) {
+            alert("Vui lòng chọn ngày giao hàng dự kiến!");
+            return;
+        }
+
         setSending(true);
         try {
             const priorityMap = { "HIGH": 1, "MEDIUM": 2, "LOW": 3 };
             const level = priorityMap[priority];
 
-            // Gọi API thông qua service (đã khớp với @PatchMapping("{id}/priority"))
-            await salesOrderService.updatePriority(order.id, level);
+            // TRUYỀN CẢ ĐỐI TƯỢNG VÀO ĐÂY:
+            await salesOrderService.updatePriority(order.id, {
+                level: level,
+                dueDate: dueDate // dueDate lấy từ state của <input type="date">
+            });
 
             setSent(true);
             setTimeout(() => {
@@ -56,10 +67,8 @@ const ProductionOrderPopup = ({ order, onClose, onSend }) => {
             }, 1000);
         } catch (err) {
             setSending(false);
-            // Hiển thị lỗi chi tiết từ ResponseObject của Backend
-            const serverError = err.response?.data?.message || "Lỗi server (500)";
-            alert("Lỗi hệ thống: " + serverError);
-            console.error("Chi tiết lỗi:", err.response?.data);
+            const serverError = err.response?.data?.message || "Lỗi hệ thống";
+            alert("Lỗi: " + serverError);
         }
     };
 

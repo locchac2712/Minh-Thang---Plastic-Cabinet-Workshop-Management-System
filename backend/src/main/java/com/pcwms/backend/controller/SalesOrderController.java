@@ -1,6 +1,7 @@
 package com.pcwms.backend.controller;
 
 import com.pcwms.backend.dto.request.ApprovalRequest;
+import com.pcwms.backend.dto.request.PriorityRequest;
 import com.pcwms.backend.dto.response.PaymentHistoryResponse;
 import com.pcwms.backend.dto.response.ResponseObject;
 import com.pcwms.backend.dto.response.SalesOrderDetailResponse;
@@ -15,9 +16,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -174,7 +177,7 @@ public class SalesOrderController {
     @PreAuthorize("hasAnyRole('SALES_STAFF', 'SALES_MANAGER', 'ADMIN', 'DIRECTOR')")
     public ResponseEntity<ResponseObject> updateOrderPriority(
             @PathVariable Long id,
-            @RequestParam Integer level // 1 = CAO, 2 = TRUNG BÌNH, 3 = THẤP
+            @RequestBody PriorityRequest request
     ) {
         try {
             SalesOrder order = salesOrderRepository.findById(id)
@@ -186,17 +189,25 @@ public class SalesOrderController {
                 throw new RuntimeException("Lỗi: Đơn hàng đang ở trạng thái " + currentStatus + " nên không thể thao tác!");
             }
 
-            // 2. CẬP NHẬT ĐỘ ƯU TIÊN
-            order.setPriorityLevel(level);
+            // 2. CẬP NHẬT ĐỘ ƯU TIÊN,ngay dự kiến giao hàng
+            if (request.getLevel() != null) {
+                order.setPriorityLevel(request.getLevel());
+            }
+            if (request.getDueDate() != null) {
+                order.setDueDate(request.getDueDate());
+            }
 
-            // 3. TỰ ĐỘNG CHỐT ĐƠN (CONFIRMED) KHI GẮN CỜ ƯU TIÊN
+            // 4. TỰ ĐỘNG CHỐT ĐƠN (CONFIRMED) KHI GẮN CỜ ƯU TIÊN
             order.setStatus("CONFIRMED");
 
+            // DEBUG: In ra console để xem dueDate có thực sự nhận được giá trị từ Request không
+            System.out.println("Gía trị dueDate nhận được: " + request.getDueDate());
+            System.out.println("Gía trị level nhận được: " + request.getLevel());
             // Lưu xuống Database
             salesOrderRepository.save(order);
 
             // Dịch số sang chữ để báo cáo cho đẹp
-            String priorityText = level == 1 ? "CAO" : (level == 2 ? "TRUNG BÌNH" : "THẤP");
+            String priorityText = request.getLevel() == 1 ? "CAO" : (request.getLevel() == 2 ? "TRUNG BÌNH" : "THẤP");
 
             return ResponseEntity.ok(
                     new ResponseObject(

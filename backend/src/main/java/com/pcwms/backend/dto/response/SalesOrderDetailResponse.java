@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,7 +26,8 @@ public class SalesOrderDetailResponse {
     private String paymentStatus;
     private LocalDateTime createdDate;
     private List<ItemDto> details;
-    private Integer priorityLevel; // Thêm trường này để ưu tiên hiển thị đơn hàng nào trước sau
+    private Integer priorityLevel;
+    private LocalDate dueDate;// Thêm trường này để ưu tiên hiển thị đơn hàng nào trước sau
 
     public SalesOrderDetailResponse(SalesOrder order) {
         this.id = order.getId();
@@ -35,6 +37,7 @@ public class SalesOrderDetailResponse {
         this.paymentStatus = order.getPaymentStatus();
         this.createdDate = order.getCreatedDate();
         this.priorityLevel = order.getPriorityLevel();
+        this.dueDate = order.getDueDate();
 
         // Trace back về Báo giá (Nếu có)
         if (order.getQuotation() != null) {

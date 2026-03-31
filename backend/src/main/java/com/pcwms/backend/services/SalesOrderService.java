@@ -160,14 +160,18 @@ public class SalesOrderService {
 
     //Production manager lay danh sach don hang de len ke hoach san xuat
     public Page<SalesOrderDetailResponse> getPaginatedProductionQueue(String keyword, int page, int size) {
+        // Sắp xếp theo mức độ ưu tiên trước, sau đó đến ngày tạo
         Sort sort = Sort.by("priorityLevel").ascending().and(Sort.by("createdDate").ascending());
-
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        // Gọi DB lấy data theo trang
-        Page<SalesOrder> orderPage = salesOrderRepository.findOrdersForProduction(keyword, pageable);
+        // Xử lý keyword: Nếu null hoặc chỉ có khoảng trắng thì chuyển thành null
+        // để Repository nhận diện được điều kiện :keyword IS NULL
+        String validKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
 
-        // Dùng hàm .map() để convert
+        // Gọi DB lấy data theo trang
+        Page<SalesOrder> orderPage = salesOrderRepository.findOrdersForProduction(validKeyword, pageable);
+
+        // Map sang DTO
         return orderPage.map(SalesOrderDetailResponse::new);
     }
 
