@@ -9,7 +9,7 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-// ── Styles (injected inline) ──────────────────────────────
+// ── Styles (Giữ nguyên và thêm class cho Deadline) ──────
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
 
@@ -304,6 +304,12 @@ const css = `
   .wo-summary-item:last-child { border-bottom: none; }
   .wo-summary-item span { color: var(--text-sub); }
   .wo-text--warn { color: var(--warn); }
+
+  /* ── CSS cho Deadline ── */
+  .wo-deadline-box { display: flex; flex-direction: column; gap: 2px; }
+  .wo-days-remain { font-size: 11px; font-weight: 600; }
+  .wo-days--critical { color: var(--danger); }
+  .wo-days--normal   { color: var(--warn); }
 `;
 
 // ── Constants ─────────────────────────────────────────────
@@ -336,7 +342,8 @@ const fmtCurrency = (n) => {
 
 const getDaysRemaining = (d) => {
     if (!d) return null;
-    return Math.ceil((new Date(d) - new Date()) / (1000 * 60 * 60 * 24));
+    const diff = new Date(d) - new Date();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
 };
 
 // priorityLevel: 1 = HIGH, 2 = MEDIUM, 3 = LOW
@@ -364,7 +371,6 @@ const useProductionQueue = (keyword, page) => {
 
             const res = await api.get(`/api/v1/sales-orders/production-queue?${params}`);
 
-            // ResponseObject { status, message, data: Page<SalesOrderDetailResponse> }
             const pageData = res.data?.data;
             setOrders(pageData?.content        ?? []);
             setTotalPages(pageData?.totalPages    ?? 0);
@@ -386,7 +392,7 @@ const useProductionQueue = (keyword, page) => {
 const SkeletonRows = () =>
     Array.from({length: 5}).map((_, i) => (
         <tr key={i} className="wo-row--skeleton">
-            {Array.from({length: 9}).map((__, j) => (
+            {Array.from({length: 10}).map((__, j) => (
                 <td key={j}><span className="wo-skeleton-cell"/></td>
             ))}
         </tr>
@@ -396,7 +402,6 @@ const SkeletonRows = () =>
 const Pagination = ({page, totalPages, onChange}) => {
     if (totalPages <= 1) return null;
 
-    // Hiển thị max 7 trang, dùng ellipsis nếu nhiều hơn
     const getPages = () => {
         if (totalPages <= 7) return Array.from({length: totalPages}, (_, i) => i);
         const pages = [];
@@ -524,12 +529,11 @@ const CreateWOModal = ({onClose, onSave}) => {
 
 // ── Detail Page ───────────────────────────────────────────
 const WorkOrderDetail = ({order, onBack}) => {
-    // Map từ SalesOrderDetailResponse
     const priorityKey = getPriorityKey(order.priorityLevel);
     const p           = PRIORITY[priorityKey] || {text: String(order.priorityLevel), cls: ""};
     const s           = STATUS[order.status]  || {text: order.status, cls: ""};
     const totalUnits  = order.details?.reduce((sum, d) => sum + (d.quantity ?? 0), 0) ?? 0;
-    const days        = getDaysRemaining(order.createdDate);
+    const daysLeft    = getDaysRemaining(order.dueDate); // Lấy từ dueDate
 
     return (
         <div className="wo-page">
@@ -568,14 +572,26 @@ const WorkOrderDetail = ({order, onBack}) => {
                                 <span className="wo-info-label">Ngày tạo</span>
                                 <span className="wo-info-val">{fmtDate(order.createdDate)}</span>
                             </div>
+                            {/* Thêm phần Hạn giao hàng vào Chi tiết */}
+                            <div className="wo-info-item">
+                                <span className="wo-info-label">Hạn giao hàng (Deadline)</span>
+                                <span className="wo-info-val" style={{fontWeight: 700, color: "var(--danger)"}}>
+                                    {fmtDate(order.dueDate)}
+                                    {daysLeft !== null && (
+                                        <span style={{fontSize: 11, marginLeft: 6}}>
+                                            ({daysLeft < 0 ? `Quá hạn ${Math.abs(daysLeft)} ngày` : `Còn ${daysLeft} ngày`})
+                                        </span>
+                                    )}
+                                </span>
+                            </div>
                             <div className="wo-info-item">
                                 <span className="wo-info-label">Trạng thái đơn</span>
                                 <span className={`wo-status-badge ${s.cls}`}>{s.text}</span>
                             </div>
-                            <div className="wo-info-item">
-                                <span className="wo-info-label">Thanh toán</span>
-                                <span className="wo-info-val">{order.paymentStatus ?? "—"}</span>
-                            </div>
+                            {/*<div className="wo-info-item">*/}
+                            {/*    <span className="wo-info-label">Thanh toán</span>*/}
+                            {/*    <span className="wo-info-val">{order.paymentStatus ?? "—"}</span>*/}
+                            {/*</div>*/}
                             <div className="wo-info-item">
                                 <span className="wo-info-label">Độ ưu tiên</span>
                                 <span className={`wo-priority ${p.cls}`}>{p.text}</span>
@@ -624,7 +640,7 @@ const WorkOrderDetail = ({order, onBack}) => {
                         </div>
                     )}
 
-                    {/* Chi tiết sản phẩm — dùng `details` từ SalesOrderDetailResponse */}
+                    {/* Chi tiết sản phẩm */}
                     {order.details?.length > 0 && (
                         <div className="wo-detail-card">
                             <div className="wo-card-title">Sản phẩm cần sản xuất</div>
@@ -690,12 +706,6 @@ const WorkOrderDetail = ({order, onBack}) => {
                             <span>Trạng thái TT</span>
                             <strong>{order.paymentStatus ?? "—"}</strong>
                         </div>
-                        {days != null && (
-                            <div className="wo-summary-item">
-                                <span>Ngày tạo</span>
-                                <strong>{fmtDate(order.createdDate)}</strong>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
@@ -711,7 +721,6 @@ export const PlanProduction = () => {
     const [showCreate,     setShowCreate]     = useState(false);
     const [viewOrder,      setViewOrder]      = useState(null);
 
-    // Debounce search 400ms
     useEffect(() => {
         const t = setTimeout(() => {
             setDebouncedSearch(search);
@@ -723,7 +732,6 @@ export const PlanProduction = () => {
     const {orders, totalPages, totalElements, loading, error, refetch} =
         useProductionQueue(debouncedSearch, page);
 
-    // Inject CSS một lần
     useEffect(() => {
         const id = "wo-styles";
         if (!document.getElementById(id)) {
@@ -732,7 +740,6 @@ export const PlanProduction = () => {
             tag.textContent = css;
             document.head.appendChild(tag);
         }
-        return () => {}; // giữ lại style khi unmount (dùng chung)
     }, []);
 
     if (viewOrder) {
@@ -793,6 +800,7 @@ export const PlanProduction = () => {
                             <th>Số loại SP</th>
                             <th>Số lượng</th>
                             <th>Ngày tạo</th>
+                            <th>Hạn giao hàng</th> {/* Chèn cột Ngày giao hàng */}
                             <th>Tổng tiền</th>
                             <th>Độ ưu tiên</th>
                             <th>Trạng thái</th>
@@ -803,13 +811,13 @@ export const PlanProduction = () => {
                         {loading ? (
                             <SkeletonRows/>
                         ) : orders.length === 0 ? (
-                            <tr><td colSpan={9} className="wo-empty">Không có dữ liệu</td></tr>
+                            <tr><td colSpan={10} className="wo-empty">Không có dữ liệu</td></tr>
                         ) : orders.map((o) => {
-                            // ── Map đúng field SalesOrderDetailResponse ──
                             const priorityKey = getPriorityKey(o.priorityLevel);
                             const p           = PRIORITY[priorityKey] || {text: String(o.priorityLevel), cls: ""};
                             const s           = STATUS[o.status]      || {text: o.status, cls: ""};
                             const totalUnits  = o.details?.reduce((sum, d) => sum + (d.quantity ?? 0), 0) ?? 0;
+                            const daysLeft    = getDaysRemaining(o.dueDate); //
 
                             return (
                                 <tr key={o.id} className="wo-row">
@@ -818,6 +826,17 @@ export const PlanProduction = () => {
                                     <td className="wo-td--center">{o.details?.length ?? 0} loại</td>
                                     <td className="wo-td--center">{totalUnits}</td>
                                     <td>{fmtDate(o.createdDate)}</td>
+                                    {/* Cột dữ liệu Deadline mới */}
+                                    <td>
+                                        <div className="wo-deadline-box">
+                                            <span style={{fontWeight: 600}}>{fmtDate(o.dueDate)}</span>
+                                            {daysLeft !== null && (
+                                                <span className={`wo-days-remain ${daysLeft <= 2 ? 'wo-days--critical' : 'wo-days--normal'}`}>
+                                                    {daysLeft < 0 ? `Trễ ${Math.abs(daysLeft)}n` : `Còn ${daysLeft}n`}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
                                     <td style={{fontWeight: 600}}>{fmtCurrency(o.totalAmount)}</td>
                                     <td><span className={`wo-priority ${p.cls}`}>{p.text}</span></td>
                                     <td><span className={`wo-status-badge ${s.cls}`}>{s.text}</span></td>
