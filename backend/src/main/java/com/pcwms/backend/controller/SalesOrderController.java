@@ -170,7 +170,7 @@ public class SalesOrderController {
     }
 
     //API: Sales staff cập nhật mức độ ưu tiên cho đơn hàng
-    @PatchMapping("{id}/priority")
+    @PatchMapping("/{id}/priority")
     @PreAuthorize("hasAnyRole('SALES_STAFF', 'SALES_MANAGER', 'ADMIN', 'DIRECTOR')")
     public ResponseEntity<ResponseObject> updateOrderPriority(
             @PathVariable Long id,
