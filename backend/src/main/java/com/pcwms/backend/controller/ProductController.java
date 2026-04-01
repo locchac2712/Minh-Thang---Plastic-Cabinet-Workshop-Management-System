@@ -43,7 +43,7 @@ public class ProductController {
 
     // Tạo mới: Chỉ Quản đốc, Admin, Giám đốc được tạo
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('PRODUCTION_MANAGER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('PRODUCTION_MANAGER') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> createProduct(@RequestBody Product product) {
         return ResponseEntity.ok(
                 new ResponseObject("SUCCESS", "Thêm thành phẩm thành công",
@@ -53,7 +53,7 @@ public class ProductController {
 
     // Cập nhật
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('PRODUCTION_MANAGER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('PRODUCTION_MANAGER') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> updateProduct(@PathVariable Long id, @RequestBody Product product) {
         return ResponseEntity.ok(
                 new ResponseObject("SUCCESS", "Cập nhật thành phẩm thành công",
@@ -63,7 +63,7 @@ public class ProductController {
 
     // Thay đổi trạng thái nhanh (Ví dụ: Chuyển sang DEACTIVATED để ngừng bán)
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('PRODUCTION_MANAGER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('PRODUCTION_MANAGER') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> changeStatus(@PathVariable Long id, @RequestParam ProductStatus status) {
         productService.changeProductStatus(id, status);
         return ResponseEntity.ok(
