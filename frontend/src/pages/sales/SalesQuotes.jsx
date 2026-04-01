@@ -518,12 +518,14 @@ export const SalesQuotes = () => {
                                         <td className="sp-td--muted">{fmtDate(q.validUntil)}</td>
                                         <td>
                                             <div className="sp-td--actions" style={{ justifyContent: "center" }}>
-                                                <button className="sp-action-btn" title="In báo giá">
-                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                                                        <rect x="6" y="14" width="12" height="8" />
-                                                    </svg>
-                                                </button>
+                                                {q.status === "DRAFT" && (
+                                                    <button className="sp-action-btn" title="In báo giá" onClick={() => setViewingId(q.id)}>
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                                                            <rect x="6" y="14" width="12" height="8" />
+                                                        </svg>
+                                                    </button>
+                                                )}
                                                 <button 
                                                     className="sp-action-btn" 
                                                     title="Xem chi tiết"
@@ -531,16 +533,6 @@ export const SalesQuotes = () => {
                                                 >
                                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
-                                                    </svg>
-                                                </button>
-                                                <button 
-                                                    className="sp-action-btn" 
-                                                    title="Sửa báo giá" 
-                                                    onClick={() => setEditingId(q.id)}
-                                                >
-                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                                     </svg>
                                                 </button>
                                             </div>
@@ -605,7 +597,8 @@ export const SalesQuotes = () => {
             {viewingId && (
                 <ViewQuoteModal 
                     quoteId={viewingId} 
-                    onClose={() => setViewingId(null)} 
+                    onClose={() => setViewingId(null)}
+                    onSaved={() => { setViewingId(null); refetch(); }}
                 />
             )}
 

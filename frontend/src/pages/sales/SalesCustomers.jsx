@@ -20,7 +20,7 @@ export const SalesCustomers = () => {
             <div className="sp-page-header">
                 <div>
                     <h1 className="sp-title">Khách hàng</h1>
-                    <p className="sp-sub">Quản lý danh sách khách hàng và hạn mức tín dụng</p>
+
                 </div>
             </div>
 
