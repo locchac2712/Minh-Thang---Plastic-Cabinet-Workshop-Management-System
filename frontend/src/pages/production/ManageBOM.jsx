@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import "./ManageBOM.css";
-import { useBoms } from "../hooks/useBoms";
-import { useAuth } from "../context/AuthContext";
-import { getStatusInfo } from "../services/bomService";
-import bomService from "../services/bomService";
-import api from "../services/api";
+import { useBoms } from "../../hooks/useBoms";
+import { useAuth } from "../../context/AuthContext";
+import { getStatusInfo } from "../../services/bomService";
+import bomService from "../../services/bomService";
+import api from "../../services/api";
 
 const fmt = (val) =>
     val != null

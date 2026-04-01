@@ -4,8 +4,8 @@
 // ============================================================
 import { useState } from "react";
 import "./MaterialDetail.css";
-import { useAuth } from "../context/AuthContext";
-import materialService from "../services/materialService";
+import { useAuth } from "../../context/AuthContext";
+import materialService from "../../services/materialService";
 
 // ── Edit Form Modal ──────────────────────────────────────────
 const EditForm = ({ initial, onSave, onClose, loading }) => {

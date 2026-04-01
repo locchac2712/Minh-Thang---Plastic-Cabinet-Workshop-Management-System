@@ -1,13 +1,9 @@
-// ============================================================
-// src/pages/ControlMaterial.jsx
-// Danh sách: SKU | Tên | Tồn kho — click để xem chi tiết
-// ============================================================
 import { useState } from "react";
-import "./ControlMaterial.css";
-import { useMaterials } from "../hooks/useMaterials";
-import { useAuth } from "../context/AuthContext";
+import "./MaterialList.css";
+import { useMaterials } from "../../hooks/useMaterials";
+import { useAuth } from "../../context/AuthContext";
 
-export const ControlMaterial = ({ onSelectMaterial }) => {
+export const MaterialList = ({ onSelectMaterial }) => {
   const { materials, loading, error, refetch } = useMaterials();
   const { user, hasRole } = useAuth();
   const isLoggedIn = !!user;

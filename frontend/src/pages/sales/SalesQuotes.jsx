@@ -1,27 +1,47 @@
 import { useState } from "react";
 import "./SalesPages.css";
-import { CreateQuote } from "./CreateQuote.jsx";
-import { EditQuote }   from "./EditQuote.jsx";
+import { CreateQuoteModal } from "./CreateQuoteModal.jsx";
+import { EditQuoteModal } from "./EditQuoteModal.jsx";
+import { ViewQuoteModal } from "./ViewQuoteModal.jsx";
 import { useQuotations } from "../../hooks/useQuotations";
 import { getQuoteStatus } from "../../services/quotationService.js";
 import quotationService from "../../services/quotationService.js";
+import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
 
-const fmt     = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "—";
+const fmt = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "—";
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
 
 const STATUS_OPTIONS = [
-    { value: "DRAFT",    label: "Nháp (Draft)"        },
-    { value: "SENT",     label: "Đã gửi (Sent)"       },
-    { value: "ACCEPTED", label: "Đã chốt (Accepted)"  },
-    { value: "REJECTED", label: "Đã hủy (Rejected)"   },
-    { value: "EXPIRED",  label: "Hết hạn (Expired)"   },
+    { value: "DRAFT", label: "Bản nháp" },
+    { value: "SENT", label: "Đã gửi" },
+    { value: "ACCEPTED", label: "Đã chốt" },
+    { value: "REJECTED", label: "Đã hủy" },
+    { value: "EXPIRED", label: "Hết hạn" },
 ];
+
+const PRICE_RANGE_OPTIONS = [
+    { value: "all",      label: "Tất cả giá trị" },
+    { value: "under5",   label: "Dưới 5 triệu" },
+    { value: "5-10",     label: "5 - 10 triệu" },
+    { value: "10-50",    label: "10 - 50 triệu" },
+    { value: "50-100",   label: "50 - 100 triệu" },
+    { value: "over100",  label: "Trên 100 triệu" },
+];
+
+const PRICE_RANGE_MAP = {
+    all:      { min: undefined, max: undefined },
+    under5:   { min: 0,        max: 5000000 },
+    "5-10":   { min: 5000000,  max: 10000000 },
+    "10-50":  { min: 10000000, max: 50000000 },
+    "50-100": { min: 50000000, max: 100000000 },
+    over100:  { min: 100000000,max: undefined },
+};
 
 // ── Hàm gọi API tạo đơn từ báo giá ───────────────────────
 const createOrderFromQuotation = async (quotationId) => {
     const token = localStorage.getItem("token");
-    const res   = await axios.post(
+    const res = await axios.post(
         `/api/v1/sales-orders/from-quotation/${quotationId}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
@@ -42,9 +62,9 @@ const Toast = ({ msg, type, onClose }) => (
 
 // ── Status Edit Modal ──────────────────────────────────────
 const StatusModal = ({ quote, onClose, onSaved }) => {
-    const [status,   setStatus]   = useState(quote.status);
-    const [saving,   setSaving]   = useState(false);
-    const [error,    setError]    = useState(null);
+    const [status, setStatus] = useState(quote.status);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState(null);
 
     const handleSave = async () => {
         if (status === quote.status) { onClose(); return; }
@@ -119,7 +139,7 @@ const StatusModal = ({ quote, onClose, onSaved }) => {
                                         <span className={`sq-badge ${s.cls}`} style={{ pointerEvents: "none" }}>{s.text}</span>
                                         {status === opt.value && (
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                <polyline points="20 6 9 17 4 12"/>
+                                                <polyline points="20 6 9 17 4 12" />
                                             </svg>
                                         )}
                                     </button>
@@ -162,30 +182,170 @@ const StatusModal = ({ quote, onClose, onSaved }) => {
     );
 };
 
+// ── Custom Status Select ──────────────────────────────────
+const CustomStatusSelect = ({ value, onChange, options, placeholder = "Chọn..." }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const selected = options.find(o => o.value === value);
+
+    return (
+        <div className="sq-custom-select" tabIndex={0} onBlur={() => setTimeout(() => setIsOpen(false), 240)}>
+            <div className={`sq-select-trigger${isOpen ? " sq-select-trigger--open" : ""}`} onClick={() => setIsOpen(!isOpen)}>
+                <span style={{ fontFamily: "'Inter', sans-serif" }}>{selected ? selected.label : placeholder}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform .2s" }}>
+                    <polyline points="6 9 12 15 18 9" />
+                </svg>
+            </div>
+            {isOpen && (
+                <div className="sq-select-popup">
+                    {options.map(o => (
+                        <div
+                            key={o.value}
+                            className={`sq-select-item${value === o.value ? " sq-select-item--active" : ""}`}
+                            onClick={() => { onChange(o.value); setIsOpen(false); }}
+                            style={{ fontFamily: "'Inter', sans-serif" }}
+                        >
+                            {o.label}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ── Custom Date Range Picker (Advanced) ──────────────────
+const CustomDateRangePicker = ({ start, end, onStartChange, onEndChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [viewDate, setViewDate] = useState(new Date());
+
+    const formatDate = (dStr) => {
+        if (!dStr) return "";
+        const d = new Date(dStr);
+        return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()}`;
+    };
+
+    const handleDayClick = (dayStr) => {
+        if (!start || (start && end)) {
+            onStartChange(dayStr);
+            onEndChange("");
+        } else {
+            if (new Date(dayStr) < new Date(start)) {
+                onStartChange(dayStr);
+                onEndChange("");
+            } else {
+                onEndChange(dayStr);
+                setIsOpen(false);
+            }
+        }
+    };
+
+    const renderCalendar = () => {
+        const year = viewDate.getFullYear();
+        const month = viewDate.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const days = [];
+
+        for (let i = 0; i < firstDay; i++) days.push(null);
+        for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i).toISOString().split("T")[0]);
+
+        return (
+            <div className="sq-calendar">
+                <div className="sq-cal-header">
+                    <button onClick={() => setViewDate(new Date(year, month - 1))}>&lt;</button>
+                    <span>Tháng {month + 1}, {year}</span>
+                    <button onClick={() => setViewDate(new Date(year, month + 1))}>&gt;</button>
+                </div>
+                <div className="sq-cal-grid">
+                    {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map(d => <div key={d} className="sq-cal-day-head">{d}</div>)}
+                    {days.map((d, index) => {
+                        if (!d) return <div key={`empty-${index}`} />;
+                        const isStart = d === start;
+                        const isEnd = d === end;
+                        const inRange = start && end && new Date(d) > new Date(start) && new Date(d) < new Date(end);
+                        return (
+                            <div
+                                key={d}
+                                className={`sq-cal-day${isStart ? " sq-cal-day--start" : ""}${isEnd ? " sq-cal-day--end" : ""}${inRange ? " sq-cal-day--range" : ""}`}
+                                onClick={() => handleDayClick(d)}
+                            >
+                                {new Date(d).getDate()}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="sq-custom-select" tabIndex={0} onBlur={() => setTimeout(() => setIsOpen(false), 240)}>
+            <div className={`sq-select-trigger${isOpen ? " sq-select-trigger--open" : ""}`} onClick={() => setIsOpen(!isOpen)}>
+                <span style={{ fontFamily: "'Inter', sans-serif" }}>
+                    {start ? `${formatDate(start)}${end ? ` - ${formatDate(end)}` : " - ..."}` : "Từ ngày - Đến ngày"}
+                </span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+            </div>
+            {isOpen && (
+                <div className="sq-select-popup sq-select-popup--calendar">
+                    {renderCalendar()}
+                </div>
+            )}
+        </div>
+    );
+};
+
 // ── Main Page ──────────────────────────────────────────────
 export const SalesQuotes = () => {
-    const [view,          setView]          = useState("list");
-    const [showCreate,    setShowCreate]    = useState(false);
-    const [keyword,       setKeyword]       = useState("");
-    const [statusFilter,  setStatusFilter]  = useState("");
-    const [page,          setPage]          = useState(0);
-    const [editingQuote,  setEditingQuote]  = useState(null);
-    const [editingId,     setEditingId]     = useState(null);
-    const [toast,         setToast]         = useState(null); // { msg, type }
+    const { hasRole } = useAuth();
+    const isDirector = hasRole("DIRECTOR");
+
+    const [view, setView] = useState("list");
+    const [showCreate, setShowCreate] = useState(false);
+    const [keyword, setKeyword] = useState("");
+    const [statusFilter, setStatusFilter] = useState("");
+    const [page, setPage] = useState(0);
+    const [editingQuote, setEditingQuote] = useState(null);
+    const [editingId, setEditingId] = useState(null);
+    const [viewingId, setViewingId] = useState(null);
+    const [toast, setToast] = useState(null);
+
+    // New filter states
+    const [showFilters, setShowFilters] = useState(false);
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [priceRangeId, setPriceRangeId] = useState("all");
 
     const showToast = (msg, type = "success") => {
         setToast({ msg, type });
         setTimeout(() => setToast(null), 5000);
     };
 
+    const handleClearFilters = () => {
+        setKeyword("");
+        setStatusFilter("");
+        setStartDate("");
+        setEndDate("");
+        setPriceRangeId("all");
+        setPage(0);
+    };
+
+    const pRange = PRICE_RANGE_MAP[priceRangeId] || PRICE_RANGE_MAP.all;
+
     const { data, loading, error, refetch } = useQuotations({
         keyword: keyword || undefined,
-        status:  statusFilter || undefined,
+        status: statusFilter || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        minAmount: pRange.min,
+        maxAmount: pRange.max,
         page, size: 10,
     });
 
     const quotes = data?.content ?? [];
-    const total  = data?.totalElements ?? 0;
+    const total = data?.totalElements ?? 0;
 
     const handleStatusSaved = (result = {}) => {
         setEditingQuote(null);
@@ -202,20 +362,6 @@ export const SalesQuotes = () => {
             showToast(`⚠️ Cập nhật trạng thái thành công nhưng tạo đơn thất bại: ${result.orderError}`, "warn");
         }
     };
-
-    if (editingId) return (
-        <EditQuote
-            quoteId={editingId}
-            onBack={() => setEditingId(null)}
-            onSaved={() => { setEditingId(null); refetch(); }}
-        />
-    );
-    if (showCreate) return (
-        <CreateQuote
-            onBack={() => setShowCreate(false)}
-            onCreated={() => { setShowCreate(false); refetch(); }}
-        />
-    );
 
     return (
         <div className="sp-page">
@@ -235,138 +381,232 @@ export const SalesQuotes = () => {
 
             <div className="sp-page-header">
                 <div>
-                    <h1 className="sp-title">Quản lý Báo giá</h1>
-                    <p className="sp-sub">Theo dõi quy trình bán hàng và chốt đơn</p>
+                    <h1 className="sp-title">Danh sách báo giá</h1>
                 </div>
-                <div className="sp-header-actions">
-                    <div className="sq-view-toggle">
-                        <button className={`sq-view-btn${view==="grid"?" sq-view-btn--active":""}`} onClick={() => setView("grid")}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                                <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-                            </svg>
-                        </button>
-                        <button className={`sq-view-btn${view==="list"?" sq-view-btn--active":""}`} onClick={() => setView("list")}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-                            </svg>
-                        </button>
-                    </div>
-                    <button className="sp-btn-primary sp-btn-primary--pill" onClick={() => setShowCreate(true)}>
-                        Tạo báo giá <span className="sp-btn-plus">+</span>
-                    </button>
-                </div>
+
             </div>
 
             {/* Toolbar */}
             <div className="sq-toolbar">
                 <div className="sq-toolbar__left">
-                    <div className="sp-search">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
-                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                        </svg>
-                        <input placeholder="Tìm báo giá hoặc khách hàng..."
-                               value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
+                    <div className="sq-search-wrap">
+                        <div className="sp-search">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                            <input placeholder="Tìm mã báo giá hoặc tên khách hàng"
+                                value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0); }} />
+                            <button
+                                className={`sq-filter-toggle${showFilters ? " sq-filter-toggle--active" : ""}`}
+                                onClick={() => setShowFilters(!showFilters)}
+                                title="Bộ lọc nâng cao"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                                </svg>
+
+                            </button>
+                        </div>
                     </div>
-                    <select className="sq-status-filter"
-                            value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }}>
-                        <option value="">Tất cả trạng thái</option>
-                        {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
                 </div>
                 <div className="sq-toolbar__right">
-                    <div className="sq-stats">
-                        <div className="sq-stat">
-                            <span className="sq-stat__label">{total} BÁO GIÁ</span>
-                        </div>
+                    <div className="sp-header-actions">
+                        <button className="sp-btn-primary sp-btn-primary--pill" onClick={() => setShowCreate(true)}>
+                            Tạo báo giá
+                            <span className="sp-btn-plus">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </span>
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {loading && <div className="sp-state"><div className="sp-spinner"/><span>Đang tải...</span></div>}
+            {/* Filter Panel */}
+            {showFilters && (
+                <div className="sq-filter-panel">
+                    <div className="sq-f-group">
+                        <label className="sq-f-label" style={{ fontFamily: "'Inter', sans-serif" }}>Trạng thái</label>
+                        <CustomStatusSelect
+                            value={statusFilter}
+                            options={[{ value: "", label: "Tất cả trạng thái" }, ...STATUS_OPTIONS]}
+                            onChange={val => { setStatusFilter(val); setPage(0); }}
+                        />
+                    </div>
+                    
+                    <div className="sq-f-group">
+                        <label className="sq-f-label" style={{ fontFamily: "'Inter', sans-serif" }}>Ngày hiệu lực</label>
+                        <CustomDateRangePicker 
+                            start={startDate} 
+                            end={endDate}
+                            onStartChange={v => { setStartDate(v); setPage(0); }}
+                            onEndChange={v => { setEndDate(v); setPage(0); }}
+                        />
+                    </div>
+
+                    <div className="sq-f-group">
+                        <label className="sq-f-label" style={{ fontFamily: "'Inter', sans-serif" }}>Giá trị báo giá</label>
+                        <CustomStatusSelect
+                            value={priceRangeId}
+                            options={PRICE_RANGE_OPTIONS}
+                            onChange={val => { setPriceRangeId(val); setPage(0); }}
+                            placeholder="Tất cả giá trị"
+                        />
+                    </div>
+
+                    <div className="sq-f-group sq-f-group--btns">
+                        <label className="sq-f-label" style={{ fontFamily: "'Inter', sans-serif" }}>&nbsp;</label>
+                        <button className="sq-btn-clear" onClick={handleClearFilters} style={{ fontFamily: "'Inter', sans-serif" }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 6L6 18M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {loading && <div className="sp-state"><div className="sp-spinner" /><span>Đang tải...</span></div>}
             {error && !loading && <div className="sp-state sp-state--error">⚠️ {error}</div>}
 
             {!loading && !error && (
                 <div className="sp-card">
                     <table className="sp-table">
-                        <thead>
-                        <tr>
-                            <th>Mã BG</th>
-                            <th>Khách hàng</th>
-                            <th>Nhân viên</th>
-                            <th>Tổng tiền</th>
-                            <th>Trạng thái</th>
-                            <th>Ngày tạo</th>
-                            <th>Hiệu lực đến</th>
-                            <th>Thao tác</th>
-                        </tr>
+                        <thead className="sq-table-head">
+                            <tr>
+                                <th>Mã BG</th>
+                                <th>Khách hàng</th>
+                                {isDirector && <th>Nhân viên</th>}
+                                <th>Tổng tiền</th>
+                                <th>Trạng thái</th>
+                                <th>Hiệu lực đến</th>
+                                <th style={{ textAlign: "center" }}>Thao tác</th>
+                            </tr>
                         </thead>
                         <tbody>
-                        {quotes.length === 0 ? (
-                            <tr><td colSpan={8} className="sp-empty-row">
-                                <div className="sq-empty">
-                                    <div className="sq-empty__icon">📋</div>
-                                    <p>Không có báo giá nào</p>
-                                </div>
-                            </td></tr>
-                        ) : quotes.map(q => {
-                            const s = getQuoteStatus(q.status);
-                            return (
-                                <tr key={q.id} className="sp-table__row">
-                                    <td><span className="sq-quote-id">{q.quotationNumber}</span></td>
-                                    <td className="sp-td--name">{q.customerName}</td>
-                                    <td className="sp-td--muted">{q.staffName}</td>
-                                    <td className="sp-td--price">{fmt(q.totalAmount)}</td>
-                                    <td>
-                                        <span className={`sq-badge ${s.cls}`}>{s.text}</span>
-                                        {/* Hiện tag "Đã có đơn" nếu báo giá ACCEPTED */}
-                                        {q.status === "ACCEPTED" && q.hasOrder && (
-                                            <span className="sq-has-order-tag">📦 Có đơn</span>
-                                        )}
-                                    </td>
-                                    <td className="sp-td--muted">{fmtDate(q.createdDate)}</td>
-                                    <td className="sp-td--muted">{fmtDate(q.validUntil)}</td>
-                                    <td className="sp-td--actions">
-                                        <button
-                                            className="sp-action-btn"
-                                            title="Sửa / Cập nhật trạng thái"
-                                            onClick={() => setEditingQuote(q)}
-                                        >
-                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                            </svg>
-                                        </button>
-                                        {/* Nút sửa nội dung riêng */}
-                                        <button
-                                            className="sp-action-btn"
-                                            title="Sửa nội dung báo giá"
-                                            onClick={() => setEditingId(q.id)}
-                                        >
-                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                                                <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                                            </svg>
-                                        </button>
-                                    </td>
-                                </tr>
-                            );
-                        })}
+                            {quotes.length === 0 ? (
+                                <tr><td colSpan={isDirector ? 7 : 6} className="sp-empty-row">
+                                    <div className="sq-empty">
+                                        <div className="sq-empty__icon">📋</div>
+                                        <p>Không có báo giá nào</p>
+                                    </div>
+                                </td></tr>
+                            ) : quotes.map(q => {
+                                const s = getQuoteStatus(q.status);
+                                const statusLabel = STATUS_OPTIONS.find(o => o.value === q.status)?.label || q.status;
+                                
+                                return (
+                                    <tr key={q.id} className="sp-table__row">
+                                        <td><span className="sq-quote-id">{q.quotationNumber}</span></td>
+                                        <td className="sp-td--name">{q.customerName}</td>
+                                        {isDirector && <td className="sp-td--muted">{q.staffName || "—"}</td>}
+                                        <td className="sp-td--price">{fmt(q.totalAmount)}</td>
+                                        <td>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                <span 
+                                                    className={`sq-badge ${s.cls}`}
+                                                    onClick={() => setEditingQuote(q)}
+                                                    style={{ cursor: "pointer" }}
+                                                >
+                                                    {statusLabel}
+                                                </span>
+                                                {q.status === "ACCEPTED" && q.hasOrder && (
+                                                    <span className="sq-has-order-tag">📦 Có đơn</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="sp-td--muted">{fmtDate(q.validUntil)}</td>
+                                        <td>
+                                            <div className="sp-td--actions" style={{ justifyContent: "center" }}>
+                                                <button className="sp-action-btn" title="In báo giá">
+                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                                                        <rect x="6" y="14" width="12" height="8" />
+                                                    </svg>
+                                                </button>
+                                                <button 
+                                                    className="sp-action-btn" 
+                                                    title="Xem chi tiết"
+                                                    onClick={() => setViewingId(q.id)}
+                                                >
+                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                                                    </svg>
+                                                </button>
+                                                <button 
+                                                    className="sp-action-btn" 
+                                                    title="Sửa báo giá" 
+                                                    onClick={() => setEditingId(q.id)}
+                                                >
+                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
 
-                    {data?.totalPages > 1 && (
+                    {total > 0 && (
                         <div className="sp-pagination">
-                            <span className="sp-pagination__info">{total} báo giá</span>
+                            <div className="sp-pagination__left">
+                                Hiển thị <b>{(page * 10) + 1} - {Math.min((page + 1) * 10, total)}</b> trong tổng số <b>{total}</b> báo giá
+                            </div>
                             <div className="sp-pagination__right">
-                                <button className="sp-page-btn" disabled={page===0} onClick={() => setPage(p => p-1)}>‹</button>
-                                {Array.from({length: data.totalPages}, (_, i) => (
-                                    <button key={i} className={`sp-page-btn${page===i?" sp-page-btn--active":""}`} onClick={() => setPage(i)}>{i+1}</button>
+                                <button 
+                                    className="sp-page-btn" 
+                                    disabled={page === 0}
+                                    onClick={() => setPage(page - 1)}
+                                >
+                                    &lt;
+                                </button>
+                                {[...Array(data?.totalPages || 0)].map((_, i) => (
+                                    <button 
+                                        key={i}
+                                        className={`sp-page-btn${page === i ? " sp-page-btn--active" : ""}`}
+                                        onClick={() => setPage(i)}
+                                    >
+                                        {i + 1}
+                                    </button>
                                 ))}
-                                <button className="sp-page-btn" disabled={page===data.totalPages-1} onClick={() => setPage(p => p+1)}>›</button>
+                                <button 
+                                    className="sp-page-btn" 
+                                    disabled={page >= (data?.totalPages || 1) - 1}
+                                    onClick={() => setPage(page + 1)}
+                                >
+                                    &gt;
+                                </button>
                             </div>
                         </div>
                     )}
                 </div>
+            )}
+
+            {/* Modals */}
+            {showCreate && (
+                <CreateQuoteModal 
+                    onClose={() => setShowCreate(false)} 
+                    onCreated={() => { setShowCreate(false); refetch(); }}
+                />
+            )}
+
+            {editingId && (
+                <EditQuoteModal 
+                    quoteId={editingId} 
+                    onClose={() => setEditingId(null)} 
+                    onSaved={() => { setEditingId(null); refetch(); }}
+                />
+            )}
+
+            {viewingId && (
+                <ViewQuoteModal 
+                    quoteId={viewingId} 
+                    onClose={() => setViewingId(null)} 
+                />
             )}
 
             <style>{`

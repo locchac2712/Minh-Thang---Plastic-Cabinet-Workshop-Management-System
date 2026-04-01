@@ -18,6 +18,12 @@
     flex-direction: column;
     flex-shrink: 0;
     padding: 0;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.is-sidebar-collapsed .sl-sidebar {
+    width: 64px;
 }
 
 .sl-logo {
@@ -26,6 +32,13 @@
     gap: 10px;
     padding: 20px 20px 24px;
     border-bottom: 1px solid rgba(255,255,255,.06);
+    transition: all 0.3s;
+}
+
+.is-sidebar-collapsed .sl-logo {
+    justify-content: center;
+    padding: 20px 0;
+    gap: 0;
 }
 
 .sl-logo__icon {
@@ -56,8 +69,8 @@
 .sl-nav-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 9px 12px;
+    gap: 12px;
+    padding: 10px 12px;
     border-radius: 8px;
     background: transparent;
     border: none;
@@ -68,7 +81,22 @@
     cursor: pointer;
     text-align: left;
     width: 100%;
-    transition: all .15s;
+    transition: all .2s;
+    white-space: nowrap;
+}
+
+.sl-nav-item__icon {
+    font-size: 16px;
+    width: 20px;
+    display: flex;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.is-sidebar-collapsed .sl-nav-item {
+    justify-content: center;
+    padding: 10px 0;
+    gap: 0;
 }
 
 .sl-nav-item:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.8); }
@@ -87,7 +115,7 @@
 
 .sl-logout {
     width: 100%;
-    padding: 8px 12px;
+    padding: 10px 12px;
     border-radius: 8px;
     background: transparent;
     border: none;
@@ -96,8 +124,27 @@
     font-size: 13px;
     cursor: pointer;
     text-align: left;
-    transition: all .15s;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    white-space: nowrap;
 }
+
+.sl-logout__icon {
+    font-size: 16px;
+    width: 20px;
+    display: flex;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.is-sidebar-collapsed .sl-logout {
+    justify-content: center;
+    padding: 10px 0;
+    gap: 0;
+}
+
 .sl-logout:hover { color: #f87171; background: rgba(239,68,68,.08); }
 
 /* Main */
