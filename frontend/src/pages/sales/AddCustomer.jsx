@@ -1,7 +1,8 @@
 import { useState } from "react";
 import "./SalesPages.css";
 import "./AddForm.css";
-import api from "../../services/api";
+import "./CreateForms.css";
+import customerService from "../../services/customerService";
 
 export const AddCustomer = ({ onBack, onSaved }) => {
     const [form, setForm] = useState({
@@ -23,7 +24,7 @@ export const AddCustomer = ({ onBack, onSaved }) => {
         if (!form.name) { setError("Vui lòng nhập tên khách hàng"); return; }
         setError(null); setSaving(true);
         try {
-            await api.post("/customers", {
+            await customerService.create({
                 ...form,
                 creditLimit: form.creditLimit ? Number(form.creditLimit) : 0,
             });
@@ -35,63 +36,68 @@ export const AddCustomer = ({ onBack, onSaved }) => {
     };
 
     return (
-        <div className="af-page">
-            {toast && <div className={`cf-toast cf-toast--${toast.type}`}>{toast.msg}</div>}
+        <div className="cf-modal-overlay" onClick={onBack}>
+            <div className="cf-modal-container" onClick={e => e.stopPropagation()}>
+                {toast && <div className={`cf-toast cf-toast--${toast.type}`}>{toast.msg}</div>}
 
-            {/* Header */}
-            <div className="af-header">
-                <h1 className="af-title">Thêm khách hàng</h1>
-                <button className="cf-back-btn" onClick={onBack}>← Quay lại</button>
-            </div>
+                {/* Header */}
+                <div className="cf-modal-header">
+                    <h2 className="cf-modal-title">Thêm khách hàng</h2>
+                    <button className="cf-modal-close" onClick={onBack}>✕</button>
+                </div>
 
-            {/* Form card */}
-            <div className="af-card af-card--narrow">
-                {error && (
-                    <div className="af-error-banner" style={{marginBottom:16}}>
-                        {error}
-                        <button className="af-error-close" onClick={() => setError(null)}>✕</button>
-                    </div>
-                )}
+                {/* Body */}
+                <div className="cf-modal-body">
+                    <div className="af-card">
+                        {error && (
+                            <div className="af-error-banner" style={{marginBottom:16}}>
+                                {error}
+                                <button className="af-error-close" onClick={() => setError(null)}>✕</button>
+                            </div>
+                        )}
 
-                <div className="af-grid-2">
-                    <div className="af-field">
-                        <label className="af-label">Tên khách hàng <span className="af-required">*</span></label>
-                        <input className="af-input" value={form.name} onChange={e => set("name", e.target.value)} />
-                    </div>
-                    <div className="af-field">
-                        <label className="af-label">Mã <span className="af-required">*</span></label>
-                        <input className="af-input" value={form.taxCode} onChange={e => set("taxCode", e.target.value)} />
+                        <div className="af-grid-2">
+                            <div className="af-field">
+                                <label className="af-label">Tên khách hàng <span className="af-required">*</span></label>
+                                <input className="af-input" value={form.name} onChange={e => set("name", e.target.value)} />
+                            </div>
+                            <div className="af-field">
+                                <label className="af-label">Mã <span className="af-required">*</span></label>
+                                <input className="af-input" value={form.taxCode} onChange={e => set("taxCode", e.target.value)} />
+                            </div>
+                        </div>
+
+                        <div className="af-grid-2">
+                            <div className="af-field">
+                                <label className="af-label">Người liên hệ</label>
+                                <input className="af-input" value={form.contactPerson} onChange={e => set("contactPerson", e.target.value)} />
+                            </div>
+                            <div className="af-field">
+                                <label className="af-label">Số điện thoại</label>
+                                <input className="af-input" value={form.phoneNumber} onChange={e => set("phoneNumber", e.target.value)} />
+                            </div>
+                        </div>
+
+                        <div className="af-grid-2">
+                            <div className="af-field">
+                                <label className="af-label">Email</label>
+                                <input className="af-input" type="email" value={form.email} onChange={e => set("email", e.target.value)} />
+                            </div>
+                            <div className="af-field">
+                                <label className="af-label">Hạn mức tín dụng</label>
+                                <input className="af-input" type="number" min="0" value={form.creditLimit} onChange={e => set("creditLimit", e.target.value)} />
+                            </div>
+                        </div>
+
+                        <div className="af-field">
+                            <label className="af-label">Địa chỉ</label>
+                            <textarea className="af-textarea" rows={3} value={form.address} onChange={e => set("address", e.target.value)} />
+                        </div>
                     </div>
                 </div>
 
-                <div className="af-grid-2">
-                    <div className="af-field">
-                        <label className="af-label">Người liên hệ</label>
-                        <input className="af-input" value={form.contactPerson} onChange={e => set("contactPerson", e.target.value)} />
-                    </div>
-                    <div className="af-field">
-                        <label className="af-label">Số điện thoại</label>
-                        <input className="af-input" value={form.phoneNumber} onChange={e => set("phoneNumber", e.target.value)} />
-                    </div>
-                </div>
-
-                <div className="af-grid-2">
-                    <div className="af-field">
-                        <label className="af-label">Email</label>
-                        <input className="af-input" type="email" value={form.email} onChange={e => set("email", e.target.value)} />
-                    </div>
-                    <div className="af-field">
-                        <label className="af-label">Hạn mức tín dụng</label>
-                        <input className="af-input" type="number" min="0" value={form.creditLimit} onChange={e => set("creditLimit", e.target.value)} />
-                    </div>
-                </div>
-
-                <div className="af-field">
-                    <label className="af-label">Địa chỉ</label>
-                    <textarea className="af-textarea" rows={3} value={form.address} onChange={e => set("address", e.target.value)} />
-                </div>
-
-                <div className="af-actions">
+                {/* Footer */}
+                <div className="cf-modal-footer">
                     <button className="af-btn-save af-btn-save--dark" onClick={handleSave} disabled={saving}>
                         {saving ? "Đang lưu..." : "Tạo mới"}
                     </button>

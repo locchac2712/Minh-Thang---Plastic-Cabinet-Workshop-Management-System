@@ -181,31 +181,6 @@
     animation: cfFade .2s ease;
 }
 .cf-toast--success { background: #16a34a; color: #fff; }
-.cf-toast--error   { background: #ef4444; color: #fff; }
-@keyframes cfFade { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-
-/* ── Loading spinner ─────────────────────────────────────── */
-.cf-loading-spin {
-    width: 36px; height: 36px;
-    border: 3px solid #e5e7eb;
-    border-top-color: #7c3aed;
-    border-radius: 50%;
-    animation: cfSpin .7s linear infinite;
-}
-@keyframes cfSpin { to { transform: rotate(360deg); } }
-
-/* ── Submit button disabled state ───────────────────────── */
-.cf-submit-btn:disabled { opacity: .6; cursor: not-allowed; }
-
-/* ── Toast ───────────────────────────────────────────────── */
-.cf-toast {
-    position: fixed; bottom: 28px; right: 28px;
-    padding: 12px 20px; border-radius: 10px;
-    font-size: 13.5px; font-weight: 500;
-    z-index: 9999; box-shadow: 0 8px 24px rgba(0,0,0,.15);
-    animation: cfFade .2s ease;
-}
-.cf-toast--success { background: #16a34a; color: #fff; }
 .cf-toast--error   { background: #dc2626; color: #fff; }
 @keyframes cfFade { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
@@ -222,31 +197,97 @@
 }
 @keyframes cfSpin { to { transform: rotate(360deg); } }
 
-/* Field hint text */
-.cf-field-hint { font-size: 11.5px; color: #9ca3af; margin-top: 4px; font-style: italic; }
-.cf-select:disabled { background: #f9fafb; color: #9ca3af; cursor: not-allowed; }
-
-/* ── Edit Quote extras ───────────────────────────────────── */
-.cf-title-sub {
-    font-size: 13px; color: #9ca3af; margin-top: 4px; display: block;
+/* ── Modal overlay and container ───────────────────────── */
+.cf-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(17, 24, 39, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: cfFadeIn .21s ease;
 }
 
-.cf-input-readonly {
-    padding: 11px 14px;
-    background: #f9fafb;
-    border: 1px solid #f0f0f5;
-    border-radius: 10px;
-    font-size: 13.5px;
-    color: #374151;
-    font-weight: 500;
+@keyframes cfFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-.cf-status-readonly {
-    padding: 9px 14px;
-    background: #f9fafb;
-    border: 1px solid #f0f0f5;
-    border-radius: 10px;
-    font-size: 13px;
+.cf-modal-container {
+    background: #fff;
+    width: 900px;
+    max-width: 95%;
+    max-height: 90vh;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    animation: cfSlideUp .3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes cfSlideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.cf-modal-header {
+    padding: 20px 28px;
+    border-bottom: 1px solid #f0f0f5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+}
+
+.cf-modal-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+}
+
+.cf-modal-close {
+    background: #f3f4f6;
+    border: none;
     color: #6b7280;
-    font-weight: 500;
+    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .15s;
+}
+
+.cf-modal-close:hover {
+    background: #e5e7eb;
+    color: #111827;
+}
+
+.cf-modal-body {
+    padding: 24px 28px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.cf-modal-footer {
+    padding: 16px 28px;
+    border-top: 1px solid #f0f0f5;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    background: #f9fafb;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
 }
