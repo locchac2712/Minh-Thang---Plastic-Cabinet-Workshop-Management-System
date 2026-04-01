@@ -1,34 +1,51 @@
 package com.pcwms.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "sales_order_details")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class SalesOrderDetail {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Thuộc đơn hàng nào?
-    @ManyToOne
-    @JoinColumn(name = "order_id", referencedColumnName = "id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false)
+    @JsonIgnore
     private SalesOrder salesOrder;
 
-    // Mua sản phẩm gì?
-    @ManyToOne
-    @JoinColumn(name = "product_id", referencedColumnName = "id", nullable = false)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "salesOrderDetails", "billOfMaterials"})
     private Product product;
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
-    @Column(name = "unit_price")
+    @Column(name = "unit_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal unitPrice;
 
-    @Column(name = "discount")
-    private Double discount; // Chiết khấu (%)
+    @Column(name = "discount", precision = 15, scale = 2)
+    private BigDecimal discount = BigDecimal.ZERO;
+
+    // Thêm hàm này thì lúc trả JSON về FE, tự động nó sẽ ra trường "totalLineAmount"
+    public BigDecimal getTotalLineAmount() {
+        if (unitPrice == null || quantity == null) return BigDecimal.ZERO;
+        BigDecimal baseTotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
+        return baseTotal.subtract(discount != null ? discount : BigDecimal.ZERO);
+    }
 }

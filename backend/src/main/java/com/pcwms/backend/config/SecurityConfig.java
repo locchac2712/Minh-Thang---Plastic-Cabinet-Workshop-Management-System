@@ -51,6 +51,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/test/all").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/payments/payos/webhook").permitAll()
+                        .requestMatchers("/api/invoices/**").authenticated()
                         .anyRequest().authenticated()
                 );
 

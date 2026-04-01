@@ -35,7 +35,7 @@ public class CustomerController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALE_MANAGER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALE_MANAGER') or hasRole('SALE_STAFF_1')")
     public ResponseEntity<ResponseObject> createCustomer(@RequestBody Customer customer) {
         return ResponseEntity.ok(
                 new ResponseObject("SUCCESS", "Thêm khách hàng thành công",
@@ -44,7 +44,7 @@ public class CustomerController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALE_MANAGER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALE_MANAGER') or hasRole('SALE_STAFF_1')")
     public ResponseEntity<ResponseObject> updateCustomer(@PathVariable Long id, @RequestBody Customer customer) {
         return ResponseEntity.ok(
                 new ResponseObject("SUCCESS", "Cập nhật khách hàng thành công",

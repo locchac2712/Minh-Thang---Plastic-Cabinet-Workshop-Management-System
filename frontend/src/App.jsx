@@ -2,21 +2,22 @@ import "./assets/global.css";
 import "./assets/button.css";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { DashboardLayout } from "./layouts/DashboardLayout";
+import { SalesLayout }     from "./layouts/SalesLayout";
 import { ResetPassword }   from "./components/ResetPassword";
 import { LoginModal }      from "./components/LoginModal";
 
 const isResetPage = () => window.location.pathname.startsWith("/reset-password");
 
-// Tách ra component riêng để dùng useAuth (phải nằm trong AuthProvider)
 const AppContent = () => {
     const { user } = useAuth();
 
     if (isResetPage()) return <ResetPassword />;
+    if (!user)         return <LoginModal onClose={() => {}} />;
 
-    // Chưa đăng nhập → hiện trang Login toàn màn hình, không có nút đóng
-    if (!user) return <LoginModal onClose={() => {}} />;
+    // Route theo role
+    if (user.role === "ROLE_SALES_STAFF") return <SalesLayout />;
 
-    // Đã đăng nhập → vào Dashboard
+    // Mặc định: production dashboard
     return <DashboardLayout />;
 };
 
