@@ -62,7 +62,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  font-family: 'Syne', sans-serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: 15px;
   font-weight: 600;
   color: #2d2060;
@@ -81,33 +81,34 @@
 }
 
 .lp-left__heading {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: clamp(28px, 3.5vw, 42px);
-  font-weight: 400;
+  font-weight: 700;
   color: #1a1060;
   line-height: 1.2;
   margin-bottom: 24px;
 }
 
 .lp-left__heading--large {
-  font-size: clamp(36px, 4.8vw, 56px);
+  font-size: clamp(32px, 4.2vw, 48px);
   margin-bottom: 32px;
+  max-width: 450px;
 }
 
 .lp-left__accent {
   color: #7c3aed;
-  font-weight: 400;
+  font-weight: 700;
 }
 
 .lp-left__italic {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'Montserrat', sans-serif;
   font-style: italic;
   color: #7c3aed;
   font-size: clamp(28px, 3.5vw, 42px);
 }
 
 .lp-left__desc {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 15px;
   color: #4a3880;
   line-height: 1.65;
@@ -115,7 +116,7 @@
 }
 
 .lp-left__footer {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 12.5px;
   color: #7b6aaa;
   position: relative;
@@ -144,16 +145,16 @@
 .lp-header { margin-bottom: 32px; }
 
 .lp-title {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: 26px;
-  font-weight: 400;
+  font-weight: 700;
   color: #1a1f36;
   margin-bottom: 8px;
   letter-spacing: -0.01em;
 }
 
 .lp-subtitle {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 14px;
   color: #6b7280;
 }
@@ -166,7 +167,7 @@
   padding: 11px 14px;
   border-radius: 8px;
   font-size: 13.5px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   margin-bottom: 18px;
 }
 
@@ -184,7 +185,7 @@
 }
 
 .lp-label {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 14px;
   font-weight: 500;
   color: #374151;
@@ -197,7 +198,7 @@
   padding: 12px 16px;
   border: 1.5px solid #e5e7eb;
   border-radius: 9px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 14px;
   color: #1a1f36;
   background: #fff;
@@ -214,6 +215,20 @@
 }
 
 .lp-input-wrap .lp-input { padding-right: 46px; }
+
+.lp-input--error {
+  border-color: #fca5a5 !important;
+  background: #fffafa !important;
+}
+
+.lp-field-error {
+  font-family: 'Roboto', sans-serif;
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 2px;
+  font-weight: 500;
+  display: block;
+}
 
 /* Eye toggle */
 .lp-eye {
@@ -246,7 +261,7 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 14px;
   color: #374151;
   user-select: none;
@@ -286,7 +301,7 @@
 .lp-forgot {
   background: transparent;
   border: none;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 14px;
   color: #7c3aed;
   cursor: pointer;
@@ -304,7 +319,7 @@
   color: #fff;
   border: none;
   border-radius: 50px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -328,7 +343,7 @@
 .lp-footer {
   margin-top: 36px;
   text-align: center;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 12.5px;
   color: #9ca3af;
 }
@@ -375,15 +390,15 @@
 .modal-icon { font-size: 28px; margin-bottom: 14px; }
 
 .modal-title {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: 20px;
-  font-weight: 400;
+  font-weight: 700;
   color: #1a1f36;
   margin-bottom: 6px;
 }
 
 .modal-subtitle {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 13px;
   color: #6b7280;
   margin-bottom: 24px;
@@ -395,18 +410,18 @@
 
 .form-label {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .form-input {
   padding: 10px 14px;
   border: 1.5px solid #e5e7eb;
   border-radius: 8px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 14px;
   color: #1a1f36;
   outline: none;
@@ -427,7 +442,7 @@
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 13px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
 }
 
 .modal-success {
@@ -437,7 +452,7 @@
   padding: 12px 14px;
   border-radius: 8px;
   font-size: 13px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
 }
 
 .modal-back-link {

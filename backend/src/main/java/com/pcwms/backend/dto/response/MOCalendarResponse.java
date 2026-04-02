@@ -22,6 +22,6 @@ public class MOCalendarResponse {
         this.productName = mo.getProduct().getName(); // Giả sử Product có trường name
         this.startDate = mo.getStartDate();
         this.endDate = mo.getEndDate();
-        this.status = mo.getStatus();
+        this.status = mo.getWipStatus();
     }
 }

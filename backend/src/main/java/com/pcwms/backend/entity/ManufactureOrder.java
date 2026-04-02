@@ -45,8 +45,8 @@ public class ManufactureOrder {
     private Integer quantity; // Số lượng cần sản xuất
 
     // 👉 ĐÃ SỬA: Trạng thái lệnh sản xuất (PLANNED, IN_PROGRESS, COMPLETED, CANCELLED)
-    @Column(name = "status", nullable = false)
-    private String status = "PLANNED";
+    @Column(name = "wip_status", nullable = false)
+    private String wipStatus = "PLANNED";
 
     // 👉 ĐÃ THÊM: Ngày dự kiến bắt đầu làm
     @Column(name = "start_date")

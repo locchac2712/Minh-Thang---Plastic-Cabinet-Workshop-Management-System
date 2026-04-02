@@ -69,7 +69,7 @@ public class WarehouseTransactionService {
                     transaction.getType().name(),
                     transaction.getReferenceId(),
                     transaction.getDate(),
-                    transaction.getStaff() != null ? transaction.getStaff().getFullname() : "N/A",
+                    transaction.getStaff() != null ? transaction.getStaff().getFullName() : "N/A",
                     detailResponses
             );
         });

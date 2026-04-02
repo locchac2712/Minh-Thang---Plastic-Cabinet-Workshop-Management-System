@@ -23,7 +23,7 @@ public class QuotationListResponse {
         this.id = q.getId();
         this.quotationNumber = q.getQuotationNumber();
         this.customerName = q.getCustomer().getName();
-        this.staffName = q.getStaff().getFullname();
+        this.staffName = q.getStaff().getFullName();
         this.totalAmount = q.getTotalAmount();
         this.status = q.getStatus();
         this.createdDate = q.getCreatedDate();

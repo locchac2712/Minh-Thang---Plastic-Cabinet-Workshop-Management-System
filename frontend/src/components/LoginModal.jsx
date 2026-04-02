@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./LoginModal.css";
 import { useAuth } from "../context/AuthContext";
-import { ForgotPasswordModal } from "./ForgotPasswordModal";
+import { ForgotPasswordModal } from "./Forgotpasswordmodal";
 
 export const LoginModal = ({ onClose }) => {
   const { login, authLoading, authError, setAuthError } = useAuth();
@@ -10,9 +10,18 @@ export const LoginModal = ({ onClose }) => {
   const [remember,   setRemember]   = useState(false);
   const [showPass,   setShowPass]   = useState(false);
   const [showForgot, setShowForgot] = useState(false);
+  const [errors,     setErrors]     = useState({});
+
+  const validate = () => {
+    const newErrors = {};
+    if (!username.trim()) newErrors.username = "Tên đăng nhập là bắt buộc";
+    if (!password.trim()) newErrors.password = "Mật khẩu là bắt buộc";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async () => {
-    if (!username.trim() || !password.trim()) return;
+    if (!validate()) return;
     const ok = await login(username.trim(), password.trim());
     if (ok) onClose();
   };
@@ -23,7 +32,7 @@ export const LoginModal = ({ onClose }) => {
   };
 
   if (showForgot) {
-    return <ForgotPasswordModal onClose={onClose} onBack={() => setShowForgot(false)} />;
+    return <ForgotPasswordModal onBack={() => setShowForgot(false)} onNext={(email) => window.location.href = "/reset-password?email=" + encodeURIComponent(email)} />;
   }
 
   return (
@@ -32,8 +41,8 @@ export const LoginModal = ({ onClose }) => {
         <div className="lp-left">
           <div className="lp-left__content">
             <h2 className="lp-left__heading lp-left__heading--large">
-              Hệ thống quản lý<br />
-              <span className="lp-left__accent">tủ nhựa Minh Thắng</span>
+              Hệ thống quản&nbsp;lý<br />
+              <span className="lp-left__accent">tủ&nbsp;nhựa Minh&nbsp;Thắng</span>
             </h2>
             <p className="lp-left__desc">
               Nền tảng số hóa quy trình sản xuất và giám sát
@@ -52,31 +61,32 @@ export const LoginModal = ({ onClose }) => {
               <p className="lp-subtitle">Nhập thông tin tài khoản để truy cập hệ thống</p>
             </div>
 
-            {authError && <div className="lp-error">{authError}</div>}
+            {authError && <div className="lp-error" style={{ marginBottom: 20 }}>{authError}</div>}
 
             <div className="lp-form">
               <div className="lp-field">
-                <label className="lp-label">Email</label>
+                <label className="lp-label">Tên đăng nhập</label>
                 <input
-                    className="lp-input"
+                    className={`lp-input ${errors.username ? 'lp-input--error' : ''}`}
                     type="text"
-                    placeholder="you@company.com"
+                    placeholder="Nhập tên đăng nhập"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => { setUsername(e.target.value); if(errors.username) setErrors({...errors, username:null}); }}
                     onKeyDown={handleKeyDown}
                     autoFocus
                 />
+                {errors.username && <span className="lp-field-error">{errors.username}</span>}
               </div>
 
               <div className="lp-field">
                 <label className="lp-label">Mật khẩu</label>
                 <div className="lp-input-wrap">
                   <input
-                      className="lp-input"
+                      className={`lp-input ${errors.password ? 'lp-input--error' : ''}`}
                       type={showPass ? "text" : "password"}
                       placeholder="••••••••"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => { setPassword(e.target.value); if(errors.password) setErrors({...errors, password:null}); }}
                       onKeyDown={handleKeyDown}
                   />
                   <button className="lp-eye" onClick={() => setShowPass(!showPass)} tabIndex={-1} type="button">
@@ -94,6 +104,11 @@ export const LoginModal = ({ onClose }) => {
                     )}
                   </button>
                 </div>
+                {errors.password && (
+                  <span className="lp-field-error">
+                    {errors.password}
+                  </span>
+                )}
               </div>
 
               <div className="lp-row">

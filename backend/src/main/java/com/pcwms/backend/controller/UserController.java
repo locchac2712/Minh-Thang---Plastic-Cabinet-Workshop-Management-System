@@ -1,5 +1,6 @@
 package com.pcwms.backend.controller; // Nhớ đổi đúng package của bạn
 
+import com.pcwms.backend.dto.request.ChangePasswordRequest;
 import com.pcwms.backend.dto.request.UpdateProfileRequest;
 import com.pcwms.backend.dto.response.ResponseObject;
 import com.pcwms.backend.dto.response.UserProfileResponse;
@@ -38,9 +39,21 @@ public class UserController {
     public ResponseEntity<?> updateProfile(@RequestBody UpdateProfileRequest request, Principal principal) {
         try {
             userService.updateMyProfile(principal.getName(), request);
-            return ResponseEntity.ok("Cập nhật thông tin cá nhân thành công!");
+            return ResponseEntity.ok(new ResponseObject("SUCCESS", "Cập nhật thông tin hồ sơ thành công.", null));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(new ResponseObject("ERROR", e.getMessage(), null));
+        }
+    }
+
+    // 3. API ĐỔI MẬT KHẨU
+    @PutMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request, Principal principal) {
+        try {
+            userService.changePassword(principal.getName(), request.getCurrentPassword(), request.getNewPassword());
+            return ResponseEntity.ok(new ResponseObject("SUCCESS", "Mật khẩu đã được thay đổi thành công..", null));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ResponseObject("ERROR", e.getMessage(), null));
         }
     }
 

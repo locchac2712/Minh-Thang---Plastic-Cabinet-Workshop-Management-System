@@ -25,7 +25,7 @@ public class MODetailResponse {
         this.orderNumber = mo.getSalesOrder().getOrderNumber();
         this.productName = mo.getProduct().getName();
         this.quantity = mo.getQuantity();
-        this.status = mo.getStatus();
+        this.status = mo.getWipStatus();
         this.startDate = mo.getStartDate();
         this.endDate = mo.getEndDate();
         this.technicalNotes = mo.getTechnicalNotes();

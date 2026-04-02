@@ -13,6 +13,6 @@ public interface ManufactureOrderRepository extends JpaRepository<ManufactureOrd
     List<ManufactureOrder> findBySalesOrderId(Long salesOrderId);
 
     // Lấy tất cả các lệnh sản xuất để vẽ lên Lịch (Loại bỏ các lệnh đã bị hủy)
-    @Query("SELECT m FROM ManufactureOrder m WHERE m.status != 'CANCELLED' ORDER BY m.startDate ASC")
+    @Query("SELECT m FROM ManufactureOrder m WHERE m.wipStatus != 'CANCELLED' ORDER BY m.startDate ASC")
     List<ManufactureOrder> findAllForCalendar();
 }

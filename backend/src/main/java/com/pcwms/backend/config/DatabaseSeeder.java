@@ -347,7 +347,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         Role role = roleRepository.findByRoleName(roleName).orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Role"));
         User user = new User(); user.setUsername(username); user.setPassword(encodedPassword); user.setRole(role); user.setEmail(email);
         User savedUser = userRepository.save(user);
-        Staff staff = new Staff(); staff.setUser(savedUser); staff.setFullname(fullName); staff.setDepartment(department); staff.setEmployeeId(employeeId); staff.setPhoneNumber(phoneNumber);
+        Staff staff = new Staff(); staff.setUser(savedUser); staff.setFullName(fullName); staff.setDepartment(department); staff.setEmployeeId(employeeId); staff.setPhoneNumber(phoneNumber);
         staffRepository.save(staff);
     }
 

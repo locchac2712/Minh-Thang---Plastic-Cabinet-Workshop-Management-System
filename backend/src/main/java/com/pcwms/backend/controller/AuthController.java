@@ -20,8 +20,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
-
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -43,8 +45,6 @@ public class AuthController {
 
     @Autowired
     AuthService authService;
-
-    // API Đăng nhập
     @PostMapping("/login")
     public ResponseEntity<ResponseObject> authenticateUser(@RequestBody LoginRequest loginRequest) {
         try {
@@ -55,24 +55,30 @@ public class AuthController {
             // 2. Nếu thành công, set thông tin vào Security Context
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // 3. ĐẢO LÊN TRƯỚC: Lấy thông tin User (UserDetails) ra khỏi Authentication
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-
-            // 4. SỬA Ở ĐÂY: Truyền username (String) vào hàm thay vì truyền cục authentication
             String jwt = jwtUtils.generateJwtToken(userDetails.getUsername());
-
-            // 5. Lấy role (vì dự án của mình mỗi người 1 role nên lấy cái đầu tiên)
             String role = userDetails.getAuthorities().iterator().next().getAuthority();
 
-            // 6. Đóng gói dữ liệu trả về
             JwtResponse jwtResponse = new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), role);
 
             return ResponseEntity.ok(
                     new ResponseObject("SUCCESS", "Đăng nhập thành công!", jwtResponse)
             );
+        } catch (DisabledException e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.", null)
+            );
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", "Tên đăng nhập hoặc mật khẩu không chính xác.", null)
+            );
+        } catch (AuthenticationException e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", "Lỗi xác thực: " + e.getMessage(), null)
+            );
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(
-                    new ResponseObject("ERROR", "Sai tên đăng nhập hoặc mật khẩu", null)
+                    new ResponseObject("ERROR", "Có lỗi xảy ra: " + e.getMessage(), null)
             );
         }
     }

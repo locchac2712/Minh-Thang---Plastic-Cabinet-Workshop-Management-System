@@ -55,8 +55,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ── Reset password ─────────────────────────────────────────
-  const resetPassword = async (token, newPassword) => {
-    const res = await authService.resetPassword(token, newPassword);
+  const resetPassword = async (otp, newPassword) => {
+    const res = await authService.resetPassword(otp, newPassword);
     return res;
   };
 

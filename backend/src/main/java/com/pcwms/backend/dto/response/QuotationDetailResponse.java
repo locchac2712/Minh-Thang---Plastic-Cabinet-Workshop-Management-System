@@ -37,7 +37,7 @@ public class QuotationDetailResponse {
         this.customer = new CustomerDto(q.getCustomer().getId(), q.getCustomer().getName(), q.getCustomer().getEmail(), q.getCustomer().getPhoneNumber(), q.getCustomer().getAddress());
 
         // Lọc thông tin Sales (Cực sạch, không dính dáng đến User/Password)
-        this.staff = new StaffDto(q.getStaff().getId(), q.getStaff().getFullname(), q.getStaff().getEmployeeId());
+        this.staff = new StaffDto(q.getStaff().getId(), q.getStaff().getFullName(), q.getStaff().getEmployeeId());
 
         // Lọc mảng Sản phẩm chi tiết
         this.details = q.getDetails().stream().map(d -> new ItemDto(
@@ -61,8 +61,8 @@ public class QuotationDetailResponse {
 
     @Getter @Setter
     public static class StaffDto {
-        private Long id; private String fullname; private String employeeId;
-        public StaffDto(Long id, String fullname, String employeeId) { this.id = id; this.fullname = fullname; this.employeeId = employeeId; }
+        private Long id; private String fullName; private String employeeId;
+        public StaffDto(Long id, String fullName, String employeeId) { this.id = id; this.fullName = fullName; this.employeeId = employeeId; }
     }
 
     @Getter @Setter

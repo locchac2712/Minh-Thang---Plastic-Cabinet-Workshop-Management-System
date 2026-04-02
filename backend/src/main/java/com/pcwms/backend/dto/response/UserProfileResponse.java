@@ -6,13 +6,17 @@ public class UserProfileResponse {
     private String fullName;
     private String phoneNumber;
     private String department;
+    private String gender;
+    private String address;
 
-    public UserProfileResponse(String username, String email, String fullName, String phoneNumber, String department) {
+    public UserProfileResponse(String username, String email, String fullName, String phoneNumber, String department, String gender, String address) {
         this.username = username;
         this.email = email;
         this.fullName = fullName;
         this.phoneNumber = phoneNumber;
         this.department = department;
+        this.gender = gender;
+        this.address = address;
     }
 
     public String getUsername() {
@@ -53,5 +57,21 @@ public class UserProfileResponse {
 
     public void setDepartment(String department) {
         this.department = department;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 }

@@ -21,7 +21,7 @@ public class Staff {
     private User user;
 
     @Column(name= "fullname", nullable = false)
-    private String fullname;
+    private String fullName; // Đổi từ 'fullname' -> 'fullName' để đồng bộ CamelCase nhưng giữ nguyên mapping DB
 
     @Column(name= "department")
     private String department;
@@ -31,6 +31,12 @@ public class Staff {
 
     @Column(name= "phone_number")
     private String phoneNumber;
+
+    @Column(name = "gender")
+    private String gender;
+
+    @Column(name = "address")
+    private String address;
 
     @OneToMany(mappedBy = "staff")
     private List<WarehouseTransaction> warehouseTransactions;

@@ -117,7 +117,7 @@ public class ManufactureOrderService {
         mo.setSalesOrder(salesOrder);
         mo.setProduct(product);
         mo.setQuantity(quantity);
-        mo.setStatus("PLANNED");
+        mo.setWipStatus("PLANNED");
         mo.setStartDate(requestedStartDate);
         mo.setEndDate(finalEndDate); // Do hệ thống tự tính ra
         mo.setTechnicalNotes(technicalNotes);

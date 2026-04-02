@@ -21,12 +21,14 @@ public class UserDetailsImpl implements UserDetails {
     private String password;
 
     private Collection<? extends GrantedAuthority> authorities;
+    private boolean isActive;
 
-    public UserDetailsImpl(Long id, String username, String password,
+    public UserDetailsImpl(Long id, String username, String password, boolean isActive,
                            Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.username = username;
         this.password = password;
+        this.isActive = isActive;
         this.authorities = authorities;
     }
 
@@ -39,6 +41,7 @@ public class UserDetailsImpl implements UserDetails {
                 user.getId(),
                 user.getUsername(),
                 user.getPassword(),
+                user.getIsActive() == null || user.getIsActive(),
                 authorities);
     }
 
@@ -59,7 +62,7 @@ public class UserDetailsImpl implements UserDetails {
     @Override
     public boolean isCredentialsNonExpired() { return true; }
     @Override
-    public boolean isEnabled() { return true; }
+    public boolean isEnabled() { return isActive; }
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

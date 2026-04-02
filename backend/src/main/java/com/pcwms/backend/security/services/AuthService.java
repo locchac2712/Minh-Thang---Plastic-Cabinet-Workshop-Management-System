@@ -36,7 +36,7 @@ public class AuthService {
     public String forgotPassword(String email) {
         // 1. Tìm user dưới Database xem có ai dùng email này không
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy tài khoản với email này!"));
+                .orElseThrow(() -> new RuntimeException("Email không tồn tại trong hệ thống."));
 
         // 2. Sinh ra mã OTP 6 số thay vì UUID
         String otp = generate6DigitOTP();
@@ -73,7 +73,7 @@ public class AuthService {
         System.out.println("Hạn sử dụng: 5 phút");
         System.out.println("==========================================");
 
-        return "Thành công! Một email chứa mã OTP 6 số đã được gửi đến hòm thư của bạn.";
+        return "Hướng dẫn đặt lại mật khẩu đã được gửi đến email của bạn.";
     }
 
     // ==========================================
