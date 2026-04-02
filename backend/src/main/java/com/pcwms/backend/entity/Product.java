@@ -36,6 +36,9 @@ public class Product {
     @Column(name = "status", nullable = false)
     private ProductStatus status = ProductStatus.DRAFT;
 
+    @Column(name = "estimated_production_hours")
+    private Double estimatedProductionHours;
+
     // 👉 Thêm cột lưu đường dẫn ảnh của Sản phẩm
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
