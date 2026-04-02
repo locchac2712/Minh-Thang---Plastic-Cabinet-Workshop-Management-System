@@ -1,4 +1,5 @@
 import { useState } from "react";
+<<<<<<< HEAD
 import "./Saleslayout.css";
 import { useAuth } from "../context/AuthContext";
 import { ManageBOM }         from "../pages/production/ManageBOM";
@@ -42,6 +43,33 @@ const getVNRole = (role) => {
         'ROLE_SALES_STAFF': 'Nhân viên Kinh doanh'
     };
     return map[role] || role;
+=======
+import "./DashboardLayout.css";
+import { Sidebar }           from "../components/Sidebar";
+import { Header }            from "../components/Header";
+import { ManageBOM }         from "../pages/production/ManageBOM.jsx";
+import { PlanProduction }    from "../pages/production/PlanProduction.jsx";
+import { PlanCalendar }      from "../pages/production/PlanCalendar.jsx";
+import { ExecuteWorkOrder }  from "../pages/production/ExecuteWorkOrder.jsx";
+import { ControlMaterial }   from "../pages/production/ControlMaterial.jsx";
+import { MaterialDetail }    from "../pages/production/Materialdetail.jsx";
+import { ProductList }       from "../pages/production/ProductList.jsx";
+import { ProductDetail }     from "../pages/production/ProductDetail.jsx";
+import { MonitorProduction } from "../pages/production/MonitorProduction.jsx";
+import { SalesOrders } from "../pages/sales/SalesOrders.jsx";
+
+const PAGE_TITLES = {
+  orders:         "Đơn hàng",
+  bom:            "Quản lý BOM",
+  plan:           "Danh sách kế hoạch",
+  calendar:       "Lập lịch sản xuất",
+  workorder:      "Thực hiện lệnh sản xuất",
+  material:       "Quản lý vật tư",
+  materialDetail: "Chi tiết vật tư",
+  products:       "Sản phẩm",
+  productDetail:  "Chi tiết sản phẩm",
+  monitor:        "Giám sát sản xuất",
+>>>>>>> b41d7805ca057f97a138d29eb1ed6847fe7a8d63
 };
 
 export const DashboardLayout = () => {
@@ -73,6 +101,7 @@ export const DashboardLayout = () => {
         }
     };
 
+<<<<<<< HEAD
     return (
         <div className={`sl-layout${!isSidebarOpen ? " is-sidebar-collapsed" : ""}`}>
             {/* Sidebar */}
@@ -96,6 +125,20 @@ export const DashboardLayout = () => {
                     {/* Logout moved to user dropdown */}
                 </div>
             </aside>
+=======
+    switch (activePage) {
+      case "orders": return <SalesOrders />;
+      case "bom":       return <ManageBOM />;
+      case "plan":      return <PlanProduction />;
+      case "calendar":  return <PlanCalendar />;
+      case "workorder": return <ExecuteWorkOrder />;
+      case "material":  return <ControlMaterial key={materialRefreshKey} onSelectMaterial={(m) => { setSelectedMaterial(m); setActivePage("materialDetail"); }} />;
+      case "products":  return <ProductList key={productRefreshKey} onSelectProduct={(p) => { setSelectedProduct(p); setActivePage("productDetail"); }} />;
+      case "monitor":   return <MonitorProduction />;
+      default:          return <ManageBOM />;
+    }
+  };
+>>>>>>> b41d7805ca057f97a138d29eb1ed6847fe7a8d63
 
             {/* Main */}
             <div className="sl-main">

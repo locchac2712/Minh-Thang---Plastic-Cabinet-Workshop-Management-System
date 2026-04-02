@@ -128,6 +128,39 @@ public class ManufactureOrderService {
         return mo;
     }
 
+    // TẠO LỆNH SẢN XUẤT THỦ CÔNG (MANUAL SCHEDULING - BỎ QUA KIỂM DUYỆT THUẬT TOÁN)
+    @Transactional
+    public ManufactureOrder createManualManufactureOrder(Long salesOrderId, Long productId, Integer quantity, String technicalNotes, LocalDateTime startDate, LocalDateTime endDate) {
+        SalesOrder salesOrder = salesOrderRepository.findById(salesOrderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Đơn hàng: " + salesOrderId));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Sản phẩm: " + productId));
+
+        if (startDate == null || endDate == null) {
+            throw new RuntimeException("Bạn phải chọn cấu trúc Ngày bắt đầu và Ngày kết thúc!");
+        }
+
+        if (startDate.isAfter(endDate)) {
+            throw new RuntimeException("Ngày bắt đầu không thể diễn ra sau ngày kết thúc!");
+        }
+
+        ManufactureOrder mo = new ManufactureOrder();
+        mo.setMoNumber("MO-MANUAL-" + System.currentTimeMillis());
+        mo.setSalesOrder(salesOrder);
+        mo.setProduct(product);
+        mo.setQuantity(quantity);
+        mo.setStatus("PLANNED");
+        mo.setStartDate(startDate);
+        mo.setEndDate(endDate);
+        mo.setTechnicalNotes(technicalNotes);
+
+        manufactureOrderRepository.save(mo);
+        log.info("✏️ Quản đốc đã tự xếp lịch thủ công thành công MO: {} | Từ {} đến {}", mo.getMoNumber(), mo.getStartDate(), mo.getEndDate());
+
+        return mo;
+    }
+
     // Hàm isOverlapping giữ nguyên như cũ nhé!
 
     // --- HELPER: Kiểm tra xem 1 khoảng thời gian có đè lên MO nào đang có không ---

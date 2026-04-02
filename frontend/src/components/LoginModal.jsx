@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Thêm useEffect
 import "./LoginModal.css";
 import { useAuth } from "../context/AuthContext";
 import { ForgotPasswordModal } from "./Forgotpasswordmodal";
 
 export const LoginModal = ({ onClose }) => {
   const { login, authLoading, authError, setAuthError } = useAuth();
-  const [username,   setUsername]   = useState("");
-  const [password,   setPassword]   = useState("");
-  const [remember,   setRemember]   = useState(false);
-  const [showPass,   setShowPass]   = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(false);
+  const [showPass, setShowPass] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const [errors,     setErrors]     = useState({});
 
@@ -20,10 +20,28 @@ export const LoginModal = ({ onClose }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Tự động điền nếu đã ghi nhớ trước đó
+  useEffect(() => {
+    const saved = localStorage.getItem("rememberedUsername");
+    if (saved) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUsername(saved);
+      setRemember(true);
+    }
+  }, []);
+
   const handleSubmit = async () => {
     if (!validate()) return;
-    const ok = await login(username.trim(), password.trim());
-    if (ok) onClose();
+    const cleanUsername = username.trim();
+    const ok = await login(cleanUsername, password.trim());
+    if (ok) {
+      if (remember) {
+        localStorage.setItem("rememberedUsername", cleanUsername);
+      } else {
+        localStorage.removeItem("rememberedUsername");
+      }
+      onClose();
+    }
   };
 
   const handleKeyDown = (e) => {

@@ -1,0 +1,929 @@
+2.x.x.x BOM List
+a. UI Specifications
+BOM List Screen
+
+Brief Description
+This screen displays the list of Bill of Materials (BOM) in the system. It allows the actor to search, filter, view BOM details, and navigate to BOM creation. The actor can also quickly identify which BOM is active for each product.
+
+Mockup Screen
+[Insert mockup of BOM List Screen here]
+
+UI Components / Fields Description
+No.	Component / Field	Type	Description	Requirements / Notes
+1	Page Title	Label	Display: BOM List	Mandatory
+2	Search Bar	Textbox	Search by BOM Code or Product Name	Supports partial match
+3	Product Filter	Dropdown	Filter BOM by Product	Optional
+4	Status Filter	Dropdown	Filter by BOM status	Values: All, Active, Inactive
+5	Version Filter	Textbox / Dropdown	Filter by version	Optional
+6	Search Button	Button	Execute search/filter	Mandatory
+7	Reset Button	Button	Clear all filters	Mandatory
+8	Create BOM Button	Button	Navigate to BOM Form Screen	Visible with permission
+9	BOM Table	Table	Display BOM list	Mandatory
+10	BOM Code	Column	Unique BOM identifier	Clickable
+11	Product Code	Column	Associated product code	Mandatory
+12	Product Name	Column	Associated product name	Mandatory
+13	Version	Column	BOM version	Example: v1, v2
+14	Status	Column	BOM status	Active / Inactive
+15	Effective Date	Column	Date BOM is effective	Optional
+16	Created Date	Column	Date created	Format dd/MM/yyyy
+17	Action Column	Column	Contains action buttons	Mandatory
+18	View Detail Button	Icon/Button	Open BOM Detail Screen	Mandatory
+19	Pagination	Pagination	Navigate pages	Mandatory
+UI Requirements / Notes
+The system shall display BOMs in a tabular format.
+Default view should prioritize Active BOMs.
+Each BOM must be associated with exactly one product.
+The actor can click BOM Code or View Detail to open BOM Detail Screen.
+The system shall support filtering by:
+Product
+Status
+Version
+If no result found, display: with "No BOM found."
+Pagination is required when data exceeds page size.
+Only users with permission can see Create BOM button.
+It is recommended (UI enhancement):
+Highlight Active BOM (e.g., badge màu xanh)
+Group BOM by Product (optional advanced UI)
+b. UC Specifications
+UC-BOM-01_View BOM List
+
+ID and Name
+UC-BOM-01 – View BOM List
+
+Primary Actor:
+Admin
+
+Secondary Actor:
+Production Manager
+
+Description:
+As an Admin, I want to view the list of BOMs so that I can manage product structures and monitor BOM versions.
+
+Preconditions:
+
+The actor has logged into the system.
+The actor has permission to access BOM List.
+
+Postconditions:
+
+BOM list is displayed.
+Actor can navigate to detail or perform other actions.
+
+Normal Flow:
+
+The actor selects BOM Management from navigation menu.
+The actor selects BOM List.
+The system displays BOM List Screen.
+The system retrieves BOM data.
+The system displays BOM list in table format.
+The actor reviews the list.
+The actor may click BOM Code or View Detail to open BOM Detail Screen.
+
+Alternative Flows:
+
+A1. No BOM exists
+
+At step 4, system finds no BOM data.
+The system displays "No BOM found."
+
+A2. Actor opens BOM detail
+
+At step 7, actor clicks BOM Code or View Detail.
+The system navigates to BOM Detail Screen.
+
+A3. Actor navigates to create BOM
+
+Actor clicks Create BOM button.
+The system navigates to BOM Form Screen.
+
+Exception:
+
+E1. No permission
+
+Actor tries to access BOM List without permission.
+The system displays with "You do not have permission to access this function."
+
+Business Rule:
+
+Each BOM must belong to one product.
+A product can have multiple BOM versions.
+Only one BOM per product can be Active at a time.
+Active BOM is used for production planning and material calculation.
+UC-BOM-02_Search BOM
+
+ID and Name
+UC-BOM-02 – Search BOM
+
+Primary Actor:
+Admin
+
+Secondary Actor:
+Production Manager
+
+Description:
+As an Admin, I want to search BOM by code or product so that I can quickly find the required BOM.
+
+Preconditions:
+
+Actor is on BOM List Screen.
+
+Postconditions:
+
+Filtered BOM list is displayed.
+
+Normal Flow:
+
+Actor enters BOM Code or Product Name in Search Bar.
+Actor selects filter conditions (Product, Status, Version).
+Actor clicks Search.
+System validates input.
+System retrieves matching BOM data.
+System displays filtered BOM list.
+
+Alternative Flows:
+
+A1. Search by product only
+
+Actor leaves search text empty.
+Actor selects product filter.
+System returns BOMs of selected product.
+
+A2. Reset filter
+
+Actor clicks Reset.
+System clears all conditions.
+System reloads full BOM list.
+
+A3. No matching result
+
+At step 5, system finds no result.
+System displays with "No BOM found."
+
+Exception:
+
+E1. Invalid input
+
+At step 4, system detects invalid input.
+System displays with "Invalid search condition."
+
+Business Rule:
+
+Search supports partial matching.
+Filters can be combined.
+Result must follow paging configuration.
+UC-BOM-03_Filter BOM by Status
+
+ID and Name
+UC-BOM-03 – Filter BOM by Status
+
+Primary Actor:
+Admin
+
+Secondary Actor:
+Production Manager
+
+Description:
+As an Admin, I want to filter BOM by status so that I can distinguish active BOM from inactive ones.
+
+Preconditions:
+
+Actor is on BOM List Screen
+
+Postconditions:
+
+BOM list is filtered
+
+Normal Flow:
+
+Actor selects Status from dropdown.
+Actor clicks Search.
+System retrieves BOMs with selected status.
+System displays result.
+
+Alternative Flows:
+
+A1. Select All
+
+Actor selects All
+System shows all BOMs
+
+A2. No result
+
+System finds no BOM
+Display "No BOM found."
+
+Exception:
+
+E1. System error
+
+System fails to load BOM
+Display with "Unable to load BOM list."
+
+Business Rule:
+
+Status includes Active and Inactive
+Active BOM is currently used in production
+Inactive BOM is used for reference/history
+
+---
+
+## 2.x.x.x BOM Detail
+
+### a. UI Specifications
+
+#### **BOM Detail Screen**
+
+**Brief Description**
+This screen displays detailed information of a selected Bill of Materials (BOM). It allows the actor to view BOM attributes, associated product, and especially the structured list of materials required for production. The actor can also navigate to edit, activate/deactivate, or clone the BOM.
+
+---
+
+**Mockup Screen**
+[Insert mockup of BOM Detail Screen here]
+
+---
+
+## **I. BOM Information Section**
+
+| No. | Component / Field | Type      | Description                 | Requirements / Notes |
+| --- | ----------------- | --------- | --------------------------- | -------------------- |
+| 1   | Page Title        | Label     | Display: **BOM Detail**     | Mandatory            |
+| 2   | BOM Code          | Text      | Unique BOM identifier       | Read-only            |
+| 3   | Product Code      | Text      | Product associated with BOM | Clickable (optional) |
+| 4   | Product Name      | Text      | Name of product             | Read-only            |
+| 5   | Version           | Text      | BOM version                 | Example: v1, v2      |
+| 6   | Status            | Badge     | Active / Inactive           | Highlight Active     |
+| 7   | Effective Date    | Date      | Effective date of BOM       | Optional             |
+| 8   | Description       | Text Area | BOM description             | Optional             |
+| 9   | Created Date      | Text      | Creation date               | Format dd/MM/yyyy    |
+| 10  | Last Updated Date | Text      | Last updated                | Optional             |
+
+---
+
+## **II. BOM Structure Section (Material List)**
+
+👉 Đây là phần QUAN TRỌNG NHẤT
+
+| No. | Component / Field | Type               | Description                       | Requirements / Notes          |
+| --- | ----------------- | ------------------ | --------------------------------- | ----------------------------- |
+| 11  | Section Title     | Label              | **BOM Structure / Material List** | Mandatory                     |
+| 12  | View Mode Toggle  | Toggle             | Table / Tree view                 | Optional (ăn điểm cao nếu có) |
+| 13  | BOM Item Table    | Table / Tree Table | List of materials                 | Mandatory                     |
+| 14  | Material Code     | Column             | Material identifier               | Mandatory                     |
+| 15  | Material Name     | Column             | Name of material                  | Mandatory                     |
+| 16  | Unit              | Column             | Unit of material                  | Mandatory                     |
+| 17  | Quantity          | Column             | Required quantity                 | > 0                           |
+| 18  | Waste %           | Column             | Waste percentage                  | Optional                      |
+| 19  | Net Quantity      | Column             | Calculated quantity after waste   | Read-only                     |
+| 20  | Note              | Column             | Additional info                   | Optional                      |
+
+---
+
+### 🔥 **(NÊN CÓ) Net Quantity Calculation**
+
+* Net Quantity = Quantity × (1 + Waste%)
+
+→ Đây là logic production, rất đáng điểm.
+
+---
+
+## **III. Action Section**
+
+| No. | Component / Field | Type   | Description                         | Requirements / Notes    |
+| --- | ----------------- | ------ | ----------------------------------- | ----------------------- |
+| 21  | Edit Button       | Button | Navigate to BOM Form Screen         | Permission-based        |
+| 22  | Activate Button   | Button | Activate BOM                        | Only if inactive        |
+| 23  | Deactivate Button | Button | Deactivate BOM                      | Only if active          |
+| 24  | Clone BOM Button  | Button | Create new version from current BOM | Optional nhưng rất mạnh |
+| 25  | Back Button       | Button | Return to BOM List Screen           | Mandatory               |
+
+---
+
+## **UI Requirements / Notes**
+
+* BOM information must be displayed as read-only.
+* The BOM Structure must display all material items clearly.
+* System should support:
+
+  * Table view (basic)
+  * Tree view (advanced, nếu có multi-level BOM)
+* Net Quantity must be calculated automatically.
+* If no BOM item exists:
+
+  * Display **with "No material found in this BOM."**
+* Only one BOM per product can be Active:
+
+  * Active BOM should be visually highlighted.
+* Clone BOM button should:
+
+  * Copy all BOM information and items
+  * Redirect to BOM Form (new version)
+* If user has no permission:
+
+  * Hide Edit / Activate / Deactivate buttons
+
+---
+
+# b. UC Specifications
+
+---
+
+## **UC-BOM-04_View BOM Detail**
+
+**ID and Name**
+UC-BOM-04 – View BOM Detail
+
+**Primary Actor:**
+Admin
+
+**Secondary Actor:**
+Production Manager
+
+---
+
+**Description:**
+As an Admin, I want to view detailed BOM information so that I can understand product structure and material requirements for production.
+
+---
+
+**Preconditions:**
+
+* Actor has logged into system
+* Actor is on BOM List Screen
+* BOM exists
+
+---
+
+**Postconditions:**
+
+* BOM detail and material structure are displayed
+
+---
+
+**Normal Flow:**
+
+1. Actor navigates to **BOM List Screen**
+2. Actor clicks **BOM Code** or **View Detail**
+3. System retrieves BOM information
+4. System displays **BOM Detail Screen**
+5. System displays BOM information section
+6. System retrieves BOM item list
+7. System calculates Net Quantity for each item
+8. System displays BOM structure
+9. Actor reviews BOM
+
+---
+
+**Alternative Flows:**
+
+**A1. No material in BOM**
+
+1. At step 6, no BOM item found
+2. System displays **"No material found in this BOM."**
+
+---
+
+**A2. Actor switches view mode**
+
+1. Actor selects Tree/Table toggle
+2. System changes display mode
+
+---
+
+**A3. Actor navigates back**
+
+1. Actor clicks Back
+2. System returns to BOM List
+
+---
+
+**Exception:**
+
+**E1. BOM not found**
+
+1. At step 3, system cannot find BOM
+2. System displays **with "BOM not found."**
+
+---
+
+**E2. Load error**
+
+1. At step 6, system fails to load data
+2. System displays **with "Unable to load BOM detail."**
+
+---
+
+**Business Rule:**
+
+* Each BOM belongs to exactly one product
+* A BOM must contain at least one material
+* Net Quantity must be calculated automatically
+* Only one BOM per product can be Active
+
+---
+
+## **UC-BOM-05_Activate/Deactivate BOM**
+
+**ID and Name**
+UC-BOM-05 – Activate/Deactivate BOM
+
+**Primary Actor:**
+Admin
+
+---
+
+**Description:**
+As an Admin, I want to activate or deactivate a BOM so that I can control which BOM is used in production.
+
+---
+
+**Preconditions:**
+
+* Actor is on BOM Detail Screen
+* BOM exists
+
+---
+
+**Postconditions:**
+
+* BOM status updated
+
+---
+
+**Normal Flow (Activate):**
+
+1. Actor clicks **Activate**
+2. System shows confirmation **"Are you sure you want to activate this BOM?"**
+3. Actor confirms
+4. System checks existing active BOM of the same product
+5. System deactivates previous active BOM (if exists)
+6. System sets current BOM to Active
+7. System displays **with "BOM has been activated successfully."**
+
+---
+
+**Normal Flow (Deactivate):**
+
+1. Actor clicks **Deactivate**
+2. System shows confirmation
+3. Actor confirms
+4. System updates status
+5. System displays **with "BOM has been deactivated successfully."**
+
+---
+
+**Alternative Flows:**
+
+**A1. Actor cancels action**
+
+1. Actor cancels confirmation
+2. No change applied
+
+---
+
+**Exception:**
+
+**E1. Active BOM conflict**
+
+1. System cannot update status
+2. Display **with "Unable to update BOM status."**
+
+---
+
+**Business Rule:**
+
+* Only one Active BOM per product
+* Active BOM is used in:
+
+  * Production planning
+  * Material Requirement calculation
+* Inactive BOM is for reference only
+
+---
+
+## **UC-BOM-06_Clone BOM (VERY IMPORTANT – ăn điểm)**
+
+**ID and Name**
+UC-BOM-06 – Clone BOM
+
+**Primary Actor:**
+Admin
+
+---
+
+**Description:**
+As an Admin, I want to clone an existing BOM so that I can create a new version without re-entering all material data.
+
+---
+
+**Preconditions:**
+
+* Actor is on BOM Detail Screen
+* BOM exists
+
+---
+
+**Postconditions:**
+
+* New BOM version is created
+
+---
+
+**Normal Flow:**
+
+1. Actor clicks **Clone BOM**
+2. System copies BOM data and BOM items
+3. System generates new BOM Code / Version
+4. System redirects to **BOM Form Screen**
+5. Actor updates necessary information
+6. Actor saves
+7. System displays **with "BOM has been created successfully."**
+
+---
+
+**Alternative Flows:**
+
+**A1. Actor cancels cloning**
+
+1. Actor exits form
+2. No new BOM created
+
+---
+
+**Exception:**
+
+**E1. Clone failed**
+
+1. System fails to copy data
+2. Display **with "Unable to clone BOM."**
+
+---
+
+**Business Rule:**
+
+* New BOM version must be unique
+* Cloned BOM is created as Inactive by default
+* User must manually activate new BOM if needed
+
+---
+
+## 2.x.x.x BOM Form
+
+### a. UI Specifications
+
+#### **BOM Form Screen**
+
+**Brief Description**
+This screen allows the actor to create a new BOM or update an existing BOM for a product. It also allows the actor to define and manage the list of material items, quantities, waste percentage, and notes for each BOM item. The screen supports BOM versioning and can be used when creating a new BOM from scratch or from a cloned BOM.
+
+**Mockup Screen**
+[Insert mockup of BOM Form Screen here]
+
+---
+
+### I. BOM Information Section
+
+| No. | Component / Field | Type              | Description                             | Requirements / Notes                                             |
+| --- | ----------------- | ----------------- | --------------------------------------- | ---------------------------------------------------------------- |
+| 1   | Page Title        | Label             | Display: **BOM Form**                   | Mandatory                                                        |
+| 2   | Form Mode Label   | Label             | Indicates Create or Update mode         | Read-only                                                        |
+| 3   | BOM Code          | Textbox           | Unique identifier of BOM                | Mandatory in create mode; read-only or controlled in update mode |
+| 4   | Product Code      | Lookup / Dropdown | Select product code associated with BOM | Mandatory                                                        |
+| 5   | Product Name      | Auto-filled Text  | Display selected product name           | Read-only after selection                                        |
+| 6   | Version           | Textbox           | BOM version                             | Mandatory                                                        |
+| 7   | Status            | Dropdown          | BOM status                              | Values: Active, Inactive                                         |
+| 8   | Effective Date    | Date Picker       | Effective date of BOM                   | Optional                                                         |
+| 9   | Description       | Text Area         | Additional BOM description              | Optional                                                         |
+| 10  | Save Button       | Button            | Save BOM and BOM items                  | Mandatory                                                        |
+| 11  | Cancel Button     | Button            | Cancel current action                   | Mandatory                                                        |
+| 12  | Back Button       | Button            | Return to BOM List or BOM Detail        | Mandatory                                                        |
+
+---
+
+### II. BOM Item Section
+
+| No. | Component / Field       | Type              | Description                                  | Requirements / Notes        |
+| --- | ----------------------- | ----------------- | -------------------------------------------- | --------------------------- |
+| 13  | Section Title           | Label             | Display: **BOM Items**                       | Mandatory                   |
+| 14  | Add Material Button     | Button            | Add new BOM item row                         | Mandatory                   |
+| 15  | BOM Item Table          | Table             | Displays material items of BOM               | Mandatory                   |
+| 16  | Material Code           | Dropdown / Lookup | Select material code                         | Mandatory                   |
+| 17  | Material Name           | Auto-filled Text  | Display selected material name               | Read-only                   |
+| 18  | Unit                    | Auto-filled Text  | Display material unit                        | Read-only                   |
+| 19  | Quantity                | Numeric Textbox   | Required quantity of material                | Mandatory, must be > 0      |
+| 20  | Waste Percentage        | Numeric Textbox   | Waste percentage for material                | Optional or default by rule |
+| 21  | Net Quantity            | Calculated Field  | Calculated required quantity including waste | Read-only                   |
+| 22  | Note                    | Textbox           | Additional note for BOM item                 | Optional                    |
+| 23  | Remove Button           | Button/Icon       | Remove selected BOM item row                 | Mandatory                   |
+| 24  | Validation Message Area | Label             | Display row validation messages              | System-generated            |
+
+---
+
+### III. UI Requirements / Notes
+
+* The screen supports both **Create BOM** and **Update BOM**.
+* In create mode, the actor can create a new BOM for a selected product.
+* In update mode, the actor can modify BOM information and BOM items.
+* The actor can add multiple BOM item rows.
+* Each BOM item must reference an existing material.
+* Material Name and Unit are automatically loaded after actor selects Material Code.
+* Quantity must be greater than 0.
+* Waste Percentage, if entered, must be greater than or equal to 0.
+* Net Quantity is automatically calculated for each row based on the formula:
+  **Net Quantity = Quantity × (1 + Waste Percentage / 100)**
+* A BOM must contain at least one material item.
+* Duplicate material in the same BOM is not allowed.
+* Only active materials can be selected for new BOM rows.
+* If actor clicks **Save**, the system validates BOM information and all BOM item rows before saving.
+* If no BOM item exists, the system displays **with "At least one BOM item is required."**
+* If duplicate material exists, the system displays **with "Duplicated material is not allowed in BOM."**
+* If save succeeds, the system displays:
+
+  * **with "BOM has been created successfully."** in create mode
+  * **with "BOM has been updated successfully."** in update mode
+* If the form is opened from **Clone BOM**, the new BOM should be initialized with copied BOM items and default status **Inactive**.
+
+---
+
+### b. UC Specifications
+
+---
+
+## UC-BOM-07_Create BOM
+
+**ID and Name**
+UC-BOM-07 – Create BOM
+
+**Primary Actor:**
+Admin
+
+**Secondary Actor:**
+Production Manager
+
+**Description:**
+As an Admin, I want to create a BOM for a product so that the system can use the material structure for production planning and material calculation.
+
+**Preconditions:**
+
+* The actor has logged into the system successfully.
+* The actor has permission to create BOM.
+* The selected product already exists.
+* Related materials already exist in the system.
+
+**Postconditions:**
+
+* A new BOM is created and linked to a product.
+* BOM items are saved successfully.
+
+**Normal Flow:**
+
+1. The actor navigates to **BOM List Screen**.
+2. The actor clicks **Create BOM**.
+3. The system displays **BOM Form Screen** in create mode.
+4. The actor selects a product.
+5. The system displays Product Name based on selected Product Code.
+6. The actor enters BOM information including BOM Code, Version, Status, Effective Date, and Description if any.
+7. The actor clicks **Add Material**.
+8. The system adds a new empty BOM item row.
+9. The actor selects a material in the row.
+10. The system auto-fills Material Name and Unit.
+11. The actor enters Quantity, Waste Percentage, and Note if any.
+12. The system calculates Net Quantity automatically.
+13. The actor repeats steps 7 to 12 until all BOM items are added.
+14. The actor clicks **Save**.
+15. The system validates BOM information.
+16. The system validates all BOM item rows.
+17. The system saves the BOM.
+18. The system saves all BOM items.
+19. The system displays **with "BOM has been created successfully."**
+20. The system redirects the actor to **BOM Detail Screen**.
+
+**Alternative Flows:**
+**A1. Actor creates BOM with optional fields left blank**
+
+1. At step 6 or 11, the actor leaves optional fields blank.
+2. The system still allows save if all mandatory data is valid.
+
+**A2. Actor removes a BOM item row before save**
+
+1. Before step 14, the actor clicks **Remove** on a BOM item row.
+2. The system removes the selected row from the table.
+
+**A3. Actor cancels the form**
+
+1. Before step 14, the actor clicks **Cancel**.
+2. The system displays confirmation popup with **"Unsaved data will be lost. Do you want to continue?"**
+3. The actor confirms.
+4. The system discards unsaved data and returns to **BOM List Screen**.
+
+**Exception:**
+**E1. Missing mandatory BOM information**
+
+1. At step 15, the system detects missing required BOM fields.
+2. The system highlights invalid fields and displays validation messages.
+3. The system remains on BOM Form Screen.
+
+**E2. No BOM item added**
+
+1. At step 16, the system detects that BOM item table is empty.
+2. The system displays **with "At least one BOM item is required."**
+
+**E3. Invalid quantity**
+
+1. At step 16, one or more BOM item rows have quantity less than or equal to 0.
+2. The system displays **with "Quantity must be greater than 0."**
+
+**E4. Invalid waste percentage**
+
+1. At step 16, one or more BOM item rows have invalid waste percentage.
+2. The system displays **with "Waste percentage is invalid."**
+
+**E5. Duplicate material in BOM**
+
+1. At step 16, the system detects duplicate material in BOM item rows.
+2. The system displays **with "Duplicated material is not allowed in BOM."**
+
+**E6. BOM code already exists**
+
+1. At step 15, the system detects that BOM Code already exists.
+2. The system displays **with "BOM code already exists."**
+
+**E7. Save failed**
+
+1. At step 17 or 18, the system fails to save data.
+2. The system displays **with "Unable to save BOM information."**
+
+**Business Rule:**
+
+* BOM Code must be unique.
+* Each BOM must belong to exactly one product.
+* A BOM must contain at least one BOM item.
+* Each BOM item must reference an existing material.
+* Duplicate material in the same BOM is not allowed.
+* Quantity must be greater than 0.
+* Waste Percentage must be greater than or equal to 0.
+* Only one BOM can be Active for each product.
+* If actor creates a BOM with status Active, the system must ensure no other BOM of the same product remains Active.
+
+---
+
+## UC-BOM-08_Update BOM
+
+**ID and Name**
+UC-BOM-08 – Update BOM
+
+**Primary Actor:**
+Admin
+
+**Secondary Actor:**
+Production Manager
+
+**Description:**
+As an Admin, I want to update an existing BOM so that the material structure of a product remains accurate and up to date.
+
+**Preconditions:**
+
+* The actor has logged into the system successfully.
+* The actor has permission to update BOM.
+* The selected BOM already exists.
+
+**Postconditions:**
+
+* BOM information and BOM items are updated successfully.
+
+**Normal Flow:**
+
+1. The actor opens **BOM Detail Screen**.
+2. The actor clicks **Edit**.
+3. The system displays **BOM Form Screen** in update mode with existing BOM data.
+4. The actor updates BOM information as needed.
+5. The actor updates BOM items as needed.
+6. The actor may add new BOM item rows.
+7. The actor may edit existing item rows.
+8. The actor may remove existing item rows.
+9. The actor clicks **Save**.
+10. The system validates BOM information.
+11. The system validates all BOM item rows.
+12. The system updates BOM information.
+13. The system updates BOM items.
+14. The system displays **with "BOM has been updated successfully."**
+15. The system redirects the actor to **BOM Detail Screen**.
+
+**Alternative Flows:**
+**A1. Actor adds a new material row**
+
+1. At step 6, the actor clicks **Add Material**.
+2. The system adds a new empty row.
+3. The actor enters item information.
+
+**A2. Actor removes an existing row**
+
+1. At step 8, the actor clicks **Remove**.
+2. The system removes the row or marks it for deletion.
+
+**A3. Actor cancels update**
+
+1. Before step 9, the actor clicks **Cancel**.
+2. The system displays confirmation popup with **"Unsaved data will be lost. Do you want to continue?"**
+3. The actor confirms.
+4. The system discards unsaved changes and returns to **BOM Detail Screen**.
+
+**Exception:**
+**E1. Updated data is invalid**
+
+1. At step 10 or 11, the system detects invalid data.
+2. The system displays corresponding validation messages.
+3. The system remains on BOM Form Screen.
+
+**E2. Active BOM conflict**
+
+1. At step 12, the system detects that another active BOM already exists for the same product.
+2. The system displays **with "Only one active BOM is allowed for each product."**
+
+**E3. Update failed**
+
+1. At step 12 or 13, the system fails to update data.
+2. The system displays **with "Unable to update BOM information."**
+
+**Business Rule:**
+
+* Product of an existing BOM should not be changed directly in update mode, unless your scope explicitly allows it.
+* A BOM must always contain at least one material item.
+* Only one BOM can be Active for one product.
+* Only active materials can be selected for new BOM rows.
+* Net Quantity is always system-calculated and cannot be entered manually.
+
+---
+
+## UC-BOM-09_Create BOM from Clone
+
+**ID and Name**
+UC-BOM-09 – Create BOM from Clone
+
+**Primary Actor:**
+Admin
+
+**Secondary Actor:**
+Production Manager
+
+**Description:**
+As an Admin, I want to create a new BOM by cloning an existing BOM so that I can create a new version without re-entering all material rows manually.
+
+**Preconditions:**
+
+* The actor has logged into the system successfully.
+* The actor has permission to create BOM.
+* The source BOM already exists.
+
+**Postconditions:**
+
+* A new BOM version is created from copied BOM data.
+
+**Normal Flow:**
+
+1. The actor opens **BOM Detail Screen** of an existing BOM.
+2. The actor clicks **Clone BOM**.
+3. The system copies BOM information and BOM item rows.
+4. The system opens **BOM Form Screen** in create mode with copied data.
+5. The system sets status to **Inactive** by default.
+6. The actor updates BOM Code, Version, Effective Date, or other information if needed.
+7. The actor reviews copied BOM items.
+8. The actor clicks **Save**.
+9. The system validates all data.
+10. The system creates a new BOM and its BOM items.
+11. The system displays **with "BOM has been created successfully."**
+12. The system redirects the actor to **BOM Detail Screen** of the new BOM.
+
+**Alternative Flows:**
+**A1. Actor edits copied BOM items**
+
+1. Before step 8, the actor adds, edits, or removes one or more BOM item rows.
+2. The system saves the final edited data.
+
+**A2. Actor cancels cloning**
+
+1. Before step 8, the actor clicks **Cancel**.
+2. The system displays confirmation popup with **"Unsaved data will be lost. Do you want to continue?"**
+3. The actor confirms.
+4. The system discards copied form data and returns to source BOM Detail Screen.
+
+**Exception:**
+**E1. Cloned BOM code or version is duplicated**
+
+1. At step 9, the system detects duplicate BOM code or invalid version.
+2. The system displays validation message and remains on BOM Form Screen.
+
+**E2. Clone save failed**
+
+1. At step 10, the system fails to save cloned BOM.
+2. The system displays **with "Unable to save BOM information."**
+
+**Business Rule:**
+
+* Cloned BOM must be treated as a new BOM record.
+* Cloned BOM should be created with status **Inactive** by default.
+* BOM Code and Version of the new BOM must be unique.
+* Actor may edit cloned BOM items before saving.
+
+---
+
