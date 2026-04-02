@@ -2,24 +2,28 @@ import { useState } from "react";
 import "./DashboardLayout.css";
 import { Sidebar }           from "../components/Sidebar";
 import { Header }            from "../components/Header";
-import { ManageBOM }         from "../pages/ManageBOM";
-import { PlanProduction }    from "../pages/PlanProduction";
-import { ExecuteWorkOrder }  from "../pages/ExecuteWorkOrder";
-import { ControlMaterial }   from "../pages/ControlMaterial";
-import { MaterialDetail }    from "../pages/MaterialDetail";
-import { ProductList }       from "../pages/ProductList";
-import { ProductDetail }     from "../pages/ProductDetail";
-import { MonitorProduction } from "../pages/MonitorProduction";
+import { ManageBOM }         from "../pages/production/ManageBOM.jsx";
+import { PlanProduction }    from "../pages/production/PlanProduction.jsx";
+import { PlanCalendar }      from "../pages/production/PlanCalendar.jsx";
+import { ExecuteWorkOrder }  from "../pages/production/ExecuteWorkOrder.jsx";
+import { ControlMaterial }   from "../pages/production/ControlMaterial.jsx";
+import { MaterialDetail }    from "../pages/production/Materialdetail.jsx";
+import { ProductList }       from "../pages/production/ProductList.jsx";
+import { ProductDetail }     from "../pages/production/ProductDetail.jsx";
+import { MonitorProduction } from "../pages/production/MonitorProduction.jsx";
+import { SalesOrders } from "../pages/sales/SalesOrders.jsx";
 
 const PAGE_TITLES = {
-  bom:            "Manage BOM",
-  plan:           "Plan Production",
-  workorder:      "Execute Work Order",
-  material:       "Control Material",
-  materialDetail: "Material Detail",
-  products:       "Products",
-  productDetail:  "Product Detail",
-  monitor:        "Monitor Production",
+  orders:         "Đơn hàng",
+  bom:            "Quản lý BOM",
+  plan:           "Danh sách kế hoạch",
+  calendar:       "Lập lịch sản xuất",
+  workorder:      "Thực hiện lệnh sản xuất",
+  material:       "Quản lý vật tư",
+  materialDetail: "Chi tiết vật tư",
+  products:       "Sản phẩm",
+  productDetail:  "Chi tiết sản phẩm",
+  monitor:        "Giám sát sản xuất",
 };
 
 export const DashboardLayout = () => {
@@ -57,8 +61,10 @@ export const DashboardLayout = () => {
       );
 
     switch (activePage) {
+      case "orders": return <SalesOrders />;
       case "bom":       return <ManageBOM />;
       case "plan":      return <PlanProduction />;
+      case "calendar":  return <PlanCalendar />;
       case "workorder": return <ExecuteWorkOrder />;
       case "material":  return <ControlMaterial key={materialRefreshKey} onSelectMaterial={(m) => { setSelectedMaterial(m); setActivePage("materialDetail"); }} />;
       case "products":  return <ProductList key={productRefreshKey} onSelectProduct={(p) => { setSelectedProduct(p); setActivePage("productDetail"); }} />;

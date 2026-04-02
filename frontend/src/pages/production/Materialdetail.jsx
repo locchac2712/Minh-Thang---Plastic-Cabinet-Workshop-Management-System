@@ -3,9 +3,9 @@
 // Hiển thị chi tiết 1 vật liệu + CRUD actions
 // ============================================================
 import { useState } from "react";
-import "./MaterialDetail.css";
-import { useAuth } from "../context/AuthContext";
-import materialService from "../services/materialService";
+import "./Materialdetail.css";
+import { useAuth } from "../../context/AuthContext.jsx";
+import materialService from "../../services/materialService.js";
 
 // ── Edit Form Modal ──────────────────────────────────────────
 const EditForm = ({ initial, onSave, onClose, loading }) => {

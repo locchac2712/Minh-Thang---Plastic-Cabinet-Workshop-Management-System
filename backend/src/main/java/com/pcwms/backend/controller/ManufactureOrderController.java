@@ -69,4 +69,30 @@ public class ManufactureOrderController {
             );
         }
     }
+
+    // API: XẾP LỊCH SẢN XUẤT THỦ CÔNG (TỰ QUYẾT ĐỊNH NGÀY BẮT ĐẦU VÀ KẾT THÚC)
+    @PostMapping("/manual-schedule")
+    @PreAuthorize("hasAnyRole('PRODUCTION_MANAGER', 'ADMIN', 'DIRECTOR')")
+    public ResponseEntity<ResponseObject> manualScheduleManufactureOrder(
+            @RequestBody CreateMORequest request) {
+        try {
+            ManufactureOrder newMO = manufactureOrderService.createManualManufactureOrder(
+                    request.getSalesOrderId(),
+                    request.getProductId(),
+                    request.getQuantity(),
+                    request.getTechnicalNotes(),
+                    request.getRequestedStartDate(),
+                    request.getRequestedEndDate()
+            );
+
+            MODetailResponse responseData = new MODetailResponse(newMO);
+            return ResponseEntity.ok(
+                    new ResponseObject("SUCCESS", "Lên lịch thủ công thành công Lệnh: " + newMO.getMoNumber(), responseData)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", e.getMessage(), null)
+            );
+        }
+    }
 }

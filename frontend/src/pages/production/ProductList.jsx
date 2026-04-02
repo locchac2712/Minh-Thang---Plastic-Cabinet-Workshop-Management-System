@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./ProductList.css";
-import { useProducts } from "../hooks/useProducts";
-import { useAuth } from "../context/AuthContext";
+import { useProducts } from "../../hooks/useProducts.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 const STATUS_LABEL = {
     DRAFT:       { text: "Bản nháp",  cls: "prod-status--draft" },

@@ -4,8 +4,8 @@
 // ============================================================
 import { useState } from "react";
 import "./ControlMaterial.css";
-import { useMaterials } from "../hooks/useMaterials";
-import { useAuth } from "../context/AuthContext";
+import { useMaterials } from "../../hooks/useMaterials.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 export const ControlMaterial = ({ onSelectMaterial }) => {
   const { materials, loading, error, refetch } = useMaterials();

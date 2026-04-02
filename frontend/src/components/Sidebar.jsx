@@ -3,12 +3,14 @@ import { NavItem } from "./NavItem";
 import { useAuth } from "../context/AuthContext";
 
 const NAV_ITEMS = [
-    { id: "bom",       label: "Manage BOM",        icon: "" },
-    { id: "plan",      label: "Plan Production",    icon: "" },
-    { id: "workorder", label: "Execute Work Order", icon: "" },
-    { id: "material",  label: "Control Material",   icon: "" },
-    { id: "products",   label: "Products",           icon: "" },
-    { id: "monitor",   label: "Monitor Production", icon: "" },
+    { id: "orders",    label: "Đơn hàng",            icon: "" },
+    { id: "bom",       label: "Quản lý BOM",         icon: "" },
+    { id: "plan",      label: "Danh sách kế hoạch",      icon: "" },
+    { id: "calendar",  label: "Lập lịch sản xuất",    icon: "" },
+    { id: "workorder", label: "Thực hiện lệnh SX",    icon: "" },
+    { id: "material",  label: "Quản lý vật tư",       icon: "" },
+    { id: "products",  label: "Sản phẩm",             icon: "" },
+    { id: "monitor",   label: "Giám sát sản xuất",    icon: "" },
 ];
 
 export const Sidebar = ({ activePage, onNavigate }) => {
@@ -16,7 +18,6 @@ export const Sidebar = ({ activePage, onNavigate }) => {
 
     const handleLogout = () => {
         logout();
-        // Redirect về trang login (reload là cách đơn giản nhất vì App.jsx sẽ show LoginModal)
         window.location.href = window.location.origin;
     };
 
@@ -27,7 +28,7 @@ export const Sidebar = ({ activePage, onNavigate }) => {
                 <span className="logo-text">ProManager</span>
             </div>
 
-            <div className="sidebar-section-label">Main Menu</div>
+            <div className="sidebar-section-label">Menu chính</div>
 
             <nav className="sidebar-nav">
                 {NAV_ITEMS.map((item) => (

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import "./ProductDetail.css";
-import { useAuth } from "../context/AuthContext";
-import productService from "../services/productService";
+import { useAuth } from "../../context/AuthContext.jsx";
+import productService from "../../services/productService.js";
 
 const STATUS_LABEL = {
     DRAFT:       { text: "Bản nháp",  cls: "prod-status--draft" },
@@ -242,7 +242,7 @@ export const ProductDetail = ({ product: initial, onBack, onUpdated }) => {
             // Upload file lên server
             const formData = new FormData();
             formData.append("file", file);
-            const res = await import("../services/api").then(m =>
+            const res = await import("../../services/api.js").then(m =>
                 m.default.post("/files/upload/products", formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 })

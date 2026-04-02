@@ -12,7 +12,7 @@ public class CreateMORequest {
     private Long productId;
     private Integer quantity;
     private String technicalNotes;
-
     private LocalDateTime requestedStartDate;
+    private LocalDateTime requestedEndDate;
     
 }
