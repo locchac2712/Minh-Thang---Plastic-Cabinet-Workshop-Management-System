@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import "./SalesPages.css";
 import { CreateQuoteModal } from "./CreateQuoteModal.jsx";
 import { EditQuoteModal } from "./EditQuoteModal.jsx";
@@ -44,7 +44,6 @@ const createOrderFromQuotation = async (quotationId) => {
         `/sales-orders/from-quotation/${quotationId}`,
         {}
     );
-    // API tra ve: { status: "SUCCESS", message, data: { orderNumber, ... } }
     const body = res.data;
     if (body.status !== "SUCCESS") throw new Error(body.message || "Tao don that bai");
     return body.data;
@@ -58,6 +57,128 @@ const Toast = ({ msg, type, onClose }) => (
     </div>
 );
 
+// ── Print Preview Popup (for list page) ───────────────────
+const ListPrintPreview = ({ quoteId, onClose }) => {
+    const printRef = useRef(null);
+    const [quote, setQuote] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        quotationService.getById(quoteId)
+            .then(res => setQuote(res))
+            .catch(err => console.error("Lỗi tải:", err))
+            .finally(() => setLoading(false));
+    }, [quoteId]);
+
+    const handlePrint = () => {
+        const content = printRef.current;
+        const win = window.open("", "_blank", "width=800,height=600");
+        win.document.write(`
+            <html><head><title>Báo giá ${quote.quotationNumber}</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #111; }
+                .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #111; padding-bottom: 20px; }
+                .header h1 { font-size: 22px; margin-bottom: 4px; }
+                .header .code { font-size: 14px; color: #666; }
+                .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+                .info-block label { font-size: 11px; color: #888; display: block; margin-bottom: 2px; }
+                .info-block div { font-size: 14px; font-weight: 500; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+                th { background: #f5f5f5; text-align: left; padding: 8px 12px; font-size: 12px; border: 1px solid #ddd; }
+                td { padding: 8px 12px; font-size: 13px; border: 1px solid #ddd; }
+                .total-row { text-align: right; font-size: 16px; font-weight: 700; margin-top: 8px; }
+                .note { margin-top: 20px; padding: 12px; background: #fffbe6; border: 1px solid #ffe58f; font-size: 13px; }
+                @media print { body { padding: 20px; } }
+            </style></head><body>${content.innerHTML}</body></html>
+        `);
+        win.document.close();
+        win.focus();
+        setTimeout(() => { win.print(); win.close(); }, 300);
+    };
+
+    if (loading) {
+        return (
+            <div className="sq-modal-overlay" style={{ zIndex: 9999 }} onClick={onClose}>
+                <div className="sq-modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 500, padding: 40, textAlign: "center" }}>
+                    <div className="sp-spinner" style={{ margin: "0 auto 12px" }} />
+                    <span>Đang tải dữ liệu...</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (!quote) {
+        return (
+            <div className="sq-modal-overlay" style={{ zIndex: 9999 }} onClick={onClose}>
+                <div className="sq-modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 500, padding: 40, textAlign: "center" }}>
+                    <span>⚠️ Không tải được dữ liệu</span>
+                    <button className="sq-modal-btn sq-modal-btn--cancel" style={{ marginTop: 16 }} onClick={onClose}>Đóng</button>
+                </div>
+            </div>
+        );
+    }
+
+    const details = quote.details || [];
+    const subTotal = details.reduce((s, d) => s + (d.quantity * Number(d.unitPrice)), 0);
+    const totalDiscount = details.reduce((s, d) => s + Number(d.discount || 0), 0);
+
+    return (
+        <div className="sq-modal-overlay" style={{ zIndex: 9999 }} onClick={onClose}>
+            <div className="sq-modal-box sq-modal-box--large" onClick={e => e.stopPropagation()} style={{ maxWidth: 700 }}>
+                <div className="sq-modal-header">
+                    <div className="sq-modal-title-group">
+                        <h2 className="sq-modal-title">Xem trước khi in</h2>
+                    </div>
+                    <button className="sq-modal-close" onClick={onClose}>✕</button>
+                </div>
+                <div className="sq-modal-body" style={{ maxHeight: "70vh", overflowY: "auto" }}>
+                    <div ref={printRef}>
+                        <div className="header">
+                            <h1>BÁO GIÁ</h1>
+                            <div className="code">{quote.quotationNumber}</div>
+                        </div>
+                        <div className="info-grid">
+                            <div className="info-block"><label>Khách hàng</label><div>{quote.customer?.name}</div></div>
+                            <div className="info-block"><label>Ngày tạo</label><div>{fmtDate(quote.createdDate)}</div></div>
+                            <div className="info-block"><label>Nhân viên</label><div>{quote.staff?.fullname}</div></div>
+                            <div className="info-block"><label>Hiệu lực đến</label><div>{fmtDate(quote.validUntil)}</div></div>
+                        </div>
+                        <table>
+                            <thead><tr><th>STT</th><th>Sản phẩm</th><th>SL</th><th>Đơn giá</th><th>Chiết khấu</th><th style={{textAlign:"right"}}>Thành tiền</th></tr></thead>
+                            <tbody>
+                                {details.map((d, i) => (
+                                    <tr key={i}>
+                                        <td>{i + 1}</td>
+                                        <td>{d.productName}</td>
+                                        <td>{d.quantity}</td>
+                                        <td>{fmt(d.unitPrice)}</td>
+                                        <td>{d.discountPercent || 0}%</td>
+                                        <td style={{textAlign:"right"}}>{fmt(d.totalPrice)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {totalDiscount > 0 && (
+                            <div style={{textAlign:"right", fontSize:"14px", color:"#666", marginBottom: 4}}>
+                                Tạm tính: {fmt(subTotal)} | Chiết khấu: -{fmt(totalDiscount)}
+                            </div>
+                        )}
+                        <div className="total-row">Tổng cộng: {fmt(quote.totalAmount)}</div>
+                        {quote.note && <div className="note"><strong>Ghi chú:</strong> {quote.note}</div>}
+                    </div>
+                </div>
+                <div className="sq-modal-footer">
+                    <button className="sq-modal-btn sq-modal-btn--cancel" onClick={onClose}>Đóng</button>
+                    <button className="sq-modal-btn sq-modal-btn--submit" onClick={handlePrint}>
+                        In báo giá
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // ── Status Edit Modal ──────────────────────────────────────
 const StatusModal = ({ quote, onClose, onSaved }) => {
     const [status, setStatus] = useState(quote.status);
@@ -69,22 +190,16 @@ const StatusModal = ({ quote, onClose, onSaved }) => {
         setSaving(true);
         setError(null);
         try {
-            // 1. Cập nhật trạng thái báo giá
             await quotationService.updateStatus(quote.id, status);
-
-            // 2. Nếu chuyển sang ACCEPTED → tự động tạo đơn bán hàng
             if (status === "ACCEPTED") {
                 try {
                     const order = await createOrderFromQuotation(quote.id);
-                    // Truyền thông tin đơn mới lên để hiện toast
                     onSaved({ createdOrder: order });
                 } catch (orderErr) {
                     const msg = orderErr.response?.data?.message || orderErr.message || "";
-                    if (msg.includes("t1ea1o 011001a1n H00e0ng r1ed3i") || msg.includes("t1ea1o 011100fap")) {
-                        // Đơn đã tồn tại — không phải lỗi nghiêm trọng
+                    if (msg.includes("đã tồn tại") || msg.includes("đã tạo")) {
                         onSaved({ alreadyExists: true });
                     } else {
-                        // Lỗi tạo đơn — vẫn đóng modal nhưng báo lỗi
                         onSaved({ orderError: msg });
                     }
                 }
@@ -116,7 +231,6 @@ const StatusModal = ({ quote, onClose, onSaved }) => {
                         <span className={`sq-badge ${cur.cls}`}>{cur.text}</span>
                     </div>
 
-                    {/* Cảnh báo khi chọn ACCEPTED */}
                     {status === "ACCEPTED" && quote.status !== "ACCEPTED" && (
                         <div className="sq-modal__warn">
                             📦 Khi chốt báo giá, hệ thống sẽ <strong>tự động tạo đơn bán hàng</strong> từ báo giá này.
@@ -183,10 +297,21 @@ const StatusModal = ({ quote, onClose, onSaved }) => {
 // ── Custom Status Select ──────────────────────────────────
 const CustomStatusSelect = ({ value, onChange, options, placeholder = "Chọn..." }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const wrapRef = useRef(null);
     const selected = options.find(o => o.value === value);
 
+    useEffect(() => {
+        const handler = (e) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
     return (
-        <div className="sq-custom-select" tabIndex={0} onBlur={() => setTimeout(() => setIsOpen(false), 240)}>
+        <div className="sq-custom-select" ref={wrapRef}>
             <div className={`sq-select-trigger${isOpen ? " sq-select-trigger--open" : ""}`} onClick={() => setIsOpen(!isOpen)}>
                 <span style={{ fontFamily: "'Inter', sans-serif" }}>{selected ? selected.label : placeholder}</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform .2s" }}>
@@ -211,10 +336,22 @@ const CustomStatusSelect = ({ value, onChange, options, placeholder = "Chọn...
     );
 };
 
-// ── Custom Date Range Picker (Advanced) ──────────────────
+// ── Custom Date Range Picker (Fixed - no onBlur bug) ─────
 const CustomDateRangePicker = ({ start, end, onStartChange, onEndChange }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [viewDate, setViewDate] = useState(new Date());
+    const wrapRef = useRef(null);
+
+    // Use mousedown outside to close — prevents the onBlur bug
+    useEffect(() => {
+        const handler = (e) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
 
     const formatDate = (dStr) => {
         if (!dStr) return "";
@@ -237,6 +374,22 @@ const CustomDateRangePicker = ({ start, end, onStartChange, onEndChange }) => {
         }
     };
 
+    const handlePrevMonth = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const year = viewDate.getFullYear();
+        const month = viewDate.getMonth();
+        setViewDate(new Date(year, month - 1));
+    };
+
+    const handleNextMonth = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const year = viewDate.getFullYear();
+        const month = viewDate.getMonth();
+        setViewDate(new Date(year, month + 1));
+    };
+
     const renderCalendar = () => {
         const year = viewDate.getFullYear();
         const month = viewDate.getMonth();
@@ -250,9 +403,9 @@ const CustomDateRangePicker = ({ start, end, onStartChange, onEndChange }) => {
         return (
             <div className="sq-calendar">
                 <div className="sq-cal-header">
-                    <button onClick={() => setViewDate(new Date(year, month - 1))}>&lt;</button>
+                    <button type="button" onMouseDown={handlePrevMonth}>&lt;</button>
                     <span>Tháng {month + 1}, {year}</span>
-                    <button onClick={() => setViewDate(new Date(year, month + 1))}>&gt;</button>
+                    <button type="button" onMouseDown={handleNextMonth}>&gt;</button>
                 </div>
                 <div className="sq-cal-grid">
                     {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map(d => <div key={d} className="sq-cal-day-head">{d}</div>)}
@@ -265,7 +418,7 @@ const CustomDateRangePicker = ({ start, end, onStartChange, onEndChange }) => {
                             <div
                                 key={d}
                                 className={`sq-cal-day${isStart ? " sq-cal-day--start" : ""}${isEnd ? " sq-cal-day--end" : ""}${inRange ? " sq-cal-day--range" : ""}`}
-                                onClick={() => handleDayClick(d)}
+                                onMouseDown={(e) => { e.preventDefault(); handleDayClick(d); }}
                             >
                                 {new Date(d).getDate()}
                             </div>
@@ -277,7 +430,7 @@ const CustomDateRangePicker = ({ start, end, onStartChange, onEndChange }) => {
     };
 
     return (
-        <div className="sq-custom-select" tabIndex={0} onBlur={() => setTimeout(() => setIsOpen(false), 240)}>
+        <div className="sq-custom-select" ref={wrapRef}>
             <div className={`sq-select-trigger${isOpen ? " sq-select-trigger--open" : ""}`} onClick={() => setIsOpen(!isOpen)}>
                 <span style={{ fontFamily: "'Inter', sans-serif" }}>
                     {start ? `${formatDate(start)}${end ? ` - ${formatDate(end)}` : " - ..."}` : "Từ ngày - Đến ngày"}
@@ -308,6 +461,7 @@ export const SalesQuotes = () => {
     const [editingQuote, setEditingQuote] = useState(null);
     const [editingId, setEditingId] = useState(null);
     const [viewingId, setViewingId] = useState(null);
+    const [printingId, setPrintingId] = useState(null);
     const [toast, setToast] = useState(null);
 
     // New filter states
@@ -351,7 +505,7 @@ export const SalesQuotes = () => {
 
         if (result.createdOrder) {
             showToast(
-                `2705 011000e3 ch1ed1t b00e1o gi00e1 v00e0 t1ea1o 011101a1n h00e0ng ${result.createdOrder?.orderNumber || result.createdOrder?.order_number || ""} th00e0nh c00f4ng!`,
+                `✅ Đã chốt báo giá và tạo đơn hàng ${result.createdOrder?.orderNumber || result.createdOrder?.order_number || ""} thành công!`,
                 "success"
             );
         } else if (result.alreadyExists) {
@@ -517,7 +671,7 @@ export const SalesQuotes = () => {
                                         <td>
                                             <div className="sp-td--actions" style={{ justifyContent: "center" }}>
                                                 {q.status === "DRAFT" && (
-                                                    <button className="sp-action-btn" title="In báo giá" onClick={() => setViewingId(q.id)}>
+                                                    <button className="sp-action-btn" title="In báo giá" onClick={() => setPrintingId(q.id)}>
                                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                             <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
                                                             <rect x="6" y="14" width="12" height="8" />
@@ -596,7 +750,15 @@ export const SalesQuotes = () => {
                 <ViewQuoteModal 
                     quoteId={viewingId} 
                     onClose={() => setViewingId(null)}
-                    onSaved={() => { setViewingId(null); refetch(); }}
+                    onSaved={() => { refetch(); }}
+                />
+            )}
+
+            {/* Print Preview Popup — opened from list print button */}
+            {printingId && (
+                <ListPrintPreview
+                    quoteId={printingId}
+                    onClose={() => setPrintingId(null)}
                 />
             )}
 

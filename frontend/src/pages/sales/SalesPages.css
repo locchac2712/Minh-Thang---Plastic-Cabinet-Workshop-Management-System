@@ -43,6 +43,7 @@
     padding: 9px 16px;
     transition: border-color .15s;
     min-width: 280px;
+    width: 100%;
 }
 
 .sp-search:focus-within {
@@ -800,7 +801,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    flex: 2;
+    flex: 8;
+    min-width: 0;
 }
 
 .sq-toolbar__right {
@@ -808,7 +810,7 @@
     align-items: center;
     gap: 16px;
     margin-left: auto;
-    flex: 1;
+    flex-shrink: 0;
     justify-content: flex-end;
 }
 
@@ -834,6 +836,7 @@
     align-items: center;
     flex: 1;
     min-width: 0;
+    width: 100%;
 }
 
 .sp-search {
@@ -2898,7 +2901,7 @@
     border: 1px solid #e2e8f0;
     border-radius: 10px;
     padding: 0 12px;
-    width: 320px;
+    width: 70%;
     transition: all 0.2s;
 }
 

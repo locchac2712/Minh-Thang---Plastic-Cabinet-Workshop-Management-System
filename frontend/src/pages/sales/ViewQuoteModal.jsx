@@ -6,6 +6,16 @@ import { useAuth } from "../../context/AuthContext";
 const fmt = (v) => new Intl.NumberFormat("vi-VN").format(v ?? 0) + " đ";
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
 
+const STATUS_OPTIONS = [
+    { value: "DRAFT", label: "Bản nháp" },
+    { value: "SENT", label: "Đã gửi" },
+    { value: "ACCEPTED", label: "Đã chốt" },
+    { value: "REJECTED", label: "Đã hủy" },
+    { value: "EXPIRED", label: "Hết hạn" },
+];
+
+const statusLabel = (s) => STATUS_OPTIONS.find(o => o.value === s)?.label || s;
+
 // ── Print Preview Popup ───────────────────────────────────
 const PrintPreview = ({ quote, onClose, onPrinted }) => {
     const printRef = useRef(null);
@@ -149,7 +159,7 @@ const ProductSearchSelect = ({ products, value, onChange }) => {
     );
 };
 
-// ── Single Date Picker for Edit mode ──────────────────────
+// ── Single Date Picker for Edit mode (fixed close bug) ────
 const EditDatePicker = ({ value, onChange }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [viewDate, setViewDate] = useState(() => value ? new Date(value) : new Date());
@@ -168,6 +178,20 @@ const EditDatePicker = ({ value, onChange }) => {
         return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()}`;
     };
 
+    const handlePrevMonth = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const year = viewDate.getFullYear(), month = viewDate.getMonth();
+        setViewDate(new Date(year, month - 1));
+    };
+
+    const handleNextMonth = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const year = viewDate.getFullYear(), month = viewDate.getMonth();
+        setViewDate(new Date(year, month + 1));
+    };
+
     const renderCalendar = () => {
         const year = viewDate.getFullYear(), month = viewDate.getMonth();
         const firstDay = new Date(year, month, 1).getDay();
@@ -179,9 +203,9 @@ const EditDatePicker = ({ value, onChange }) => {
         return (
             <div style={{padding:12}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                    <button type="button" onClick={() => setViewDate(new Date(year, month - 1))} style={{background:"none",border:"1px solid #e5e7eb",borderRadius:6,width:28,height:28,cursor:"pointer"}}>&lt;</button>
+                    <button type="button" onMouseDown={handlePrevMonth} style={{background:"none",border:"1px solid #e5e7eb",borderRadius:6,width:28,height:28,cursor:"pointer"}}>&lt;</button>
                     <span style={{fontSize:13,fontWeight:700}}>Tháng {month+1}, {year}</span>
-                    <button type="button" onClick={() => setViewDate(new Date(year, month + 1))} style={{background:"none",border:"1px solid #e5e7eb",borderRadius:6,width:28,height:28,cursor:"pointer"}}>&gt;</button>
+                    <button type="button" onMouseDown={handleNextMonth} style={{background:"none",border:"1px solid #e5e7eb",borderRadius:6,width:28,height:28,cursor:"pointer"}}>&gt;</button>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
                     {["CN","T2","T3","T4","T5","T6","T7"].map(d => <div key={d} style={{textAlign:"center",fontSize:11,fontWeight:600,color:"#9ca3af",padding:"4px 0"}}>{d}</div>)}
@@ -189,7 +213,7 @@ const EditDatePicker = ({ value, onChange }) => {
                         if (!d) return <div key={`e-${i}`} />;
                         const isPast = d < today, isSel = d === value, isT = d === today;
                         return (
-                            <div key={d} onClick={() => !isPast && (onChange(d), setIsOpen(false))}
+                            <div key={d} onMouseDown={(e) => { e.preventDefault(); if (!isPast) { onChange(d); setIsOpen(false); } }}
                                 style={{textAlign:"center",fontSize:13,padding:"7px 0",borderRadius:8,cursor:isPast?"not-allowed":"pointer",
                                     background:isSel?"#7c3aed":"transparent",color:isSel?"#fff":isPast?"#d1d5db":"#111827",
                                     fontWeight:isSel?700:500,opacity:isPast?.5:1,border:isT&&!isSel?"1.5px solid #7c3aed":"1.5px solid transparent"}}>
@@ -217,6 +241,61 @@ const EditDatePicker = ({ value, onChange }) => {
     );
 };
 
+// ── Inline Status Select ──────────────────────────────────
+const InlineStatusSelect = ({ value, onChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const wrapRef = useRef(null);
+
+    useEffect(() => {
+        const handler = (e) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target)) setIsOpen(false);
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
+    return (
+        <div ref={wrapRef} style={{ position: "relative", display: "inline-block" }}>
+            <div
+                onClick={() => setIsOpen(!isOpen)}
+                className={`sq-badge sq-badge--${(value || "").toLowerCase()}`}
+                style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px" }}
+            >
+                {statusLabel(value)}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"
+                    style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform .2s" }}>
+                    <polyline points="6 9 12 15 18 9" />
+                </svg>
+            </div>
+            {isOpen && (
+                <div style={{
+                    position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 60,
+                    background: "#fff", border: "1.5px solid #e5e7eb", borderRadius: 12,
+                    boxShadow: "0 12px 32px rgba(0,0,0,.12)", minWidth: 160, padding: 6,
+                    animation: "vqFadeIn .12s ease"
+                }}>
+                    {STATUS_OPTIONS.map(opt => (
+                        <div key={opt.value}
+                            onMouseDown={(e) => { e.preventDefault(); onChange(opt.value); setIsOpen(false); }}
+                            style={{
+                                padding: "8px 12px", borderRadius: 8, cursor: "pointer",
+                                fontSize: 13, fontWeight: opt.value === value ? 700 : 500,
+                                color: opt.value === value ? "#7c3aed" : "#374151",
+                                background: opt.value === value ? "#f3f0ff" : "transparent",
+                                transition: "all .1s",
+                            }}
+                            onMouseEnter={e => { if (opt.value !== value) e.target.style.background = "#f9fafb"; }}
+                            onMouseLeave={e => { if (opt.value !== value) e.target.style.background = "transparent"; }}
+                        >
+                            {opt.label}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 // ── Main ViewQuoteModal ───────────────────────────────────
 export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
     const { user } = useAuth();
@@ -228,10 +307,12 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
     // Edit state
     const [validUntil, setValidUntil] = useState("");
     const [note, setNote] = useState("");
+    const [editStatus, setEditStatus] = useState("");
     const [rows, setRows] = useState([]);
     const [products, setProducts] = useState([]);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
+    const [successMsg, setSuccessMsg] = useState(null);
 
     const loadQuote = async () => {
         try {
@@ -241,6 +322,7 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
             // Prep edit fields
             setValidUntil(res.validUntil ? res.validUntil.split("T")[0] : "");
             setNote(res.note || "");
+            setEditStatus(res.status || "DRAFT");
             setRows((res.details || []).map(d => ({
                 productId: String(d.productId),
                 qty: d.quantity,
@@ -282,6 +364,7 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
         setSaving(true);
         setError(null);
         try {
+            // Save quote data
             await quotationService.update(quoteId, {
                 customerId: quote.customer?.id,
                 staffId: user?.id || quote.staff?.id,
@@ -294,25 +377,34 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                     discountPercent: r.discount,
                 })),
             });
+            // Update status if changed
+            if (editStatus !== quote.status) {
+                await quotationService.updateStatus(quoteId, editStatus);
+            }
             await loadQuote();
             setMode("view");
+            setSuccessMsg("Cập nhật báo giá thành công!");
+            setTimeout(() => setSuccessMsg(null), 3500);
+            if (onSaved) onSaved();
         } catch (e) {
             setError(e.response?.data?.message || "Lỗi khi lưu");
         } finally { setSaving(false); }
     };
 
-    const handleChangeToSent = async () => {
-        setSaving(true);
-        try {
-            await quotationService.updateStatus(quoteId, "SENT");
-            if (onSaved) onSaved();
-        } catch (e) {
-            setError(e.response?.data?.message || "Lỗi đổi trạng thái");
-            setSaving(false);
-        }
+    const handleEnterEdit = () => {
+        // Reset edit fields from current quote
+        setValidUntil(quote.validUntil ? quote.validUntil.split("T")[0] : "");
+        setNote(quote.note || "");
+        setEditStatus(quote.status || "DRAFT");
+        setRows((quote.details || []).map(d => ({
+            productId: String(d.productId),
+            qty: d.quantity,
+            unitPrice: Number(d.unitPrice),
+            discount: d.discountPercent || 0,
+        })));
+        setError(null);
+        setMode("edit");
     };
-
-    const isDraft = quote?.status === "DRAFT";
 
     return (
         <>
@@ -325,6 +417,13 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                         </div>
                         <button className="sq-modal-close" onClick={onClose}>✕</button>
                     </div>
+
+                    {successMsg && (
+                        <div className="vq-success-toast">
+                            {successMsg}
+                            <button onClick={() => setSuccessMsg(null)}>✕</button>
+                        </div>
+                    )}
 
                     <div className="sq-modal-body">
                         {loading ? (
@@ -341,7 +440,7 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                                             <div className="sq-view-item"><label>Ngày tạo</label><div>{fmtDate(quote.createdDate)}</div></div>
                                             <div className="sq-view-item"><label>Trạng thái</label>
                                                 <span className={`sq-badge sq-badge--${(quote.status||"").toLowerCase()}`}>
-                                                    {quote.status === "DRAFT" ? "Bản nháp" : quote.status === "SENT" ? "Đã gửi" : quote.status === "ACCEPTED" ? "Đã chốt" : quote.status === "REJECTED" ? "Đã hủy" : "Hết hạn"}
+                                                    {statusLabel(quote.status)}
                                                 </span>
                                             </div>
                                             <div className="sq-view-item"><label>Hiệu lực đến</label><div>{fmtDate(quote.validUntil)}</div></div>
@@ -400,6 +499,10 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                                             <div className="sq-form-field">
                                                 <label className="sq-form-label">Hiệu lực đến</label>
                                                 <EditDatePicker value={validUntil} onChange={setValidUntil} />
+                                            </div>
+                                            <div className="sq-form-field">
+                                                <label className="sq-form-label">Trạng thái</label>
+                                                <InlineStatusSelect value={editStatus} onChange={setEditStatus} />
                                             </div>
                                         </div>
                                     </div>
@@ -475,12 +578,10 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                             <>
                                 <button className="sq-modal-btn sq-modal-btn--cancel" onClick={onClose}>Đóng</button>
                                 <div style={{display:"flex",gap:8}}>
-                                    {isDraft && (
-                                        <button className="vq-btn-print" onClick={() => setShowPrint(true)}>
-                                            In báo giá
-                                        </button>
-                                    )}
-                                    <button className="sq-modal-btn sq-modal-btn--submit" onClick={() => setMode("edit")}>
+                                    <button className="vq-btn-print" onClick={() => setShowPrint(true)}>
+                                        In báo giá
+                                    </button>
+                                    <button className="sq-modal-btn sq-modal-btn--submit" onClick={handleEnterEdit}>
                                         Chỉnh sửa
                                     </button>
                                 </div>
@@ -488,16 +589,9 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                         ) : (
                             <>
                                 <button className="sq-modal-btn sq-modal-btn--cancel" onClick={() => { setMode("view"); setError(null); }} disabled={saving}>Hủy</button>
-                                <div style={{display:"flex",gap:8}}>
-                                    {isDraft && (
-                                        <button className="vq-btn-sent" onClick={handleChangeToSent} disabled={saving}>
-                                            {saving ? "Đang xử lý..." : "Đổi sang Đã gửi"}
-                                        </button>
-                                    )}
-                                    <button className="sq-modal-btn sq-modal-btn--submit" onClick={handleSaveEdit} disabled={saving}>
-                                        {saving ? "Đang lưu..." : "Lưu thay đổi"}
-                                    </button>
-                                </div>
+                                <button className="sq-modal-btn sq-modal-btn--submit" onClick={handleSaveEdit} disabled={saving}>
+                                    {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                                </button>
                             </>
                         )}
                     </div>
@@ -528,7 +622,7 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
 
                     .sq-view-sidebar { display: flex; flex-direction: column; gap: 16px; }
 
-                    /* Edit mode - form classes (đồng bộ với CreateQuoteModal) */
+                    /* Edit mode - form classes */
                     .sq-form-grid { display: grid; grid-template-columns: 1fr 300px; gap: 24px; }
                     .sq-form-main { display: flex; flex-direction: column; gap: 20px; }
                     .sq-form-card { background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #f0f0f5; }
@@ -593,12 +687,19 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                     }
                     .vq-btn-print:hover { background: #f3f4f6; border-color: #d1d5db; }
 
-                    .vq-btn-sent {
-                        padding: 8px 20px; border-radius: 10px; border: none; background: #059669;
-                        font-size: 13px; font-weight: 700; color: #fff; cursor: pointer; transition: all .15s;
+                    .vq-success-toast {
+                        display: flex; align-items: center; justify-content: space-between;
+                        padding: 12px 20px; margin: 0 32px;
+                        background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px;
+                        color: #15803d; font-size: 13px; font-weight: 600;
+                        animation: vqToastIn .3s ease;
                     }
-                    .vq-btn-sent:hover { background: #047857; }
-                    .vq-btn-sent:disabled { opacity: .6; cursor: not-allowed; }
+                    .vq-success-toast button {
+                        background: none; border: none; color: #15803d; cursor: pointer;
+                        font-size: 14px; opacity: .6; margin-left: 12px;
+                    }
+                    .vq-success-toast button:hover { opacity: 1; }
+                    @keyframes vqToastIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
                 `}</style>
             </div>
 
