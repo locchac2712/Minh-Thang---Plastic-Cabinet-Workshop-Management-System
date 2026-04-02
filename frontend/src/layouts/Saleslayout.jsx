@@ -25,10 +25,21 @@ const PAGE_TITLES = {
     delivery: "Giao hàng",
 };
 
+const getVNRole = (role) => {
+    const map = {
+        'ROLE_ADMIN': 'Quản trị hệ thống',
+        'ROLE_DIRECTOR': 'Giám đốc',
+        'ROLE_PRODUCTION_MANAGER': 'Quản lý sản xuất',
+        'ROLE_SALES_STAFF': 'Nhân viên Kinh doanh'
+    };
+    return map[role] || role;
+};
+
 export const SalesLayout = () => {
     const { user, logout } = useAuth();
     const [page, setPage] = useState("dashboard");
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
@@ -64,17 +75,8 @@ export const SalesLayout = () => {
                         </button>
                     ))}
                 </nav>
-                <div className="sl-sidebar__footer">
-                    <button className="sl-logout" onClick={handleLogout} title={!isSidebarOpen ? "Đăng xuất" : ""}>
-                        <span className="sl-logout__icon">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="16 17 21 12 16 7"></polyline>
-                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                            </svg>
-                        </span>
-                        {isSidebarOpen && <span className="sl-logout__text">Đăng xuất</span>}
-                    </button>
+                <div className="sl-sidebar__footer" style={{ border: 'none', padding: 0 }}>
+                    {/* Logout moved to user dropdown */}
                 </div>
             </aside>
 
@@ -97,12 +99,24 @@ export const SalesLayout = () => {
                             </svg>
                             <span className="sl-notif-dot" />
                         </button>
-                        <div className="sl-user">
-                            <div className="sl-user__avatar">{user?.username?.charAt(0)?.toUpperCase() || "U"}</div>
-                            <div className="sl-user__info">
-                                <span className="sl-user__name">{user?.username || "User"}</span>
-                                <span className="sl-user__role">{user?.role}</span>
+                        <div className="sl-header__user-container" onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}>
+                            <div className="sl-user">
+                                <div className="sl-user__avatar">{user?.username?.charAt(0)?.toUpperCase() || "U"}</div>
+                                <div className="sl-user__info">
+                                    <span className="sl-user__name">{user?.username || "User"}</span>
+                                    <span className="sl-user__role">{getVNRole(user?.role)}</span>
+                                </div>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: 'rgba(255,255,255,.3)' }}><path d="m6 9 6 6 6-6"/></svg>
                             </div>
+
+                            {isUserMenuOpen && (
+                                <div className="sl-user-dropdown">
+                                    <button className="sl-dropdown-item sl-dropdown-item--logout" onClick={handleLogout}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                                        Đăng xuất
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </header>

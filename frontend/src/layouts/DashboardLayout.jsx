@@ -9,6 +9,7 @@ import { ProductList }       from "../pages/master-data/ProductList";
 import { MonitorProduction } from "../pages/production/MonitorProduction";
 import { ProductionOrders }  from "../pages/production/ProductionOrders";
 import { SalesOrders }      from "../pages/sales/SalesOrders";
+import { MyProfile }        from "../pages/common/MyProfile";
 
 const NAV = [
     { id: "orders", label: "Đơn hàng", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg> },
@@ -28,12 +29,24 @@ const PAGE_TITLES = {
   products:       "Danh mục Thành phẩm",
   orders:         "Danh sách Đơn hàng (Đã xác nhận)",
   monitor:        "Giám sát sản xuất",
+  profile:        "Hồ sơ của tôi",
+};
+
+const getVNRole = (role) => {
+    const map = {
+        'ROLE_ADMIN': 'Quản trị hệ thống',
+        'ROLE_DIRECTOR': 'Giám đốc',
+        'ROLE_PRODUCTION_MANAGER': 'Quản lý sản xuất',
+        'ROLE_SALES_STAFF': 'Nhân viên Kinh doanh'
+    };
+    return map[role] || role;
 };
 
 export const DashboardLayout = () => {
     const { user, logout } = useAuth();
     const [activePage, setActivePage] = useState("bom");
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
     const handleLogout = () => { logout(); window.location.href = window.location.origin; };
@@ -51,6 +64,7 @@ export const DashboardLayout = () => {
         case "products":  return <ProductList />;
         case "orders":    return <SalesOrders />;
         case "monitor":   return <MonitorProduction />;
+        case "profile":   return <MyProfile />;
         default:          return <ManageBOM />;
         }
     };
@@ -74,17 +88,8 @@ export const DashboardLayout = () => {
                         </button>
                     ))}
                 </nav>
-                <div className="sl-sidebar__footer">
-                    <button className="sl-logout" onClick={handleLogout} title={!isSidebarOpen ? "Đăng xuất" : ""}>
-                        <span className="sl-logout__icon">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="16 17 21 12 16 7"></polyline>
-                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                            </svg>
-                        </span>
-                        {isSidebarOpen && <span className="sl-logout__text">Đăng xuất</span>}
-                    </button>
+                <div className="sl-sidebar__footer" style={{ border: 'none', padding: 0 }}>
+                    {/* Logout moved to user dropdown */}
                 </div>
             </aside>
 
@@ -107,12 +112,29 @@ export const DashboardLayout = () => {
                             </svg>
                             <span className="sl-notif-dot" />
                         </button>
-                        <div className="sl-user">
-                            <div className="sl-user__avatar">{user?.username?.charAt(0)?.toUpperCase() || "U"}</div>
-                            <div className="sl-user__info">
-                                <span className="sl-user__name">{user?.username || "User"}</span>
-                                <span className="sl-user__role">{user?.role}</span>
+                        <div className="sl-header__user-container" onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}>
+                            <div className="sl-user">
+                                <div className="sl-user__avatar">{user?.username?.charAt(0)?.toUpperCase() || "U"}</div>
+                                <div className="sl-user__info">
+                                    <span className="sl-user__name">{user?.username || "User"}</span>
+                                    <span className="sl-user__role">{getVNRole(user?.role)}</span>
+                                </div>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: 'rgba(255,255,255,.3)' }}><path d="m6 9 6 6 6-6"/></svg>
                             </div>
+
+                            {isUserMenuOpen && (
+                                <div className="sl-user-dropdown">
+                                    <button className="sl-dropdown-item" onClick={() => setActivePage("profile")}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                        Hồ sơ của tôi
+                                    </button>
+                                    <div className="sl-dropdown-divider"></div>
+                                    <button className="sl-dropdown-item sl-dropdown-item--logout" onClick={handleLogout}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                                        Đăng xuất
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </header>

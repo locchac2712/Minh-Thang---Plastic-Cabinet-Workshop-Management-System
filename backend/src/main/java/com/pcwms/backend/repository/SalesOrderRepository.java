@@ -39,7 +39,6 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
 
     @Query("SELECT s FROM SalesOrder s JOIN FETCH s.customer c WHERE " +
             "s.status = 'CONFIRMED' " +
-            "AND s.paymentStatus IN ('PARTIAL', 'PAID') " +
             "AND (" +
             "   :keyword IS NULL OR :keyword = '' " +
             "   OR LOWER(s.orderNumber) LIKE LOWER(CONCAT('%', :keyword, '%')) " +

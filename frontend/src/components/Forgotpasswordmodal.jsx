@@ -1,87 +1,89 @@
-// ============================================================
-// src/components/ForgotPasswordModal.jsx
-// Gọi POST /api/v1/auth/forgot-password
-// ============================================================
-
 import { useState } from "react";
-import "./LoginModal.css"; // dùng chung style modal
-import { useAuth } from "../context/AuthContext";
+import "./LoginModal.css";
 
-export const ForgotPasswordModal = ({ onClose, onBack }) => {
-    const { forgotPassword } = useAuth();
-    const [email,    setEmail]    = useState("");
-    const [loading,  setLoading]  = useState(false);
-    const [success,  setSuccess]  = useState(false);
-    const [error,    setError]    = useState(null);
+export const ForgotPasswordModal = ({ onBack }) => {
+    const [email,   setEmail]   = useState("");
+    const [loading, setLoading] = useState(false);
+    const [toast,   setToast]   = useState(null);
 
     const handleSubmit = async () => {
-        if (!email.trim()) return;
+        if (!email.trim() || loading) return;
         setLoading(true);
-        setError(null);
+        
+        // Giả lập gửi OTP - thực tế sẽ gọi authService.forgotPassword
         try {
-            await forgotPassword(email.trim());
-            setSuccess(true);
+            // await authService.forgotPassword(email);
+            setToast("Gửi mã OTP thành công! Đang chuyển hướng...");
+            setTimeout(() => {
+                window.location.href = "/reset-password?email=" + encodeURIComponent(email);
+            }, 1800);
         } catch (err) {
-            setError(err.response?.data || "Email không tồn tại trong hệ thống");
-        } finally {
+            alert(err.response?.data?.message || "Có lỗi xảy ra");
             setLoading(false);
         }
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-                <button className="modal-close" onClick={onClose}>✕</button>
+        <div className="lp-overlay">
+            {/* ── Left panel (Reused from Login) ── */}
+            <div className="lp-left">
+                <div className="lp-left__content">
+                    <h2 className="lp-left__heading lp-left__heading--large">
+                        Hệ thống quản lý<br />
+                        <span className="lp-left__accent">tủ nhựa Minh Thắng</span>
+                    </h2>
+                    <p className="lp-left__desc">
+                        Nền tảng số hóa quy trình sản xuất và giám sát
+                        tiến độ đơn hàng thời gian thực.
+                    </p>
+                </div>
+                <div className="lp-left__footer">© 2026 Tủ Nhựa Minh Thắng</div>
+            </div>
 
-                <div className="modal-icon">📧</div>
-                <h2 className="modal-title">Quên mật khẩu</h2>
-                <p className="modal-subtitle">
-                    {success
-                        ? "Kiểm tra email của bạn để nhận link đặt lại mật khẩu."
-                        : "Nhập email đã đăng ký, chúng tôi sẽ gửi link đặt lại mật khẩu."}
-                </p>
+            {/* ── Right panel ── */}
+            <div className="lp-right">
+                <div className="lp-card">
+                    <div className="lp-header">
+                        <h1 className="lp-title">Quên mật khẩu</h1>
+                        <p className="lp-subtitle">Nhập email đã đăng ký để nhận mã OTP khôi phục</p>
+                    </div>
 
-                {!success && (
-                    <div className="modal-form">
-                        {error && <div className="modal-error">{error}</div>}
+                    {toast && (
+                        <div className="sq-toast sq-toast--success" style={{ position: 'relative', top: 0, right: 0, marginBottom: 16, maxWidth: '100%' }}>
+                            <span>{toast}</span>
+                        </div>
+                    )}
 
-                        <div className="form-group">
-                            <label className="form-label">Email</label>
+                    <div className="lp-form">
+                        <div className="lp-field">
+                            <label className="lp-label">Email tài khoản</label>
                             <input
-                                className="form-input"
+                                className="lp-input"
                                 type="email"
-                                placeholder="example@company.com"
+                                placeholder="you@company.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                                 autoFocus
                             />
                         </div>
 
-                        <button
-                            className="btn btn--primary btn--full"
-                            onClick={handleSubmit}
-                            disabled={loading}
-                        >
-                            {loading ? "Đang gửi..." : "Gửi link đặt lại"}
+                        <button className="lp-btn" onClick={handleSubmit} disabled={loading} type="button">
+                            <span>{loading ? "Đang xử lý..." : "Nhận mã OTP"}</span>
+                            {!loading && (
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                    <polyline points="12 5 19 12 12 19"/>
+                                </svg>
+                            )}
                         </button>
                     </div>
-                )}
 
-                {success && (
-                    <div className="modal-form">
-                        <div className="modal-success">
-                            ✅ Email đã được gửi! Vui lòng kiểm tra hộp thư (kể cả Spam).
-                        </div>
-                        <button className="btn btn--primary btn--full" onClick={onClose}>
-                            Đóng
-                        </button>
-                    </div>
-                )}
+                    <button className="lp-forgot" onClick={onBack} style={{ marginTop: 24, textAlign: 'center', width: '100%', display: 'block' }}>
+                        ← Quay lại đăng nhập
+                    </button>
 
-                <button className="modal-back-link" onClick={onBack}>
-                    ← Quay lại đăng nhập
-                </button>
+                    <div className="lp-footer">© 2026 Minh Thang Factory. All rights reserved.</div>
+                </div>
             </div>
         </div>
     );

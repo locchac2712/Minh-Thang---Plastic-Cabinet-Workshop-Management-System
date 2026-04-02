@@ -30,23 +30,14 @@ export const LoginModal = ({ onClose }) => {
       <div className="lp-overlay">
         {/* ── Left panel ── */}
         <div className="lp-left">
-          <div className="lp-left__logo">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-              <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-            </svg>
-            <span>Minh Thắng_</span>
-          </div>
-
           <div className="lp-left__content">
-            <h2 className="lp-left__heading">
+            <h2 className="lp-left__heading lp-left__heading--large">
               Hệ thống quản lý<br />
-              <span className="lp-left__accent">tủ nhựa Minh Thắng</span><br />
-
+              <span className="lp-left__accent">tủ nhựa Minh Thắng</span>
             </h2>
             <p className="lp-left__desc">
-              Nền tảng số hóa quy trình sản xuất, kho hàng và giám sát
-              tiến độ thời gian thực.
+              Nền tảng số hóa quy trình sản xuất và giám sát
+              tiến độ đơn hàng thời gian thực.
             </p>
           </div>
 

@@ -214,7 +214,62 @@
     border: 1.5px solid #fff;
 }
 
-.sl-user { display: flex; align-items: center; gap: 8px; }
+.sl-user { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; padding: 4px 8px; border-radius: 8px; transition: background 0.2s; }
+.sl-user:hover { background: rgba(255,255,255,0.05); }
+
+.sl-header__user-container { position: relative; }
+
+.sl-user-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 180px;
+    background: #0f0f1a;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3), 0 0 1px rgba(255,255,255,0.1);
+    padding: 6px;
+    z-index: 1000;
+    animation: slDropdownIn 0.2s cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes slDropdownIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.sl-dropdown-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.sl-dropdown-item:hover {
+    background: rgba(255,255,255,0.06);
+    color: #fff;
+}
+
+.sl-dropdown-item--logout:hover {
+    background: rgba(239,68,68,0.1);
+    color: #f87171;
+}
+
+.sl-dropdown-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+    margin: 4px 6px;
+}
 
 .sl-user__avatar {
     width: 30px; height: 30px;

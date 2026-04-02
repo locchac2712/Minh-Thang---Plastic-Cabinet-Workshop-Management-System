@@ -29,7 +29,9 @@ public class ProductionPlanController {
             ProductionPlan plan = productionPlanService.createPlanFromSalesOrder(
                     salesOrderId,
                     request.getStartDate(),
-                    request.getEndDate()
+                    request.getEndDate(),
+                    request.getStartShift(),
+                    request.getEndShift()
             );
             return ResponseEntity.ok(
                     new ResponseObject("SUCCESS", "Đã lập kế hoạch sản xuất thành công!", plan)
@@ -78,5 +80,7 @@ public class ProductionPlanController {
     public static class PlanDatesRequest {
         private LocalDate startDate;
         private LocalDate endDate;
+        private String startShift;
+        private String endShift;
     }
 }

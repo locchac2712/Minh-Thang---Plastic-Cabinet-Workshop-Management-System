@@ -27,7 +27,7 @@
   background: linear-gradient(135deg, #e8e4f5 0%, #d4cef0 30%, #c5bce8 60%, #b8b0e0 100%);
   display: flex;
   flex-direction: column;
-  padding: 32px 40px;
+  padding: 48px 60px;
   position: relative;
   overflow: hidden;
 }
@@ -87,6 +87,11 @@
   color: #1a1060;
   line-height: 1.2;
   margin-bottom: 24px;
+}
+
+.lp-left__heading--large {
+  font-size: clamp(36px, 4.8vw, 56px);
+  margin-bottom: 32px;
 }
 
 .lp-left__accent {
@@ -453,4 +458,15 @@
 @media (max-width: 768px) {
   .lp-left  { display: none; }
   .lp-right { width: 100%; }
+}
+
+/* Toast inside card */
+.sq-toast {
+    padding: 12px 16px; border-radius: 12px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; font-weight: 600;
+    animation: lpUp 0.3s ease;
+}
+.sq-toast--success { 
+    background: #f0fdf4; color: #15803d; border: 1.5px solid #bbf7d0; 
 }

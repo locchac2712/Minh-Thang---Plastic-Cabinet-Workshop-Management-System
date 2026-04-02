@@ -20,7 +20,7 @@ public class ProductionPlanService {
     private final ManufactureOrderRepository manufactureOrderRepository;
 
     @Transactional
-    public ProductionPlan createPlanFromSalesOrder(Long salesOrderId, LocalDate startDate, LocalDate endDate) {
+    public ProductionPlan createPlanFromSalesOrder(Long salesOrderId, LocalDate startDate, LocalDate endDate, String startShift, String endShift) {
         // 1. Kiểm tra xem đã có kế hoạch cho đơn hàng này chưa
         if (productionPlanRepository.findBySalesOrderId(salesOrderId).isPresent()) {
             throw new RuntimeException("Đơn hàng này đã được lập kế hoạch sản xuất.");
@@ -35,6 +35,8 @@ public class ProductionPlanService {
         plan.setPlanName("Kế hoạch sản xuất cho " + salesOrder.getOrderNumber());
         plan.setStartDate(startDate);
         plan.setEndDate(endDate);
+        plan.setStartShift(startShift != null ? startShift : "S");
+        plan.setEndShift(endShift != null ? endShift : "C");
         plan.setStatus("PLANNED");
 
         ProductionPlan savedPlan = productionPlanRepository.save(plan);

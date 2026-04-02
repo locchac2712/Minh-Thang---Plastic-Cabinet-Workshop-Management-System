@@ -64,14 +64,21 @@ export const SalesOrders = () => {
                 <div className="so-toolbar-main">
                     <div className="sp-search-outer">
                         <div className="sp-search-container">
-                            <div className="sp-search-prefix">🔍</div>
+                            <div className="sp-search-prefix">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5">
+                                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                </svg>
+                            </div>
                             <input
                                 className="sp-search-input"
                                 placeholder="Tìm theo mã đơn hoặc khách hàng..."
                                 value={keyword}
                                 onChange={e => { setKeyword(e.target.value); setPage(0); }}
                             />
-                            <button className="sp-search-suffix" onClick={() => setShowFilters(!showFilters)}>⚙️ Lọc</button>
+                            <button className="sp-search-suffix" onClick={() => setShowFilters(!showFilters)}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{marginRight: '6px'}} strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                                Lọc
+                            </button>
                         </div>
                         {showFilters && (
                             <div className="so-filter-dropdown-centered">
@@ -115,13 +122,14 @@ export const SalesOrders = () => {
                                     onClick={() => setViewId(o.id)}
                                     title="Xem chi tiết"
                                 >
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                                     </svg>
                                 </button>
 
                                 <button className="btn-select-date" onClick={() => handleOpenAction(o)}>
-                                    📅 Chọn ngày
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{marginRight: '6px'}} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    Chọn ngày
                                 </button>
                             </td>
                         </tr>
@@ -179,6 +187,7 @@ export const SalesOrders = () => {
                 .btn-select-date { 
                     background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; 
                     padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer;
+                    display: flex; align-items: center;
                 }
 
                 .so-modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); display: flex; align-items: center; justify-content: center; z-index: 2000; }

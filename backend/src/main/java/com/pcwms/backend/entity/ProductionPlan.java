@@ -39,6 +39,12 @@ public class ProductionPlan {
     @Column(name = "status", nullable = false)
     private String status = "PLANNED";
 
+    @Column(name = "start_shift")
+    private String startShift = "S"; // S (Sáng), C (Chiều)
+
+    @Column(name = "end_shift")
+    private String endShift = "C"; // S (Sáng), C (Chiều)
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
