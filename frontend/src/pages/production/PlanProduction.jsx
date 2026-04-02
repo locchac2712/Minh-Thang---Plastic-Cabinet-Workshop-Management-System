@@ -431,20 +431,55 @@ const ProductionCalendar = ({ plans, loading }) => {
                     const dateStr = date.toISOString().split('T')[0];
                     
                     // Filter plans active on this day
-                    const activePlans = plans.filter(p => {
-                        return dateStr >= p.startDate && dateStr <= p.endDate;
-                    });
+                    const dayPlans = plans.filter(p => dateStr >= p.startDate && dateStr <= p.endDate);
+                    const isSat = date.getDay() === 6;
+                    const isSun = date.getDay() === 0;
+                    const isWeekend = isSat || isSun;
 
                     return (
-                        <div key={dateStr} className="pc-cell">
-                            <span className="pc-date">{date.getDate()}</span>
-                            <div className="pc-events">
-                                {activePlans.map(p => (
-                                    <div key={p.id} className={`pc-event status-${p.status.toLowerCase()}`} title={p.planName}>
-                                        {p.startDate === dateStr ? p.planName : "•"}
-                                    </div>
-                                ))}
+                        <div key={dateStr} className={`pc-cell ${isWeekend ? 'weekend' : ''}`}>
+                            <div className="pc-cell-header">
+                                <span className="pc-date">{date.getDate()}</span>
+                                {isWeekend && <span className="pc-weekend-label">{isSat ? 'T7' : 'CN'}</span>}
                             </div>
+                            
+                            {!isWeekend ? (
+                                <div className="pc-shifts">
+                                    {/* Morning Shift (S) */}
+                                    <div className="pc-shift-slot">
+                                        <div className="pc-shift-tag morning">S</div>
+                                        <div className="pc-events">
+                                            {dayPlans.filter(p => {
+                                                if (dateStr === p.startDate) return p.startShift === "S";
+                                                return true;
+                                            }).map(p => (
+                                                <div key={p.id} className={`pc-event status-${p.status.toLowerCase()}`} title={`${p.planName} (Ca Sáng)`}>
+                                                    {p.startDate === dateStr ? p.planName : "•"}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Afternoon Shift (C) */}
+                                    <div className="pc-shift-slot">
+                                        <div className="pc-shift-tag afternoon">C</div>
+                                        <div className="pc-events">
+                                            {dayPlans.filter(p => {
+                                                if (dateStr === p.endDate) return p.endShift === "C";
+                                                return true;
+                                            }).map(p => (
+                                                <div key={p.id} className={`pc-event status-${p.status.toLowerCase()}`} title={`${p.planName} (Ca Chiều)`}>
+                                                    {p.startDate === dateStr ? p.planName : "•"}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="pc-off-day">
+                                    <span>NGHỈ</span>
+                                </div>
+                            )}
                         </div>
                     );
                 })}
@@ -460,24 +495,35 @@ const ProductionCalendar = ({ plans, loading }) => {
                 .pc-weekday { text-align: center; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
 
                 .pc-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-left: 1px solid #f1f5f9; border-top: 1px solid #f1f5f9; }
-                .pc-cell { min-height: 120px; border-right: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; padding: 10px; position: relative; }
+                .pc-cell { min-height: 140px; border-right: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; padding: 8px; position: relative; transition: background 0.2s; }
                 .pc-cell.empty { background: #fafafa; }
-                .pc-date { font-size: 13px; font-weight: 700; color: #64748b; }
+                .pc-cell.weekend { background: #f8fafc; }
+                .pc-cell-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+                .pc-date { font-size: 13px; font-weight: 800; color: #64748b; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
+                .pc-weekend-label { font-size: 10px; font-weight: 800; color: #94a3b8; padding: 2px 6px; background: #f1f5f9; border-radius: 4px; }
                 
-                .pc-events { display: flex; flexDirection: column; gap: 4px; margin-top: 8px; }
+                .pc-shifts { display: flex; flex-direction: column; gap: 8px; }
+                .pc-shift-slot { display: flex; gap: 6px; align-items: flex-start; min-height: 40px; }
+                .pc-shift-tag { font-size: 9px; font-weight: 900; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; border-radius: 3px; flex-shrink: 0; margin-top: 2px; }
+                .pc-shift-tag.morning { background: #fef3c7; color: #b45309; }
+                .pc-shift-tag.afternoon { background: #e0f2fe; color: #0369a1; }
+
+                .pc-events { display: flex; flex-direction: column; gap: 2px; flex: 1; }
                 .pc-event { 
-                    font-size: 10px; 
-                    padding: 4px 8px; 
-                    border-radius: 6px; 
+                    font-size: 9px; 
+                    padding: 2px 6px; 
+                    border-radius: 4px; 
                     white-space: nowrap; 
                     overflow: hidden; 
                     text-overflow: ellipsis;
                     font-weight: 600;
                     color: white;
                 }
-                .pc-event.status-planned { background: #7c3aed; }
-                .pc-event.status-in_progress { background: #0ea5e9; }
-                .pc-event.status-completed { background: #10b981; }
+                .pc-event.status-planned { background: #fbbf24; border: 1px solid #f59e0b; color: #78350f; }
+                .pc-event.status-in_progress { background: #3b82f6; border: 1px solid #2563eb; color: white; }
+                .pc-event.status-completed { background: #22c55e; border: 1px solid #16a34a; color: white; }
+
+                .pc-off-day { height: 80px; display: flex; align-items: center; justify-content: center; color: #cbd5e1; font-size: 11px; font-weight: 800; letter-spacing: 2px; }
             `}</style>
         </div>
     );

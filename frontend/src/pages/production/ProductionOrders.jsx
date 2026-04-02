@@ -199,15 +199,28 @@ import api from "../../services/api";
 const PlanModal = ({ order, onClose, onSuccess }) => {
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
     const [endDate, setEndDate]     = useState("");
+    const [startShift, setStartShift] = useState("S"); // S, C
+    const [endShift, setEndShift]     = useState("C"); // S, C
     const [loading, setLoading]     = useState(false);
+
+    const isWeekend = (dateStr) => {
+        if (!dateStr) return false;
+        const day = new Date(dateStr).getDay();
+        return day === 0 || day === 6; // 0 is Sunday, 6 is Saturday
+    };
 
     const handleCreate = async () => {
         if (!endDate) return alert("Vui lòng chọn ngày kết thúc dự kiến!");
+        if (isWeekend(startDate) || isWeekend(endDate)) {
+            return alert("Không thể lập kế hoạch vào Thứ 7 hoặc Chủ nhật!");
+        }
         setLoading(true);
         try {
             await api.post(`/production-plans/generate?salesOrderId=${order.id}`, {
                 startDate,
-                endDate
+                endDate,
+                startShift,
+                endShift
             });
             alert("Đã tạo kế hoạch sản xuất thành công!");
             onSuccess();
@@ -243,8 +256,58 @@ const PlanModal = ({ order, onClose, onSuccess }) => {
                             type="date"
                             value={endDate}
                             onChange={e => setEndDate(e.target.value)}
-                            style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #e2e8f0", borderRadius: 8 }}
+                            style={{ width: "100%", padding: "10px 12px", border: isWeekend(endDate) ? "1.5px solid #ef4444" : "1.5px solid #e2e8f0", borderRadius: 8 }}
                         />
+                        {isWeekend(endDate) && <span style={{fontSize: 11, color: '#ef4444', marginTop: 4, display: 'block'}}>⚠️ Ngày kết thúc không được là cuối tuần</span>}
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: 20 }}>
+                        <div>
+                            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 8 }}>Ca bắt đầu</label>
+                            <div style={{ display: "flex", gap: "4px" }}>
+                                <button
+                                    onClick={() => setStartShift("S")}
+                                    style={{
+                                        flex: 1, padding: "8px", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: "pointer",
+                                        border: startShift === "S" ? "2px solid #7c3aed" : "1.5px solid #e2e8f0",
+                                        background: startShift === "S" ? "#f5f3ff" : "white",
+                                        color: startShift === "S" ? "#7c3aed" : "#64748b"
+                                    }}
+                                >☀️ Sáng</button>
+                                <button
+                                    onClick={() => setStartShift("C")}
+                                    style={{
+                                        flex: 1, padding: "8px", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: "pointer",
+                                        border: startShift === "C" ? "2px solid #7c3aed" : "1.5px solid #e2e8f0",
+                                        background: startShift === "C" ? "#f5f3ff" : "white",
+                                        color: startShift === "C" ? "#7c3aed" : "#64748b"
+                                    }}
+                                >⛅ Chiều</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 8 }}>Ca kết thúc</label>
+                            <div style={{ display: "flex", gap: "4px" }}>
+                                <button
+                                    onClick={() => setEndShift("S")}
+                                    style={{
+                                        flex: 1, padding: "8px", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: "pointer",
+                                        border: endShift === "S" ? "2px solid #7c3aed" : "1.5px solid #e2e8f0",
+                                        background: endShift === "S" ? "#f5f3ff" : "white",
+                                        color: endShift === "S" ? "#7c3aed" : "#64748b"
+                                    }}
+                                >☀️ Sáng</button>
+                                <button
+                                    onClick={() => setEndShift("C")}
+                                    style={{
+                                        flex: 1, padding: "8px", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: "pointer",
+                                        border: endShift === "C" ? "2px solid #7c3aed" : "1.5px solid #e2e8f0",
+                                        background: endShift === "C" ? "#f5f3ff" : "white",
+                                        color: endShift === "C" ? "#7c3aed" : "#64748b"
+                                    }}
+                                >⛅ Chiều</button>
+                            </div>
+                        </div>
                     </div>
                     <div style={{ background: "#f8fafc", padding: 12, borderRadius: 8, fontSize: 12, color: "#64748b" }}>
                         💡 Hệ thống sẽ tự động tạo các <b>Lệnh sản xuất</b> cho toàn bộ sản phẩm trong đơn hàng này sau khi bạn xác nhận.
