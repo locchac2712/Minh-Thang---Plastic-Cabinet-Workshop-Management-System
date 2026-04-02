@@ -2,6 +2,7 @@ package com.pcwms.backend.repository;
 
 import com.pcwms.backend.entity.ManufactureOrder;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -10,4 +11,8 @@ import java.util.List;
 public interface ManufactureOrderRepository extends JpaRepository<ManufactureOrder, Long> {
     List<ManufactureOrder> findByProductionPlanId(Long planId);
     List<ManufactureOrder> findBySalesOrderId(Long salesOrderId);
+
+    // Lấy tất cả các lệnh sản xuất để vẽ lên Lịch (Loại bỏ các lệnh đã bị hủy)
+    @Query("SELECT m FROM ManufactureOrder m WHERE m.status != 'CANCELLED' ORDER BY m.startDate ASC")
+    List<ManufactureOrder> findAllForCalendar();
 }
