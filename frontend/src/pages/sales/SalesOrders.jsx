@@ -7,7 +7,7 @@ import { useSalesOrders } from "../../hooks/useSalesOrders";
 import { ApprovalModal } from "./ApprovalModal";
 import salesOrderService, { ORDER_STATUS_MAP, PAYMENT_STATUS_MAP } from "../../services/salesOrderService.js";
 import manufactureOrderService from "../../services/manufactureOrderService.js";
-import { QuickScheduleModal } from "./SalesOrders"; // Self or external? Wait, it's in the same file
+import { CreateOrder } from "./CreateOrder.jsx";
 
 const fmt = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "—";
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
