@@ -7,7 +7,7 @@ import { useQuotations } from "../../hooks/useQuotations";
 import { getQuoteStatus } from "../../services/quotationService.js";
 import quotationService from "../../services/quotationService.js";
 import { useAuth } from "../../context/AuthContext";
-import axios from "axios";
+import api from "../../services/api";
 
 const fmt = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "—";
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
@@ -40,11 +40,9 @@ const PRICE_RANGE_MAP = {
 
 // ── Hàm gọi API tạo đơn từ báo giá ───────────────────────
 const createOrderFromQuotation = async (quotationId) => {
-    const token = localStorage.getItem("token");
-    const res = await axios.post(
-        `/api/v1/sales-orders/from-quotation/${quotationId}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
+    const res = await api.post(
+        `/sales-orders/from-quotation/${quotationId}`,
+        {}
     );
     // API tra ve: { status: "SUCCESS", message, data: { orderNumber, ... } }
     const body = res.data;

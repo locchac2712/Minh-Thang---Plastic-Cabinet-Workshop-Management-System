@@ -1,13 +1,18 @@
 package com.pcwms.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 import java.util.List;
 
 @Entity
 @Table(name = "manufacture_orders")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ManufactureOrder {
 
     @Id
@@ -19,10 +24,15 @@ public class ManufactureOrder {
     @JoinColumn(name = "sales_order_id", referencedColumnName = "id", nullable = false)
     private SalesOrder salesOrder;
 
-    // Sản xuất cái gì?
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", referencedColumnName = "id", nullable = false)
     private Product product;
+
+    // Kế hoạch sản xuất chứa lệnh này
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "production_plan_id")
+    @JsonIgnoreProperties("manufactureOrders")
+    private ProductionPlan productionPlan;
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity; // Số lượng cần sản xuất

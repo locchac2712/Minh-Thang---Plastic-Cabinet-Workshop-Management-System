@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -16,30 +17,29 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
     boolean existsByQuotationId(Long quotationId);
 
     // 1. Cập nhật searchSalesOrders để tránh lỗi bytea khi keyword null/rỗng
-    @Query("SELECT s FROM SalesOrder s JOIN s.customer c WHERE " +
-            "(" +
-            "   :keyword IS NULL OR :keyword = '' " +
-            "   OR LOWER(s.orderNumber) LIKE LOWER(CAST(CONCAT('%', :keyword, '%') AS String)) " +
-            "   OR LOWER(c.name) LIKE LOWER(CAST(CONCAT('%', :keyword, '%') AS String)) " +
+    @Query("SELECT s FROM SalesOrder s " +
+            "JOIN FETCH s.customer c " +
+            "WHERE (LOWER(s.orderNumber) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "   OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             ") " +
-            "AND (:status IS NULL OR s.status = :status) " +
+            "AND (COALESCE(:statuses, NULL) IS NULL OR s.status IN :statuses) " +
             "AND (:paymentStatus IS NULL OR s.paymentStatus = :paymentStatus)")
     Page<SalesOrder> searchSalesOrders(
             @Param("keyword") String keyword,
-            @Param("status") String status,
+            @Param("statuses") List<String> statuses,
             @Param("paymentStatus") String paymentStatus,
             Pageable pageable);
 
     @Query("SELECT s FROM SalesOrder s JOIN FETCH s.customer WHERE s.id = :id")
     Optional<SalesOrder> findByIdWithCustomer(@Param("id") Long id);
 
-    @Query("SELECT s FROM SalesOrder s JOIN s.customer c WHERE " +
+    @Query("SELECT s FROM SalesOrder s JOIN FETCH s.customer c WHERE " +
             "s.status = 'CONFIRMED' " +
             "AND s.paymentStatus IN ('PARTIAL', 'PAID') " +
             "AND (" +
             "   :keyword IS NULL OR :keyword = '' " +
-            "   OR LOWER(s.orderNumber) LIKE LOWER(CAST(CONCAT('%', :keyword, '%') AS String)) " +
-            "   OR LOWER(c.name) LIKE LOWER(CAST(CONCAT('%', :keyword, '%') AS String)) " +
+            "   OR LOWER(s.orderNumber) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "   OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             ")")
     Page<SalesOrder> findOrdersForProduction(
             @Param("keyword") String keyword,

@@ -52,11 +52,7 @@ export const SalesCustomers = () => {
                         <div className="cf-spinner"></div>
                         <span>Đang tải danh sách khách hàng...</span>
                     </div>
-                ) : error ? (
-                    <div className="af-error-banner" style={{margin: 24}}>
-                        <div style={{flex: 1}}>{error}</div>
-                        <button className="cf-submit-btn" style={{padding: "6px 16px", fontSize: "12px"}} onClick={refetch}>Thử lại</button>
-                    </div>
+
                 ) : (
                     <table className="sp-table">
                         <thead>

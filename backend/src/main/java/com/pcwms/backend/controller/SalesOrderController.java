@@ -40,7 +40,7 @@ public class SalesOrderController {
 
     // 👉 API: LẤY DANH SÁCH ĐƠN HÀNG
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF') or hasRole('DIRECTOR')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF') or hasRole('DIRECTOR') or hasRole('PRODUCTION_MANAGER')")
     public ResponseEntity<ResponseObject> getAllSalesOrders(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
@@ -68,7 +68,7 @@ public class SalesOrderController {
 
     // 👉 API: Xem chi tiết 1 Đơn hàng
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF') or hasRole('ACCOUNTANT')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF') or hasRole('ACCOUNTANT') or hasRole('PRODUCTION_MANAGER')")
     public ResponseEntity<ResponseObject> getSalesOrderDetail(@PathVariable Long id) {
         try {
             SalesOrderDetailResponse detail = salesOrderService.getSalesOrderDetail(id);
@@ -122,7 +122,7 @@ public class SalesOrderController {
 
     // API: LẤY LỊCH SỬ THANH TOÁN CỦA 1 ĐƠN HÀNG CỤ THỂ
     @GetMapping("/{id}/payments")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR', 'SALES_MANAGER', 'SALES_STAFF')") // Thêm role Kế toán vào đây nếu có
+    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR', 'SALES_MANAGER', 'SALES_STAFF', 'PRODUCTION_MANAGER')") // Thêm role Kế toán vào đây nếu có
     public ResponseEntity<ResponseObject> getOrderPaymentHistory(@PathVariable("id") Long orderId) {
         try {
             // 1. Kiểm tra xem đơn hàng có tồn tại không

@@ -14,6 +14,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -29,15 +33,21 @@ public class SalesOrderService {
     // =================================================================
     // 1. API: LẤY DANH SÁCH ĐƠN HÀNG (CÓ TÌM KIẾM & LỌC 2 LỚP)
     // =================================================================
-    public Page<SalesOrderListResponse> getAllSalesOrders(String keyword, String status, String paymentStatus, Pageable pageable) {
-        // Nếu không có keyword, gán bằng chuỗi rỗng "" thay vì null
+    public Page<SalesOrderListResponse> getAllSalesOrders(String keyword, String statusStr, String paymentStatus, Pageable pageable) {
         String validKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : "";
-
-        // Trạng thái thì vẫn giữ nguyên null bình thường
-        String validStatus = (status != null && !status.trim().isEmpty()) ? status.trim().toUpperCase() : null;
         String validPaymentStatus = (paymentStatus != null && !paymentStatus.trim().isEmpty()) ? paymentStatus.trim().toUpperCase() : null;
 
-        Page<SalesOrder> orderPage = salesOrderRepository.searchSalesOrders(validKeyword, validStatus, validPaymentStatus, pageable);
+        List<String> statuses = null;
+        if (statusStr != null && !statusStr.trim().isEmpty()) {
+            List<String> rawList = Arrays.stream(statusStr.split(","))
+                    .map(String::trim)
+                    .map(String::toUpperCase)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
+            if (!rawList.isEmpty()) statuses = rawList;
+        }
+
+        Page<SalesOrder> orderPage = salesOrderRepository.searchSalesOrders(validKeyword, statuses, validPaymentStatus, pageable);
         return orderPage.map(SalesOrderListResponse::new);
     }
 

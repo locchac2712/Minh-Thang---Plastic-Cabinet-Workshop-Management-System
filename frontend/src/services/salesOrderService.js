@@ -5,7 +5,11 @@ const BASE = "/sales-orders";
 export const ORDER_STATUS_MAP = {
     // Trạng thái gốc
     PENDING:             { text: "Chờ xác nhận",       cls: "so-badge--pending"    },
-    PROCESSING:          { text: "Đang xử lý",         cls: "so-badge--producing"  },
+    CONFIRMED:           { text: "Đã xác nhận",       cls: "so-badge--confirmed"  },
+    PLANNING:            { text: "Đang lập kế hoạch", cls: "so-badge--planning"   },
+    PROCESSING:          { text: "Đang sản xuất",     cls: "so-badge--producing"  },
+    IN_PROGRESS:         { text: "Đang sản xuất",     cls: "so-badge--producing"  },
+    COMPLETED:           { text: "Đã hoàn tất",       cls: "so-badge--ready"      },
     DELIVERED:           { text: "Đã giao",             cls: "so-badge--delivered"  },
     CANCELLED:           { text: "Đã hủy",              cls: "so-badge--cancelled"  },
 

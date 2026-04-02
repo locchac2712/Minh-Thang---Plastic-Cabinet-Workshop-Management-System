@@ -1,83 +1,123 @@
 import { useState } from "react";
-import "./DashboardLayout.css";
-import { Sidebar }           from "../components/Sidebar";
-import { Header }            from "../components/Header";
+import "./Saleslayout.css";
+import { useAuth } from "../context/AuthContext";
 import { ManageBOM }         from "../pages/production/ManageBOM";
 import { PlanProduction }    from "../pages/production/PlanProduction";
 import { ExecuteWorkOrder }  from "../pages/production/ExecuteWorkOrder";
 import { MaterialList }      from "../pages/master-data/MaterialList";
-import { MaterialDetail }    from "../pages/master-data/MaterialDetail";
 import { ProductList }       from "../pages/master-data/ProductList";
-import { ProductDetail }     from "../pages/master-data/ProductDetail";
 import { MonitorProduction } from "../pages/production/MonitorProduction";
+import { ProductionOrders }  from "../pages/production/ProductionOrders";
+import { SalesOrders }      from "../pages/sales/SalesOrders";
+
+const NAV = [
+    { id: "orders", label: "Đơn hàng", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg> },
+    { id: "plan", label: "Lập kế hoạch sản xuất", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> },
+    { id: "workorder", label: "Thực thi Lệnh SX", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> },
+    { id: "bom", label: "Định mức vật tư (BOM)", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> },
+    { id: "material", label: "Vật tư & Nguyên liệu", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> },
+    { id: "products", label: "Danh mục Thành phẩm", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg> },
+    { id: "monitor", label: "Giám sát sản xuất", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg> },
+];
 
 const PAGE_TITLES = {
-  bom:            "Manage BOM",
-  plan:           "Plan Production",
-  workorder:      "Execute Work Order",
-  material:       "Danh mục vật tư",
-  materialDetail: "Material Detail",
-  products:       "Products",
-  productDetail:  "Product Detail",
-  monitor:        "Monitor Production",
+  bom:            "Quản lý BOM",
+  plan:           "Lập kế hoạch sản xuất",
+  workorder:      "Thực thi Lệnh sản xuất",
+  material:       "Danh mục Vật tư & Nguyên liệu",
+  products:       "Danh mục Thành phẩm",
+  orders:         "Danh sách Đơn hàng (Đã xác nhận)",
+  monitor:        "Giám sát sản xuất",
 };
 
 export const DashboardLayout = () => {
-  const [activePage,         setActivePage]         = useState("bom");
-  const [selectedMaterial,   setSelectedMaterial]   = useState(null);
-  const [selectedProduct,    setSelectedProduct]    = useState(null);
-  const [materialRefreshKey, setMaterialRefreshKey] = useState(0);
-  const [productRefreshKey,  setProductRefreshKey]  = useState(0);
+    const { user, logout } = useAuth();
+    const [activePage, setActivePage] = useState("bom");
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const handleNavigate = (page) => {
-    setSelectedMaterial(null);
-    setSelectedProduct(null);
-    setActivePage(page);
-    if (page === "material") setMaterialRefreshKey((k) => k + 1);
-    if (page === "products") setProductRefreshKey((k) => k + 1);
-  };
+    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+    const handleLogout = () => { logout(); window.location.href = window.location.origin; };
 
-  const renderPage = () => {
-    if (activePage === "materialDetail" && selectedMaterial)
-      return (
-          <MaterialDetail
-              material={selectedMaterial}
-              onBack={() => { setSelectedMaterial(null); setActivePage("material"); setMaterialRefreshKey((k) => k + 1); }}
-              onDeleted={() => { setSelectedMaterial(null); setActivePage("material"); setMaterialRefreshKey((k) => k + 1); }}
-          />
-      );
+    const handleNavigate = (page) => {
+        setActivePage(page);
+    };
 
-    if (activePage === "productDetail" && selectedProduct)
-      return (
-          <ProductDetail
-              product={selectedProduct}
-              onBack={() => { setSelectedProduct(null); setActivePage("products"); setProductRefreshKey((k) => k + 1); }}
-              onUpdated={(p) => setSelectedProduct(p)}
-          />
-      );
+    const renderPage = () => {
+        switch (activePage) {
+        case "bom":       return <ManageBOM />;
+        case "plan":      return <PlanProduction />;
+        case "workorder": return <ExecuteWorkOrder />;
+        case "material":  return <MaterialList />;
+        case "products":  return <ProductList />;
+        case "orders":    return <SalesOrders />;
+        case "monitor":   return <MonitorProduction />;
+        default:          return <ManageBOM />;
+        }
+    };
 
-    switch (activePage) {
-      case "bom":       return <ManageBOM />;
-      case "plan":      return <PlanProduction />;
-      case "workorder": return <ExecuteWorkOrder />;
-      case "material":  return <MaterialList key={materialRefreshKey} onSelectMaterial={(m) => { setSelectedMaterial(m); setActivePage("materialDetail"); }} />;
-      case "products":  return <ProductList key={productRefreshKey} onSelectProduct={(p) => { setSelectedProduct(p); setActivePage("productDetail"); }} />;
-      case "monitor":   return <MonitorProduction />;
-      default:          return <ManageBOM />;
-    }
-  };
+    return (
+        <div className={`sl-layout${!isSidebarOpen ? " is-sidebar-collapsed" : ""}`}>
+            {/* Sidebar */}
+            <aside className="sl-sidebar">
+                <div className="sl-logo">
+                    <div className="sl-logo__icon">M</div>
+                    {isSidebarOpen && <span className="sl-logo__text">Minh Thang_</span>}
+                </div>
+                <nav className="sl-nav">
+                    {NAV.map((n) => (
+                        <button key={n.id}
+                            className={`sl-nav-item${activePage === n.id ? " sl-nav-item--active" : ""}`}
+                            onClick={() => handleNavigate(n.id)}
+                            title={!isSidebarOpen ? n.label : ""}>
+                            <span className="sl-nav-item__icon">{n.icon}</span>
+                            {isSidebarOpen && <span className="sl-nav-item__label">{n.label}</span>}
+                        </button>
+                    ))}
+                </nav>
+                <div className="sl-sidebar__footer">
+                    <button className="sl-logout" onClick={handleLogout} title={!isSidebarOpen ? "Đăng xuất" : ""}>
+                        <span className="sl-logout__icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                        </span>
+                        {isSidebarOpen && <span className="sl-logout__text">Đăng xuất</span>}
+                    </button>
+                </div>
+            </aside>
 
-  const sidebarPage = activePage === "materialDetail" ? "material"
-      : activePage === "productDetail"  ? "products"
-          : activePage;
-
-  return (
-      <div className="app-layout">
-        <Sidebar activePage={sidebarPage} onNavigate={handleNavigate} />
-        <div className="app-main">
-          <Header pageTitle={PAGE_TITLES[activePage]} />
-          <main className="app-content">{renderPage()}</main>
+            {/* Main */}
+            <div className="sl-main">
+                <header className="sl-header">
+                    <div className="sl-header__left">
+                        <button className="sl-menu-icon" onClick={toggleSidebar}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+                            </svg>
+                        </button>
+                        <span className="sl-header__title">{PAGE_TITLES[activePage] || "Dashboard"}</span>
+                    </div>
+                    <div className="sl-header__right sl-header__right--push">
+                        <button className="sl-notif-btn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                            </svg>
+                            <span className="sl-notif-dot" />
+                        </button>
+                        <div className="sl-user">
+                            <div className="sl-user__avatar">{user?.username?.charAt(0)?.toUpperCase() || "U"}</div>
+                            <div className="sl-user__info">
+                                <span className="sl-user__name">{user?.username || "User"}</span>
+                                <span className="sl-user__role">{user?.role}</span>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+                <main className="sl-content">{renderPage()}</main>
+            </div>
         </div>
-      </div>
-  );
+    );
 };

@@ -19,10 +19,12 @@ export const SalesOrders = () => {
     const [viewId, setViewId] = useState(null);
     const [selectedForApproval, setSelectedForApproval] = useState(null);
     const [showFilters, setShowFilters] = useState(false);
-    const [statusFilter, setStatusFilter] = useState("");
 
     const isDirector = user?.role === "ROLE_DIRECTOR" || user?.role === "ROLE_ADMIN";
     const isSalesStaff = user?.role === "ROLE_SALES_STAFF";
+    const isProductionManager = user?.role === "ROLE_PRODUCTION_MANAGER";
+
+    const [statusFilter, setStatusFilter] = useState(isProductionManager ? "CONFIRMED,PLANNING,IN_PROGRESS,COMPLETED" : "");
 
     const { data, loading, error, refetch } = useSalesOrders({
         keyword: keyword || undefined,
@@ -62,8 +64,7 @@ export const SalesOrders = () => {
         <div className="sp-page">
             <div className="sp-page-header">
                 <div>
-                    <h1 className="sp-title">Đơn hàng</h1>
-                    <p className="sp-sub">Quản lý đơn hàng bán</p>
+                    <h1 className="sp-title">{isProductionManager ? "Điều phối Sản xuất" : "Đơn hàng"}</h1>
                 </div>
             </div>
 
@@ -86,23 +87,24 @@ export const SalesOrders = () => {
                         </button>
                     </div>
 
-                    {/* Filter Card — Aligned under search bar */}
                     {showFilters && (
                         <div className="so-filter-card">
                             <div className="so-filter-grid">
-                                <div className="so-filter-item">
-                                    <label className="so-filter-label">Trạng thái</label>
-                                    <select
-                                        className="so-filter-input"
-                                        value={statusFilter}
-                                        onChange={e => { setStatusFilter(e.target.value); setPage(0); }}
-                                    >
-                                        <option value="">Tất cả trạng thái</option>
-                                        {Object.entries(ORDER_STATUS_MAP).map(([key, obj]) => (
-                                            <option key={key} value={key}>{obj.text}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                {!isProductionManager && (
+                                    <div className="so-filter-item">
+                                        <label className="so-filter-label">Trạng thái</label>
+                                        <select
+                                            className="so-filter-input"
+                                            value={statusFilter}
+                                            onChange={e => { setStatusFilter(e.target.value); setPage(0); }}
+                                        >
+                                            <option value="">Tất cả trạng thái</option>
+                                            {Object.entries(ORDER_STATUS_MAP).map(([key, obj]) => (
+                                                <option key={key} value={key}>{obj.text}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
 
                                 <div className="so-filter-item">
                                     <label className="so-filter-label">Thanh toán</label>
@@ -119,7 +121,7 @@ export const SalesOrders = () => {
                                 </div>
 
                                 <div className="so-filter-reset" title="Xóa tất cả bộ lọc" onClick={() => {
-                                    setStatusFilter("");
+                                    setStatusFilter(isProductionManager ? "CONFIRMED,PLANNING,IN_PROGRESS,COMPLETED" : "");
                                     setPayFilter("");
                                     setPage(0);
                                 }}>
@@ -133,9 +135,11 @@ export const SalesOrders = () => {
                 </div>
 
                 <div className="so-toolbar-actions">
-                    <button className="sp-btn-primary sp-btn-primary--pill" onClick={() => setShowCreate(true)}>
-                        Tạo đơn hàng <span className="sp-btn-plus">+</span>
-                    </button>
+                    {!isProductionManager && (
+                        <button className="sp-btn-primary sp-btn-primary--pill" onClick={() => setShowCreate(true)}>
+                            Tạo đơn hàng <span className="sp-btn-plus">+</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -151,7 +155,7 @@ export const SalesOrders = () => {
                                 <th>Khách hàng</th>
                                 <th>Ngày đặt</th>
                                 <th>Trạng thái đơn</th>
-                                {isSalesStaff && <th>Thanh toán</th>}
+                                {(isSalesStaff || isProductionManager) && <th>Thanh toán</th>}
                                 <th>Tổng tiền</th>
                                 <th>Thao tác</th>
                             </tr>
@@ -159,7 +163,7 @@ export const SalesOrders = () => {
                         <tbody>
                             {orders.length === 0 ? (
                                 <tr>
-                                    <td colSpan={isSalesStaff ? 7 : 6} className="sp-empty-row">
+                                    <td colSpan={7} className="sp-empty-row">
                                         <div className="sq-empty">
                                             <div className="sq-empty__icon">📋</div>
                                             <p>Không có đơn hàng nào</p>
@@ -169,10 +173,6 @@ export const SalesOrders = () => {
                             ) : orders.map(o => {
                                 const os = ORDER_STATUS_MAP[o.status] || { text: o.status, cls: "" };
                                 const py = PAYMENT_STATUS_MAP[o.paymentStatus] || { text: o.paymentStatus, cls: "" };
-
-                                // Điều kiện hiện nút gửi yêu cầu phê duyệt:
-                                // PENDING_APPROVAL → sales staff thấy nút "Gửi yêu cầu"
-                                // PENDING_APPROVAL → director/admin thấy nút "Phê duyệt"
                                 const needsApproval = o.status === "PENDING_APPROVAL";
 
                                 return (
@@ -181,12 +181,11 @@ export const SalesOrders = () => {
                                         <td className="sp-td--name">{o.customerName}</td>
                                         <td className="sp-td--muted">{fmtDate(o.createdDate)}</td>
                                         <td><span className={`so-badge ${os.cls}`}>{os.text}</span></td>
-                                        {isSalesStaff && (
+                                        {(isSalesStaff || isProductionManager) && (
                                             <td><span className={`so-badge ${py.cls}`}>{py.text}</span></td>
                                         )}
                                         <td className="sp-td--price">{fmt(o.totalAmount)}</td>
                                         <td className="sp-td--actions">
-                                            {/* Nút xem chi tiết */}
                                             <button
                                                 className="sp-action-btn"
                                                 title="Xem chi tiết"
@@ -198,7 +197,6 @@ export const SalesOrders = () => {
                                                 </svg>
                                             </button>
 
-                                            {/* Nút phê duyệt / gửi yêu cầu — chỉ hiện khi PENDING_APPROVAL */}
                                             {needsApproval && (isDirector || isSalesStaff) && (
                                                 <button
                                                     className="sp-action-btn so-approval-btn"

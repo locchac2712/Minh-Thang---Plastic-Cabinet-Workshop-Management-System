@@ -1,176 +1,197 @@
 import { useState } from "react";
-import "./ProductList.css";
+import "../sales/SalesPages.css";
 import { useProducts } from "../../hooks/useProducts";
 import { useAuth } from "../../context/AuthContext";
+import { ProductDetail } from "./ProductDetail";
 
-const STATUS_LABEL = {
-    DRAFT:       { text: "Bản nháp",  cls: "prod-status--draft" },
-    ACTIVE:      { text: "Đang bán",  cls: "prod-status--active" },
-    DEACTIVATED: { text: "Ngừng bán", cls: "prod-status--deactivated" },
-};
-
-const STATUS_OPTIONS = ["DRAFT", "ACTIVE", "DEACTIVATED"];
-
-// ── Add Form Modal ─────────────────────────────────────────────
-const AddForm = ({ onSave, onClose, loading }) => {
-    const [form, setForm] = useState({
-        name: "", sku: "", unit: "",
-        sellingPrice: 0, description: "", status: "DRAFT",
-    });
-    const set = (f, v) => setForm((p) => ({ ...p, [f]: v }));
-
-    return (
-        <div className="prod-overlay" onClick={onClose}>
-            <div className="prod-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="prod-modal__header">
-                    <h3>Thêm thành phẩm mới</h3>
-                    <button className="prod-modal__close" onClick={onClose}>✕</button>
-                </div>
-                <div className="prod-modal__body">
-                    <div className="prod-form-row">
-                        <div className="prod-form-group">
-                            <label>SKU *</label>
-                            <input value={form.sku} onChange={(e) => set("sku", e.target.value)} placeholder="VD: PROD-001" />
-                        </div>
-                        <div className="prod-form-group">
-                            <label>Tên sản phẩm *</label>
-                            <input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Tên thành phẩm" />
-                        </div>
-                    </div>
-                    <div className="prod-form-row">
-                        <div className="prod-form-group">
-                            <label>Đơn vị tính *</label>
-                            <input value={form.unit} onChange={(e) => set("unit", e.target.value)} placeholder="cái, bộ, chiếc..." />
-                        </div>
-                        <div className="prod-form-group">
-                            <label>Giá bán</label>
-                            <input type="number" value={form.sellingPrice} onChange={(e) => set("sellingPrice", Number(e.target.value))} />
-                        </div>
-                    </div>
-                    <div className="prod-form-group">
-                        <label>Mô tả</label>
-                        <textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} placeholder="Mô tả sản phẩm..." />
-                    </div>
-                </div>
-                <div className="prod-modal__footer">
-                    <button className="btn btn--ghost" onClick={onClose}>Hủy</button>
-                    <button className="btn btn--primary" onClick={() => onSave(form)}
-                            disabled={loading || !form.name || !form.sku || !form.unit}>
-                        {loading ? "Đang lưu..." : "Thêm mới"}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// ── Main List ──────────────────────────────────────────────────
-export const ProductList = ({ onSelectProduct }) => {
-    const { products, loading, error, refetch, create } = useProducts();
-    const { user } = useAuth();
-    const [search,     setSearch]     = useState("");
-    const [showAdd,    setShowAdd]    = useState(false);
-    const [addLoading, setAddLoading] = useState(false);
-    const [toast,      setToast]      = useState(null);
-
-    const canWrite = !!user;
-
-    const showToast = (msg, type = "success") => {
-        setToast({ msg, type });
-        setTimeout(() => setToast(null), 3000);
-    };
+export const ProductList = () => {
+    const { products, loading, error, refetch } = useProducts();
+    const { hasRole } = useAuth();
+    const [search, setSearch] = useState("");
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [isCreating, setIsCreating] = useState(false);
 
     const filtered = products.filter((p) =>
-        p.name?.toLowerCase().includes(search.toLowerCase()) ||
-        p.sku?.toLowerCase().includes(search.toLowerCase())
+        (p.name || "").toLowerCase().includes(search.toLowerCase()) ||
+        (p.sku || "").toLowerCase().includes(search.toLowerCase())
     );
 
-    const handleAdd = async (form) => {
-        setAddLoading(true);
-        try {
-            await create(form);
-            setShowAdd(false);
-            showToast("Thêm mới thành công!");
-        } catch (e) {
-            showToast(e.response?.data?.message || "Có lỗi xảy ra", "error");
-        } finally { setAddLoading(false); }
-    };
+    const total = filtered.length;
+    const [page, setPage] = useState(0);
+    const pageSize = 10;
+    const paginated = filtered.slice(page * pageSize, (page + 1) * pageSize);
+    const totalPages = Math.ceil(total / pageSize);
+
+    const formatPrice = (val) =>
+        val != null ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val) : "—";
 
     return (
-        <div className="prod-page">
-            {toast && <div className={`prod-toast prod-toast--${toast.type}`}>{toast.msg}</div>}
-
-            <div className="prod-bar">
-                <div className="prod-bar__left">
-                    <div className="prod-search">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                        </svg>
-                        <input placeholder="Tìm theo tên hoặc SKU..."
-                               value={search} onChange={(e) => setSearch(e.target.value)} />
-                    </div>
-                    <span className="prod-count">{filtered.length} sản phẩm</span>
-                </div>
-                <div className="prod-bar__right">
-                    <button className="btn btn--ghost" onClick={refetch} disabled={loading}>🔄 Làm mới</button>
-                    {canWrite && <button className="btn btn--primary" onClick={() => setShowAdd(true)}>+ Thêm mới</button>}
+        <div className="sp-page">
+            <div className="sp-page-header">
+                <div>
+                    <h1 className="sp-title">Danh mục Thành phẩm</h1>
                 </div>
             </div>
 
+            {/* Toolbar */}
+            <div className="sq-toolbar">
+                <div className="sq-toolbar__left">
+                    <div className="sq-search-wrap">
+                        <div className="sp-search">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                            <input
+                                placeholder="Tìm theo tên sản phẩm hoặc SKU..."
+                                value={search}
+                                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                            />
+                        </div>
+                    </div>
+                </div>
+                <div className="sq-toolbar__right">
+                    <div className="sp-header-actions">
+
+                        <button className="sp-btn-primary sp-btn-primary--pill" onClick={() => setIsCreating(true)}>
+                            Thêm sản phẩm
+                            <span className="sp-btn-plus">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Content States */}
             {loading && (
-                <div className="prod-state">
-                    <div className="prod-spinner"/>
-                    <span>Đang tải dữ liệu...</span>
+                <div className="sp-state">
+                    <div className="sp-spinner" />
+                    <span>Đang tải danh sách sản phẩm...</span>
                 </div>
             )}
 
             {error && !loading && (
-                <div className="prod-state prod-state--error">
-                    <span style={{ fontSize: 36 }}>⚠️</span>
-                    <span style={{ fontWeight: 500 }}>{error}</span>
-                    {error.includes("đăng nhập")
-                        ? <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Vui lòng nhấn nút <strong>Login</strong> ở góc trên</span>
-                        : <button className="btn btn--ghost" onClick={refetch}>🔄 Thử lại</button>}
+                <div className="sp-state sp-state--error">
+                    <span style={{ fontSize: 32 }}>⚠️</span>
+                    <span style={{ fontWeight: 600, marginTop: "8px" }}>{error}</span>
+
                 </div>
             )}
 
+            {/* Table */}
             {!loading && !error && (
-                <div className="prod-table-wrap">
-                    <table className="prod-table">
-                        <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>SKU</th>
-                            <th>Tên sản phẩm</th>
-                            <th>Đơn vị tính</th>
-                            <th>Trạng thái</th>
-                            <th></th>
-                        </tr>
+                <div className="sp-card">
+                    <table className="sp-table">
+                        <thead className="sq-table-head">
+                            <tr>
+                                <th style={{ width: "60px" }}>STT</th>
+                                <th>Ảnh</th>
+                                <th>Mã SKU</th>
+                                <th>Tên sản phẩm</th>
+                                <th>Giá bán</th>
+                                <th>Tồn kho</th>
+                                <th>Trạng thái</th>
+                                <th style={{ textAlign: "center" }}>Thao tác</th>
+                            </tr>
                         </thead>
                         <tbody>
-                        {filtered.length === 0 ? (
-                            <tr><td colSpan={6} className="prod-empty">Không có dữ liệu</td></tr>
-                        ) : (
-                            filtered.map((p, idx) => {
-                                const s = STATUS_LABEL[p.status] || { text: p.status, cls: "" };
-                                return (
-                                    <tr key={p.id} className="prod-row--clickable" onClick={() => onSelectProduct(p)}>
-                                        <td className="prod-td--idx">{idx + 1}</td>
-                                        <td><span className="prod-code">{p.sku}</span></td>
-                                        <td className="prod-td--name">{p.name}</td>
-                                        <td>{p.unit || "—"}</td>
-                                        <td><span className={`prod-status ${s.cls}`}>{s.text}</span></td>
-                                        <td className="prod-td--arrow">›</td>
+                            {paginated.length === 0 ? (
+                                <tr>
+                                    <td colSpan={8} className="sp-empty-row">
+                                        <div className="sq-empty">
+                                            <div className="sq-empty__icon">📦</div>
+                                            <p>{search ? "Không tìm thấy sản phẩm nào" : "Chưa có dữ liệu thành phẩm"}</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                paginated.map((p, idx) => (
+                                    <tr
+                                        key={p.id}
+                                        className="sp-table__row"
+                                        onClick={() => setSelectedProduct(p)}
+                                        style={{ cursor: "pointer" }}
+                                    >
+                                        <td className="sp-td--muted">{(page * pageSize) + idx + 1}</td>
+                                        <td>
+                                            <div style={{ width: "40px", height: "40px", borderRadius: "8px", overflow: "hidden", background: "#f3f4f6", border: "1.5px solid #f0f0f5" }}>
+                                                {p.imageUrl ? (
+                                                    <img src={p.imageUrl} alt="p" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                                ) : (
+                                                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#9ca3af" }}>N/A</div>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td><span className="sq-quote-id">{p.sku}</span></td>
+                                        <td className="sp-td--name">{p.name}</td>
+                                        <td className="sp-td--price">{formatPrice(p.sellingPrice)}</td>
+                                        <td style={{ fontWeight: "600" }}>{p.currentStock ?? 0} {p.unit}</td>
+                                        <td>
+                                            <span className={`sq-badge ${p.status === "ACTIVE" ? "sq-badge--confirmed" : p.status === "DRAFT" ? "sq-badge--draft" : "sq-badge--rejected"}`}>
+                                                {p.status === "ACTIVE" ? "Đang bán" : p.status === "DRAFT" ? "Bản nháp" : "Ngừng bán"}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div className="sp-td--actions" style={{ justifyContent: "center" }}>
+                                                <button 
+                                                    className="sp-action-btn" 
+                                                    title="Xem chi tiết"
+                                                    onClick={(e) => { e.stopPropagation(); setSelectedProduct(p); }}
+                                                >
+                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
-                                );
-                            })
-                        )}
+                                ))
+                            )}
                         </tbody>
                     </table>
+
+                    {/* Pagination */}
+                    {total > 0 && (
+                        <div className="sp-pagination">
+                            <div className="sp-pagination__left">
+                                Hiển thị <b>{(page * pageSize) + 1} - {Math.min((page + 1) * pageSize, total)}</b> trong tổng số <b>{total}</b> sản phẩm
+                            </div>
+                            <div className="sp-pagination__right">
+                                <button className="sp-page-btn" disabled={page === 0} onClick={() => setPage(page - 1)}>&lt;</button>
+                                {[...Array(totalPages)].map((_, i) => (
+                                    <button 
+                                        key={i} 
+                                        className={`sp-page-btn${page === i ? " sp-page-btn--active" : ""}`}
+                                        onClick={() => setPage(i)}
+                                    >
+                                        {i + 1}
+                                    </button>
+                                ))}
+                                <button className="sp-page-btn" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>&gt;</button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
-            {showAdd && <AddForm onSave={handleAdd} onClose={() => setShowAdd(false)} loading={addLoading} />}
+            {/* Modals */}
+            {selectedProduct && (
+                <ProductDetail
+                    product={selectedProduct}
+                    onClose={() => setSelectedProduct(null)}
+                    onUpdated={() => refetch()}
+                />
+            )}
+
+            {isCreating && (
+                <ProductDetail
+                    product={{ sku: "", name: "", unit: "", sellingPrice: 0, status: "DRAFT", currentStock: 0 }}
+                    onClose={() => setIsCreating(false)}
+                    onUpdated={() => { setIsCreating(false); refetch(); }}
+                />
+            )}
         </div>
     );
 };
