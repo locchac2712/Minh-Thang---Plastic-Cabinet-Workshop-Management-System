@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service // 👉 PHẢI CÓ CÁI NÀY
@@ -33,7 +34,7 @@ public class SalesOrderService {
     // =================================================================
     // 1. API: LẤY DANH SÁCH ĐƠN HÀNG (CÓ TÌM KIẾM & LỌC 2 LỚP)
     // =================================================================
-    public Page<SalesOrderListResponse> getAllSalesOrders(String keyword, String statusStr, String paymentStatus, Pageable pageable) {
+    public Page<SalesOrderListResponse> getAllSalesOrders(String keyword, String statusStr, String paymentStatus, LocalDate startDate, LocalDate endDate, Pageable pageable) {
         String validKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : "";
         String validPaymentStatus = (paymentStatus != null && !paymentStatus.trim().isEmpty()) ? paymentStatus.trim().toUpperCase() : null;
 
@@ -47,7 +48,7 @@ public class SalesOrderService {
             if (!rawList.isEmpty()) statuses = rawList;
         }
 
-        Page<SalesOrder> orderPage = salesOrderRepository.searchSalesOrders(validKeyword, statuses, validPaymentStatus, pageable);
+        Page<SalesOrder> orderPage = salesOrderRepository.searchSalesOrders(validKeyword, statuses, validPaymentStatus, startDate, endDate, pageable);
         return orderPage.map(SalesOrderListResponse::new);
     }
 

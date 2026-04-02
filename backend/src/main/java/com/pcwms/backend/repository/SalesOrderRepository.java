@@ -23,11 +23,15 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
             "   OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             ") " +
             "AND (COALESCE(:statuses, NULL) IS NULL OR s.status IN :statuses) " +
-            "AND (:paymentStatus IS NULL OR s.paymentStatus = :paymentStatus)")
+            "AND (:paymentStatus IS NULL OR s.paymentStatus = :paymentStatus) " +
+            "AND (:startDate IS NULL OR s.dueDate >= :startDate) " +
+            "AND (:endDate IS NULL OR s.dueDate <= :endDate)")
     Page<SalesOrder> searchSalesOrders(
             @Param("keyword") String keyword,
             @Param("statuses") List<String> statuses,
             @Param("paymentStatus") String paymentStatus,
+            @Param("startDate") java.time.LocalDate startDate,
+            @Param("endDate") java.time.LocalDate endDate,
             Pageable pageable);
 
     @Query("SELECT s FROM SalesOrder s JOIN FETCH s.customer WHERE s.id = :id")
