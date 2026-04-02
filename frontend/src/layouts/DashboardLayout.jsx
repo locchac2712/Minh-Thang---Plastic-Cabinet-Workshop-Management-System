@@ -12,6 +12,7 @@ import { SalesOrders }      from "../pages/sales/SalesOrders";
 import { MyProfile }        from "../pages/common/MyProfile";
 
 const NAV = [
+    { id: "dashboard", label: "Dashboard", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> },
     { id: "orders", label: "Đơn hàng", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg> },
     { id: "plan", label: "Lập kế hoạch sản xuất", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> },
     { id: "workorder", label: "Thực thi Lệnh SX", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> },
@@ -22,12 +23,13 @@ const NAV = [
 ];
 
 const PAGE_TITLES = {
+  dashboard:      "Trình quản lý sản xuất",
   bom:            "Quản lý BOM",
   plan:           "Lập kế hoạch sản xuất",
   workorder:      "Thực thi Lệnh sản xuất",
   material:       "Danh mục Vật tư & Nguyên liệu",
   products:       "Danh mục Thành phẩm",
-  orders:         "Danh sách Đơn hàng (Đã xác nhận)",
+  orders:         "Đơn hàng",
   monitor:        "Giám sát sản xuất",
   profile:        "Hồ sơ của tôi",
 };
@@ -44,7 +46,7 @@ const getVNRole = (role) => {
 
 export const DashboardLayout = () => {
     const { user, logout } = useAuth();
-    const [activePage, setActivePage] = useState("bom");
+    const [activePage, setActivePage] = useState(user?.role === "ROLE_PRODUCTION_MANAGER" ? "dashboard" : "bom");
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -57,12 +59,14 @@ export const DashboardLayout = () => {
 
     const renderPage = () => {
         switch (activePage) {
+        case "dashboard": return <MonitorProduction />;
         case "bom":       return <ManageBOM />;
         case "plan":      return <PlanProduction />;
         case "workorder": return <ExecuteWorkOrder />;
         case "material":  return <MaterialList />;
         case "products":  return <ProductList />;
-        case "orders":    return <SalesOrders />;
+        case "orders":    
+            return user?.role === "ROLE_PRODUCTION_MANAGER" ? <ProductionOrders /> : <SalesOrders />;
         case "monitor":   return <MonitorProduction />;
         case "profile":   return <MyProfile />;
         default:          return <ManageBOM />;

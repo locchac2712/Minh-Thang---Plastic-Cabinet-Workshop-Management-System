@@ -57,7 +57,7 @@ export const SalesOrders = () => {
     return (
         <div className="sp-page">
             <div className="sp-page-header">
-                <h1 className="sp-title">Điều phối Sản xuất</h1>
+                <h1 className="sp-title">Đơn hàng</h1>
             </div>
 
             <div className="so-toolbar">
