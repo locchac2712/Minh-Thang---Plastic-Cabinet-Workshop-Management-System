@@ -85,7 +85,7 @@ public class ManufactureOrderService {
             // 👉 KIỂM DUYỆT 1: NẾU BỊ TRÙNG LỊCH XƯỞNG -> VĂNG LỖI NGAY LẬP TỨC
             if (isOverlapping(shiftStart, shiftEnd, existingMOs)) {
                 throw new RuntimeException(String.format(
-                        "❌ THẤT BẠI: Nếu bắt đầu vào %s, đến khoảng %s xưởng sẽ bị trùng lịch với một Lệnh khác đang chạy! Vui lòng chọn ngày khác.",
+                        "THẤT BẠI: Nếu bắt đầu vào %s, đến khoảng %s xưởng sẽ bị trùng lịch với một Lệnh khác đang chạy! Vui lòng chọn ngày khác.",
                         requestedStartDate.toLocalDate(), shiftStart
                 ));
             }
@@ -106,7 +106,7 @@ public class ManufactureOrderService {
         LocalDate targetEndDate = salesOrder.getDueDate().minusDays(2);
         if (finalEndDate.toLocalDate().isAfter(targetEndDate)) {
             throw new RuntimeException(String.format(
-                    "⚠️ CẢNH BÁO TRỄ HẠN: Nếu bắt đầu vào %s, hệ thống tính toán đến tận %s mới làm xong. Hạn chót bắt buộc của xưởng là %s. Không thể chốt kế hoạch này!",
+                    "CẢNH BÁO TRỄ HẠN: Nếu bắt đầu vào %s, hệ thống tính toán đến tận %s mới làm xong. Hạn chót bắt buộc của xưởng là %s. Không thể chốt kế hoạch này!",
                     requestedStartDate.toLocalDate(), finalEndDate.toLocalDate(), targetEndDate
             ));
         }
@@ -123,7 +123,7 @@ public class ManufactureOrderService {
         mo.setTechnicalNotes(technicalNotes);
 
         manufactureOrderRepository.save(mo);
-        log.info("🎉 Quản đốc đã chốt thành công MO: {} | Từ {} đến {}", mo.getMoNumber(), mo.getStartDate(), mo.getEndDate());
+        log.info("Đã chốt thành công MO: {} | Từ {} đến {}", mo.getMoNumber(), mo.getStartDate(), mo.getEndDate());
 
         return mo;
     }
