@@ -23,8 +23,11 @@ public class CustomerService {
     }
 
     public Customer createCustomer(Customer customer) {
-        if (customerRepository.existsByName(customer.getName())) {
-            throw new RuntimeException("Tên khách hàng đã tồn tại trong hệ thống!");
+        if (customer.getPhoneNumber() != null && customerRepository.existsByPhoneNumber(customer.getPhoneNumber())) {
+            throw new RuntimeException("Số điện thoại này đã được sử dụng bởi một khách hàng khác!");
+        }
+        if (customer.getEmail() != null && !customer.getEmail().isEmpty() && customerRepository.existsByEmail(customer.getEmail())) {
+            throw new RuntimeException("Email này đã được sử dụng bởi một khách hàng khác!");
         }
         return customerRepository.save(customer);
     }

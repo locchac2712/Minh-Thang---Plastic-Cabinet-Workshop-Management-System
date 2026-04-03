@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useState, useEffect } from "react";
 import api from "../../services/api";
 import "../sales/SalesPages.css";
@@ -144,14 +143,4 @@ export const ExecuteWorkOrder = () => {
         </div>
     );
 };
-=======
-import { EmptyPage } from "../../components/EmptyPage.jsx";
 
-export const ExecuteWorkOrder = () => (
-  <EmptyPage
-    icon=""
-    title="Execute Work Order"
-    description="Work order execution and tracking will be displayed here."
-  />
-);
->>>>>>> b41d7805ca057f97a138d29eb1ed6847fe7a8d63

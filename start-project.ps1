@@ -2,9 +2,9 @@ Function Kill-ProcessByPort($port) {
     Write-Host "Checking for existing process on port $port..."
     $process = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($process) {
-        $pid = $process.OwningProcess
-        Write-Host "Found process with PID $pid on port $port. Terminating..."
-        Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+        $procId = $process.OwningProcess
+        Write-Host "Found process with PID $procId on port $port. Terminating..."
+        Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
     } else {
         Write-Host "No process found on port $port."
     }

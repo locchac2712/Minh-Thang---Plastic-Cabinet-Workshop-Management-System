@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class QuotationService {
@@ -26,6 +27,8 @@ public class QuotationService {
     private StaffRepository staffRepository;
     @Autowired
     private ProductRepository productRepository;
+    @Autowired
+    private SalesOrderService salesOrderService;
 
     @Transactional // Đảm bảo lỗi ở đâu thì rollback lại toàn bộ
     public Quotation createQuotation(QuotationRequest request) {
@@ -38,17 +41,20 @@ public class QuotationService {
 
         // 2. Khởi tạo Báo Giá
         Quotation quotation = new Quotation();
-
-        // Tự động sinh mã Báo giá chuẩn form UI (VD: BG-2026-3182)
-        String year = String.valueOf(LocalDateTime.now().getYear());
-        int randomNum = 1000 + new java.util.Random().nextInt(9000); // Random từ 1000 đến 9999
-        quotation.setQuotationNumber("BG-" + year + "-" + randomNum);
-
         quotation.setCustomer(customer);
         quotation.setStaff(staff);
         quotation.setValidUntil(request.getValidUntil());
         quotation.setNote(request.getNote());
         quotation.setStatus("DRAFT"); // Mặc định là Nháp (Draft)
+        
+        // Gán mã tạm để thỏa mãn NOT NULL constraint, sau đó cập nhật theo ID thực
+        quotation.setQuotationNumber("TEMP-" + UUID.randomUUID().toString().substring(0, 8));
+        quotation = quotationRepository.save(quotation);
+        
+        // Cập nhật mã Báo giá theo format BG-YYYY-ID (VD: BG-2026-0001)
+        String year = String.valueOf(LocalDateTime.now().getYear());
+        String formattedId = String.format("%04d", quotation.getId());
+        quotation.setQuotationNumber("BG-" + year + "-" + formattedId);
 
         BigDecimal grandTotal = BigDecimal.ZERO;
 
@@ -119,7 +125,16 @@ public class QuotationService {
         // 💡 TINH HOA Ở ĐÂY: Nếu status là ACCEPTED, ta sẽ gọi hàm sinh Đơn Hàng (Sales Order)
         if ("ACCEPTED".equals(savedQuotation.getStatus())) {
             System.out.println("🚀 KHÁCH ĐÃ CHỐT DEAL: Chuẩn bị kích hoạt luồng tự động tạo Sales Order!");
-            // TODO: Gọi hàm createSalesOrderFromQuotation(savedQuotation) ở bước tiếp theo
+            try {
+                salesOrderService.generateFromQuotation(savedQuotation.getId());
+                System.out.println("✅ Tự động tạo Sales Order thành công cho Báo giá ID: " + savedQuotation.getId());
+            } catch (Exception e) {
+                System.err.println("❌ Lỗi tự động tạo Sales Order: " + e.getMessage());
+                // Lưu ý: Tùy vào yêu cầu nghiệp vụ, có thể throw exception để rollback trạng thái báo giá
+                // Hoặc chỉ log lỗi nếu ưu tiên cập nhật trạng thái báo giá trước.
+                // Ở đây ta throw để đảm bảo tính nhất quán (Atomic).
+                throw new RuntimeException("Không thể tự động tạo đơn hàng: " + e.getMessage());
+            }
         }
         return savedQuotation;
     }
