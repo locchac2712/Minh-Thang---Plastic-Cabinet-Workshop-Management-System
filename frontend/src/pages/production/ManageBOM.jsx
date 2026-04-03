@@ -447,9 +447,6 @@ export const ManageBOM = () => {
           <div className="sq-toolbar__left">
             <div className="sq-search-wrap">
               <div className="sp-search">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
-                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                  </svg>
                   <input placeholder="Tìm theo tên thành phẩm hoặc phiên bản..."
                          value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
               </div>
@@ -459,12 +456,7 @@ export const ManageBOM = () => {
               <div className="sp-header-actions">
                   {user && (
                       <button className="sp-btn-primary sp-btn-primary--pill" onClick={() => setShowCreate(true)}>
-                          Thiết lập BOM
-                          <span className="sp-btn-plus">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                  <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
-                              </svg>
-                          </span>
+                          + Thiết lập BOM
                       </button>
                   )}
               </div>
@@ -520,9 +512,7 @@ export const ManageBOM = () => {
                                           title="Xem chi tiết"
                                           onClick={(e) => { e.stopPropagation(); setDetailId(b.id); }}
                                       >
-                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
-                                          </svg>
+                                          Xem
                                       </button>
                                   </div>
                               </td>

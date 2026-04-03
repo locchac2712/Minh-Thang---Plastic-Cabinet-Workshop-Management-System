@@ -78,7 +78,32 @@ public class DatabaseSeeder implements CommandLineRunner {
             }
         }
 
-        // 4. PRODUCTS
+        // 4. MATERIALS (Vật tư & Nguyên liệu)
+        if (materialRepository.count() == 0) {
+            createMaterial("Hạt nhựa PP (Polypropylene)",    "VT-PP-001",   "Kg",  new BigDecimal("32000"),   500, 100, "Hạt nhựa PP nguyên sinh, dùng sản xuất tủ nhựa chịu lực");
+            createMaterial("Hạt nhựa ABS",                  "VT-ABS-001",  "Kg",  new BigDecimal("55000"),   300, 80,  "Nhựa ABS cao cấp, độ bền va đập cao");
+            createMaterial("Hạt nhựa PVC cứng",             "VT-PVC-001",  "Kg",  new BigDecimal("28000"),   400, 120, "PVC cứng dùng làm khung tủ");
+            createMaterial("Hạt nhựa HDPE",                 "VT-HDPE-001", "Kg",  new BigDecimal("30000"),   250, 60,  "Nhựa HDPE chống ẩm, dùng cho tủ ngoài trời");
+            createMaterial("Bột màu trắng Titanium",        "VT-MAU-001",  "Kg",  new BigDecimal("85000"),   50,  15,  "Bột màu trắng TiO2 dùng pha màu nhựa");
+            createMaterial("Bột màu xanh dương",            "VT-MAU-002",  "Kg",  new BigDecimal("92000"),   30,  10,  "Bột màu xanh dương công nghiệp");
+            createMaterial("Bột màu nâu gỗ",               "VT-MAU-003",  "Kg",  new BigDecimal("78000"),   40,  10,  "Bột màu nâu giả gỗ cho tủ nhựa vân gỗ");
+            createMaterial("Bột màu xám đậm",              "VT-MAU-004",  "Kg",  new BigDecimal("80000"),   25,  8,   "Bột màu xám đậm công nghiệp");
+            createMaterial("Bản lề nhựa 50mm",              "VT-BL-001",   "Cái", new BigDecimal("3500"),    2000, 500, "Bản lề nhựa cường lực cho cánh tủ");
+            createMaterial("Tay nắm tủ nhựa",               "VT-TN-001",   "Cái", new BigDecimal("5000"),    1500, 300, "Tay nắm nhựa mạ chrome dùng cho cửa tủ");
+            createMaterial("Ốc vít inox M4x20",             "VT-OV-001",   "Hộp", new BigDecimal("45000"),   200, 50,  "Hộp 100 ốc vít inox M4x20mm");
+            createMaterial("Ốc vít inox M5x30",             "VT-OV-002",   "Hộp", new BigDecimal("55000"),   150, 40,  "Hộp 100 ốc vít inox M5x30mm");
+            createMaterial("Keo dán nhựa đa năng",          "VT-KEO-001",  "Lít", new BigDecimal("120000"),  80,  20,  "Keo dán nhựa công nghiệp, kết dính mạnh");
+            createMaterial("Chân tủ nhựa điều chỉnh",       "VT-CT-001",   "Cái", new BigDecimal("8000"),    800, 200, "Chân tủ nhựa có thể điều chỉnh chiều cao");
+            createMaterial("Thanh ray trượt ngăn kéo 400mm","VT-RAY-001",  "Bộ",  new BigDecimal("35000"),   300, 80,  "Ray trượt bi 3 tầng cho ngăn kéo tủ");
+            createMaterial("Gioăng cao su chống nước",       "VT-GS-001",   "Mét", new BigDecimal("12000"),   500, 100, "Gioăng cao su dùng cho tủ chống ẩm");
+            createMaterial("Màng co PE bọc sản phẩm",       "VT-PE-001",   "Cuộn",new BigDecimal("95000"),   60,  15,  "Cuộn màng co PE 50cm x 300m dùng đóng gói");
+            createMaterial("Thùng carton đóng gói (lớn)",   "VT-CTN-001",  "Cái", new BigDecimal("18000"),   400, 100, "Thùng carton 5 lớp, kích thước 80x50x60cm");
+            createMaterial("Phụ gia chống UV",               "VT-UV-001",   "Kg",  new BigDecimal("150000"),  20,  5,   "Phụ gia UV Stabilizer cho sản phẩm ngoài trời");
+            createMaterial("Phụ gia tăng độ bền",            "VT-PG-001",   "Kg",  new BigDecimal("130000"),  30,  8,   "Phụ gia Impact Modifier tăng chịu va đập");
+            System.out.println("-> Đã tạo 20 Vật tư mẫu thành công!");
+        }
+
+        // 5. PRODUCTS
         if (productRepository.count() == 0) {
             Product p1 = new Product(); p1.setName("Bàn làm việc Gỗ Sồi"); p1.setSku("SP-BAN-001"); p1.setSellingPrice(new BigDecimal("2500000")); p1.setCurrentStock(15); p1.setUnit("Cái"); productRepository.save(p1);
             Product p2 = new Product(); p2.setName("Ghế xoay văn phòng"); p2.setSku("SP-GHE-001"); p2.setSellingPrice(new BigDecimal("850000")); p2.setCurrentStock(50); p2.setUnit("Cái"); productRepository.save(p2);
@@ -139,5 +164,18 @@ public class DatabaseSeeder implements CommandLineRunner {
     private void createCustomer(String name, String email, String phone, String address, String taxCode, BigDecimal creditLimit) {
         Customer customer = new Customer(); customer.setName(name); customer.setEmail(email); customer.setPhoneNumber(phone); customer.setAddress(address); customer.setTaxCode(taxCode); customer.setCreditLimit(creditLimit); customer.setCurrentDebt(BigDecimal.ZERO);
         customerRepository.save(customer);
+    }
+
+    private void createMaterial(String name, String sku, String unit, BigDecimal avgCost, int stock, int minStock, String description) {
+        Material m = new Material();
+        m.setName(name);
+        m.setSku(sku);
+        m.setUnit(unit);
+        m.setAverageUnitCost(avgCost);
+        m.setCurrentStock(stock);
+        m.setMinStockLevel(minStock);
+        m.setDescription(description);
+        m.setIsActive(true);
+        materialRepository.save(m);
     }
 }

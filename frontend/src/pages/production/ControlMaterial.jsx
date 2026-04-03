@@ -1,125 +1,148 @@
-// ============================================================
-// src/pages/ControlMaterial.jsx
-// Danh sách: SKU | Tên | Tồn kho — click để xem chi tiết
-// ============================================================
 import { useState } from "react";
-import "./ControlMaterial.css";
+import "../sales/SalesPages.css";
 import { useMaterials } from "../../hooks/useMaterials.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
+const fmt = (val) =>
+    val != null ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val) : "—";
+
 export const ControlMaterial = ({ onSelectMaterial }) => {
-  const { materials, loading, error, refetch } = useMaterials();
-  const { user, hasRole } = useAuth();
-  const isLoggedIn = !!user;
-  const canWrite   = isLoggedIn;
-  const [search, setSearch] = useState("");
+    const { materials, loading, error, refetch } = useMaterials();
+    const { user } = useAuth();
+    const [search, setSearch] = useState("");
+    const [page, setPage] = useState(0);
+    const pageSize = 10;
 
+    const filtered = materials.filter((m) =>
+        m.materialName?.toLowerCase().includes(search.toLowerCase()) ||
+        m.sku?.toLowerCase().includes(search.toLowerCase()) ||
+        m.name?.toLowerCase().includes(search.toLowerCase())
+    );
 
-  const filtered = materials.filter((m) =>
-      m.materialName?.toLowerCase().includes(search.toLowerCase()) ||
-      m.sku?.toLowerCase().includes(search.toLowerCase())
-  );
+    const total = filtered.length;
+    const paginated = filtered.slice(page * pageSize, (page + 1) * pageSize);
+    const totalPages = Math.ceil(total / pageSize);
 
-  return (
-      <div className="mat-page">
-
-        {/* Toolbar */}
-        <div className="mat-bar">
-          <div className="mat-bar__left">
-            <div className="mat-search">
-              <span className="mat-search__icon">🔍</span>
-              <input
-                  placeholder="Tìm theo tên hoặc SKU..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-              />
+    return (
+        <div className="sp-page">
+            <div className="sp-page-header">
+                <div>
+                    <h1 className="sp-title">Vật tư & Nguyên liệu</h1>
+                </div>
             </div>
-            <span className="mat-count">{filtered.length} vật liệu</span>
-          </div>
-          <div className="mat-bar__right">
-            <button className="btn btn--ghost" onClick={refetch} disabled={loading}>
-              🔄 Làm mới
-            </button>
-          </div>
-        </div>
 
-        {/* Loading */}
-        {loading && (
-            <div className="mat-state">
-              <div className="mat-spinner" />
-              <span>Đang tải dữ liệu...</span>
+            <div className="sq-toolbar">
+                <div className="sq-toolbar__left">
+                    <div className="sq-search-wrap">
+                        <div className="sp-search">
+                            <input placeholder="Tìm theo tên hoặc SKU..."
+                                   value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
+                        </div>
+                    </div>
+                </div>
+                <div className="sq-toolbar__right">
+                    <div className="sp-header-actions">
+                        <button className="sp-btn-primary sp-btn-primary--pill" onClick={refetch} disabled={loading}>
+                            Làm mới
+                        </button>
+                    </div>
+                </div>
             </div>
-        )}
 
-        {/* Error */}
-        {error && !loading && (
-            <div className="mat-state mat-state--error">
-              <span style={{ fontSize: 36 }}>⚠️</span>
-              <span style={{ fontWeight: 500 }}>{error}</span>
-              {error.includes("đăng nhập") ? (
-                  <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
-              Vui lòng nhấn nút <strong>Login</strong> ở góc trên bên phải
-            </span>
-              ) : (
-                  <button className="btn btn--ghost" onClick={refetch}>🔄 Thử lại</button>
-              )}
-            </div>
-        )}
+            {loading && <div className="sp-state"><div className="sp-spinner"/><span>Đang thu thập dữ liệu vật tư...</span></div>}
 
-        {/* Table */}
-        {!loading && !error && (
-            <div className="mat-table-wrap">
-              <table className="mat-table">
-                <thead>
-                <tr>
-                  <th>#</th>
-                  <th>SKU</th>
-                  <th>Tên vật liệu</th>
-                  <th>Tồn kho</th>
-                  <th>Chi tiết</th>
-                  <th></th>
-                </tr>
-                </thead>
-                <tbody>
-                {filtered.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="mat-empty">Không có dữ liệu</td>
-                    </tr>
-                ) : (
-                    filtered.map((m, idx) => (
-                        <tr
-                            key={m.id}
-                            className="mat-row--clickable"
-                            onClick={() => onSelectMaterial(m)}
-                        >
-                          <td className="mat-td--idx">{idx + 1}</td>
-                          <td><span className="mat-code">{m.sku}</span></td>
-                          <td className="mat-td--name">
-                            {(m.materialName || m.name)
-                                ? (m.materialName || m.name)
-                                : <span
-                                    className="mat-missing-name"
-                                    onClick={(e) => { e.stopPropagation(); onSelectMaterial(m); }}
-                                >
+            {error && !loading && (
+                <div className="sp-state sp-state--error">
+                    <span style={{ fontWeight: 600 }}>{error}</span>
+                </div>
+            )}
 
-                          </span>
-                            }
-                          </td>
-                          <td>
-                      <span className={`mat-qty${m.currentStock <= 0 ? " mat-qty--zero" : ""}`}>
-                        {m.currentStock ?? 0}
-                        <span className="mat-qty-unit"> {m.unit}</span>
-                      </span>
-                          </td>
-
-                          <td className="mat-td--arrow">›</td>
+            {!loading && !error && (
+                <div className="sp-card">
+                    <table className="sp-table">
+                        <thead className="sq-table-head">
+                        <tr>
+                            <th style={{ width: "60px" }}>STT</th>
+                            <th>Mã SKU</th>
+                            <th>Tên vật tư</th>
+                            <th>Đơn vị</th>
+                            <th style={{ textAlign: "right" }}>Tồn kho</th>
+                            <th style={{ textAlign: "right" }}>Giá vốn TB</th>
+                            <th style={{ textAlign: "center" }}>Trạng thái</th>
+                            <th style={{ textAlign: "center" }}>Thao tác</th>
                         </tr>
-                    ))
-                )}
-                </tbody>
-              </table>
-            </div>
-        )}
-      </div>
-  );
+                        </thead>
+                        <tbody>
+                        {paginated.length === 0 ? (
+                            <tr>
+                                <td colSpan={8} className="sp-empty-row">
+                                    <div className="sq-empty">
+                                        <p>{search ? "Không tìm thấy vật tư phù hợp" : "Chưa có vật tư nào trong hệ thống"}</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : (
+                            paginated.map((m, idx) => (
+                                <tr key={m.id} className="sp-table__row" style={{ cursor: "pointer" }} onClick={() => onSelectMaterial(m)}>
+                                    <td className="sp-td--muted">{(page * pageSize) + idx + 1}</td>
+                                    <td><span className="sq-quote-id">{m.sku}</span></td>
+                                    <td className="sp-td--name">{m.materialName || m.name}</td>
+                                    <td>{m.unit || "—"}</td>
+                                    <td style={{ textAlign: "right" }}>
+                                        <span style={{
+                                            fontWeight: 700,
+                                            color: (m.currentStock ?? 0) <= (m.minStockLevel ?? 0) ? "#dc2626" : "#059669"
+                                        }}>
+                                            {(m.currentStock ?? 0).toLocaleString("vi-VN")}
+                                        </span>
+                                    </td>
+                                    <td style={{ textAlign: "right" }} className="sp-td--price">
+                                        {m.averageUnitCost ? fmt(m.averageUnitCost) : "—"}
+                                    </td>
+                                    <td style={{ textAlign: "center" }}>
+                                        <span className={`sq-badge ${m.isActive !== false ? "sq-badge--accepted" : "sq-badge--rejected"}`}>
+                                            {m.isActive !== false ? "Đang dùng" : "Ngừng"}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div className="sp-td--actions" style={{ justifyContent: "center" }}>
+                                            <button
+                                                className="sp-action-btn"
+                                                title="Xem chi tiết"
+                                                onClick={(e) => { e.stopPropagation(); onSelectMaterial(m); }}
+                                            >
+                                                Xem
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                        </tbody>
+                    </table>
+
+                    {total > 0 && (
+                        <div className="sp-pagination">
+                            <div className="sp-pagination__left">
+                                Hiển thị <b>{(page * pageSize) + 1} - {Math.min((page + 1) * pageSize, total)}</b> trong tổng số <b>{total}</b> vật tư
+                            </div>
+                            <div className="sp-pagination__right">
+                                <button className="sp-page-btn" disabled={page === 0} onClick={() => setPage(page - 1)}>&lt;</button>
+                                {[...Array(totalPages)].map((_, i) => (
+                                    <button
+                                        key={i}
+                                        className={`sp-page-btn${page === i ? " sp-page-btn--active" : ""}`}
+                                        onClick={() => setPage(i)}
+                                    >
+                                        {i + 1}
+                                    </button>
+                                ))}
+                                <button className="sp-page-btn" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>&gt;</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
 };
