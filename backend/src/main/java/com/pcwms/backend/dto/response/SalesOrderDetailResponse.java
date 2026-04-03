@@ -27,7 +27,13 @@ public class SalesOrderDetailResponse {
     private LocalDateTime createdDate;
     private List<ItemDto> details;
     private Integer priorityLevel;
-    private LocalDate dueDate;// Thêm trường này để ưu tiên hiển thị đơn hàng nào trước sau
+    private LocalDate dueDate;
+    private String deliveryAddress;
+    private String notes;
+    private String paymentTerms;
+    private String paymentMethod;
+    private BigDecimal depositRatio;
+    private BigDecimal depositAmount;
 
     public SalesOrderDetailResponse(SalesOrder order) {
         this.id = order.getId();
@@ -38,6 +44,12 @@ public class SalesOrderDetailResponse {
         this.createdDate = order.getCreatedDate();
         this.priorityLevel = order.getPriorityLevel();
         this.dueDate = order.getDueDate();
+        this.deliveryAddress = order.getDeliveryAddress();
+        this.notes = order.getNotes();
+        this.paymentTerms = order.getPaymentTerms();
+        this.paymentMethod = order.getPaymentMethod();
+        this.depositRatio = order.getDepositRatio();
+        this.depositAmount = order.getDepositAmount();
 
         // Trace back về Báo giá (Nếu có)
         if (order.getQuotation() != null) {
@@ -68,7 +80,8 @@ public class SalesOrderDetailResponse {
                     d.getQuantity(),
                     d.getUnitPrice(),
                     d.getDiscount(),
-                    d.getTotalLineAmount() // Gọi thẳng hàm nãy anh em mình viết trong Entity
+                    d.getTotalLineAmount(),
+                    d.getNotes()
             )).collect(Collectors.toList());
         }
     }
@@ -106,10 +119,11 @@ public class SalesOrderDetailResponse {
         private BigDecimal unitPrice;
         private BigDecimal discount;
         private BigDecimal totalLineAmount;
+        private String     notes;
 
         public ItemDto(Long id, Long productId, String productName, String productSku,
                        Integer quantity, BigDecimal unitPrice,
-                       BigDecimal discount, BigDecimal totalLineAmount) {
+                       BigDecimal discount, BigDecimal totalLineAmount, String notes) {
             this.id              = id;
             this.productId       = productId;
             this.productName     = productName;
@@ -118,6 +132,7 @@ public class SalesOrderDetailResponse {
             this.unitPrice       = unitPrice;
             this.discount        = discount;
             this.totalLineAmount = totalLineAmount;
+            this.notes           = notes;
         }
     }
 }

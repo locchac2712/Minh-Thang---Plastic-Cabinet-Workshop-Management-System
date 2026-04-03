@@ -39,7 +39,7 @@ public class QuotationController {
 
     // Sửa updateQuotation endpoint
     @PutMapping("/{id}/update")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF') or hasRole('DIRECTOR')")
     public ResponseEntity<ResponseObject> updateQuotation(
             @PathVariable Long id,
             @RequestBody QuotationRequest request) {
@@ -99,7 +99,7 @@ public class QuotationController {
     }
     // 👉 API Xem chi tiết 1 Báo giá
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF') or hasRole('DIRECTOR')")
     public ResponseEntity<ResponseObject> getQuotationDetail(@PathVariable Long id) {
         try {
             QuotationDetailResponse detail = quotationService.getQuotationDetail(id);

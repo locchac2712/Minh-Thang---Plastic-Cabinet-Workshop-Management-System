@@ -4,6 +4,7 @@ import { SalesOrderDetail } from "../sales/SalesOrderDetail.jsx";
 import { useAuth } from "../../context/AuthContext";
 import { useSalesOrders } from "../../hooks/useSalesOrders";
 import { ORDER_STATUS_MAP } from "../../services/salesOrderService.js";
+import { CreateWorkOrder } from "./CreateWorkOrder.jsx";
 
 const fmt = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "—";
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
@@ -25,6 +26,7 @@ export const ProductionOrders = () => {
     const [page, setPage] = useState(0);
     const [viewId, setViewId] = useState(null);
     const [planOrder, setPlanOrder] = useState(null);
+    const [showCreateWorkOrder, setShowCreateWorkOrder] = useState(false);
 
     // Lấy dữ liệu với trạng thái được lọc
     const { data, loading, error, refetch } = useSalesOrders({
@@ -35,6 +37,10 @@ export const ProductionOrders = () => {
 
     const orders = data?.content ?? [];
     const total = data?.totalElements ?? 0;
+
+    // if (showCreateWorkOrder) return (
+    //     <CreateWorkOrder onBack={() => setShowCreateWorkOrder(false)} />
+    // );
 
     if (viewId) return (
         <SalesOrderDetail
@@ -48,7 +54,17 @@ export const ProductionOrders = () => {
         <div className="sp-page">
             <div className="sp-page-header">
                 <div>
-                    <h1 className="sp-title">Đơn hàng</h1>
+                    <h1 className="sp-title">Đơn hàng sản xuất</h1>
+                </div>
+                <div>
+                   <button 
+                        className="sp-btn-primary sp-btn-primary--pill" 
+                        onClick={() => setShowCreateWorkOrder(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                    >
+                        Tạo Lệnh Sản Xuất
+                        <span style={{ fontSize: '18px', fontWeight: 'bold' }}>+</span>
+                   </button>
                 </div>
             </div>
 
@@ -199,6 +215,10 @@ export const ProductionOrders = () => {
                     onClose={() => setPlanOrder(null)}
                     onSuccess={() => { setPlanOrder(null); refetch(); }}
                 />
+            )}
+            
+            {showCreateWorkOrder && (
+                <CreateWorkOrder onBack={() => setShowCreateWorkOrder(false)} />
             )}
             
             <style>{`

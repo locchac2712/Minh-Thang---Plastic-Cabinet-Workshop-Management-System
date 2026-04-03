@@ -3,6 +3,7 @@ import "./SalesPages.css";
 import salesOrderService, { ORDER_STATUS_MAP, PAYMENT_STATUS_MAP } from "../../services/salesOrderService.js";
 import manufactureOrderService from "../../services/manufactureOrderService.js";
 import { PaymentModal } from "./PaymentModal.jsx";
+import { ApprovalModal } from "./ApprovalModal.jsx";
 
 const fmt     = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "—";
 const fmtDate = (d) => d ? new Date(d).toLocaleString("vi-VN") : "—";
@@ -182,13 +183,14 @@ const PopField = ({ label, value }) => (
 /* ─────────────────────────────────────────────────────────────
    MAIN COMPONENT
 ───────────────────────────────────────────────────────────── */
-export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
+export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff, isSalesManager, isDirector }) => {
     const [order,         setOrder]         = useState(null);
     const [payments,      setPayments]      = useState([]);
     const [loading,       setLoading]       = useState(true);
     const [error,         setError]         = useState(null);
     const [showPayModal,  setShowPayModal]  = useState(false);
     const [showProdPopup, setShowProdPopup] = useState(false);
+    const [selectedForApproval, setSelectedForApproval] = useState(null);
 
     // Modal state for schedule
     const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -237,6 +239,18 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
             setShowScheduleModal(false);
         } catch (err) {
             alert(err.response?.data?.message || err.message);
+        }
+    };
+
+    const handleApprovalSubmit = async (isApproved, limit, note) => {
+        try {
+            const payload = { isApproved, newCreditLimit: limit, approvalNote: note };
+            await salesOrderService.processApproval(order.id, payload);
+            alert(isApproved ? "Phê duyệt đơn hàng thành công!" : "Từ chối đơn hàng thành công!");
+            setSelectedForApproval(null);
+            loadOrder();
+        } catch (err) {
+            alert("Lỗi: " + (err.response?.data?.message || "Không thể xử lý"));
         }
     };
 
@@ -378,6 +392,26 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
                                     🔄 Cập nhật lệnh sản xuất
                                 </button>
                             )}
+
+                            {order.status === "PENDING_APPROVAL" && isSalesManager && (
+                                <button 
+                                    className="pm-trigger-btn" 
+                                    style={{ marginTop: 10, background: "#3b82f6" }} 
+                                    onClick={() => alert("Đã gửi thông báo yêu cầu phê duyệt tới Giám đốc!")}
+                                >
+                                    📤 Gửi yêu cầu phê duyệt
+                                </button>
+                            )}
+
+                            {order.status === "PENDING_APPROVAL" && isDirector && (
+                                <button 
+                                    className="pm-trigger-btn" 
+                                    style={{ marginTop: 10, background: "#7c3aed" }} 
+                                    onClick={() => setSelectedForApproval(order)}
+                                >
+                                    ✅ Phê duyệt đơn hàng
+                                </button>
+                            )}
                         </div>
                     )}
 
@@ -421,6 +455,15 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
                     onSend={() => loadOrder()}
                 />
             )}
+            
+            {selectedForApproval && (
+                <ApprovalModal
+                    order={selectedForApproval}
+                    onClose={() => setSelectedForApproval(null)}
+                    onSubmit={handleApprovalSubmit}
+                />
+            )}
+
             {showScheduleModal && (
                 <div className="so-modal-overlay">
                     <div className="so-modal">

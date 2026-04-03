@@ -5,6 +5,7 @@ import { ManageBOM }         from "../pages/production/ManageBOM.jsx";
 import { PlanProduction }    from "../pages/production/PlanProduction.jsx";
 import { PlanCalendar }      from "../pages/production/PlanCalendar.jsx";
 import { ExecuteWorkOrder }  from "../pages/production/ExecuteWorkOrder.jsx";
+import { CreateWorkOrder }   from "../pages/production/CreateWorkOrder.jsx";
 import { MaterialList }      from "../pages/master-data/MaterialList";
 import { ProductList }       from "../pages/production/ProductList.jsx";
 import { MonitorProduction } from "../pages/production/MonitorProduction.jsx";
@@ -20,6 +21,7 @@ const NAV = [
     { id: "orders", label: "Đơn hàng", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg> },
     { id: "plan", label: "Lập kế hoạch sản xuất", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> },
     { id: "calendar", label: "Lập lịch sản xuất", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> },
+    { id: "create-wo", label: "Tạo Lệnh Sản Xuất", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" strokeWidth="3"/></svg> },
     { id: "workorder", label: "Thực thi Lệnh SX", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> },
     { id: "bom", label: "Định mức vật tư (BOM)", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> },
     { id: "material", label: "Vật tư & Nguyên liệu", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> },
@@ -32,6 +34,7 @@ const PAGE_TITLES = {
   bom:            "Quản lý BOM",
   plan:           "Danh sách kế hoạch",
   calendar:       "Lập lịch sản xuất",
+  "create-wo":    "Tạo Lệnh Sản Xuất",
   workorder:      "Thực hiện lệnh sản xuất",
   material:       "Quản lý vật tư",
   materialDetail: "Chi tiết vật tư",
@@ -74,6 +77,7 @@ export const DashboardLayout = () => {
         case "bom":       return <ManageBOM />;
         case "plan":      return <PlanProduction />;
         case "calendar":  return <PlanCalendar />;
+        case "create-wo": return <CreateWorkOrder onBack={() => setActivePage("orders")} />;
         case "workorder": return <ExecuteWorkOrder />;
         case "material":  return <ControlMaterial onSelectMaterial={(m) => { setSelectedMaterial(m); setActivePage("materialDetail"); }} />;
         case "materialDetail": return <MaterialDetail materialId={selectedMaterial?.id} onBack={() => setActivePage("material")} />;

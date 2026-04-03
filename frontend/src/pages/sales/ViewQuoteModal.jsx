@@ -177,13 +177,16 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                                         onAdd={addRow} 
                                         onRemove={removeRow} 
                                         isReadOnly={mode === "view"}
+                                        errors={error && typeof error === 'object' ? error : {}}
                                     />
-                                    {error && <div className="sq-modal-error">{error}</div>}
+                                    {error && typeof error === 'string' && <div className="sq-modal-error">{error}</div>}
                                 </div>
                                 <QuotationSummary 
                                     totals={totals} 
                                     note={note} 
                                     onNoteChange={setNote} 
+                                    status={status}
+                                    onStatusChange={setStatus}
                                     isReadOnly={mode === "view"}
                                     isEdit={mode === "edit"}
                                 />

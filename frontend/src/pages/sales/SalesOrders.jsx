@@ -45,6 +45,9 @@ export const SalesOrders = () => {
     const [quickScheduleOrderId, setQuickScheduleOrderId] = useState(null);
 
     const isSalesStaff = user?.role === "ROLE_SALES_STAFF";
+    const isSalesManager = user?.role === "ROLE_SALES_MANAGER";
+    const isDirector = user?.role === "ROLE_DIRECTOR";
+    const isProductionManager = user?.role === "ROLE_PRODUCTION_MANAGER";
 
     const { data, loading, refetch } = useSalesOrders({
         keyword: keyword || undefined,
@@ -67,58 +70,71 @@ export const SalesOrders = () => {
 
     const orders = data?.content ?? [];
 
-    if (viewId) return <SalesOrderDetail orderId={viewId} onBack={() => setViewId(null)} isSalesStaff={isSalesStaff} />;
+    if (viewId) return (
+        <SalesOrderDetail
+            orderId={viewId}
+            onBack={() => setViewId(null)}
+            isSalesStaff={isSalesStaff}
+            isSalesManager={isSalesManager}
+            isDirector={isDirector}
+            isProductionManager={isProductionManager}
+        />
+    );
 
     return (
         <div className="sp-page">
             <div className="sp-page-header">
-            <div className="so-toolbar">
-                <div className="so-toolbar-main">
-                    <div className="sp-search-outer">
-                        <div className="sp-search-container">
-                            <div className="sp-search-prefix">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5">
-                                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                                </svg>
-                            </div>
-                            <input
-                                className="sp-search-input"
-                                placeholder="Tìm theo mã đơn hoặc khách hàng..."
-                                value={keyword}
-                                onChange={e => { setKeyword(e.target.value); setPage(0); }}
-                            />
-                            <button className="sp-search-suffix" onClick={() => setShowFilters(!showFilters)}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{marginRight: '6px'}} strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-                                Lọc
-                            </button>
-                        </div>
-                        {showFilters && (
-                            <div className="so-filter-dropdown-centered">
-                                <div className="so-filter-grid">
-                                    <div className="so-filter-item">
-                                        <label className="so-filter-label">Trạng thái</label>
-                                        <select className="so-filter-input" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }}>
-                                            <option value="">Tất cả trạng thái</option>
-                                            <option value="PENDING">Chờ xử lý</option>
-                                            <option value="PROCESSING">Đang sản xuất</option>
-                                            <option value="DELIVERED">Đã giao</option>
-                                            <option value="CANCELLED">Hủy</option>
-                                            <option value="PENDING_APPROVAL">Chờ duyệt</option>
-                                        </select>
-                                    </div>
-                                    <div className="so-filter-item">
-                                        <label className="so-filter-label">Thanh toán</label>
-                                        <select className="so-filter-input" value={payFilter} onChange={e => { setPayFilter(e.target.value); setPage(0); }}>
-                                            <option value="">Tất cả thanh toán</option>
-                                            {Object.entries(PAYMENT_STATUS_MAP).map(([k, v]) => <option key={k} value={k}>{v.text}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                <div><h1 className="sp-title">Danh sách Đơn hàng</h1></div>
+            </div>
+
+            <div className="so-toolbar-wrap">
+                <div className="sp-search">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                    <input
+                        placeholder="Tìm mã đơn hàng, khách hàng..."
+                        value={keyword}
+                        onChange={e => { setKeyword(e.target.value); setPage(0); }}
+                    />
+                    <button className={`sq-filter-toggle${showFilters ? " sq-filter-toggle--active" : ""}`} onClick={() => setShowFilters(!showFilters)} title="Lọc nâng cao">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>
+                    </button>
+                </div>
+                {isSalesStaff && (
+                    <button className="sp-btn-primary sp-btn-primary--pill" onClick={() => setShowCreate(true)} title="Tạo đơn hàng mới">
+                        Tạo đơn hàng
+                        <span className="sp-btn-plus">+</span>
+                    </button>
+                )}
+            </div>
+
+            {showFilters && (
+                <div className="sq-filter-panel">
+                    <div className="sq-f-group">
+                        <label className="sq-f-label">Trạng thái</label>
+                        <select className="sq-f-input" style={{ width: '100%' }} value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }}>
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="PENDING">Chờ xử lý</option>
+                            <option value="PROCESSING">Đang sản xuất</option>
+                            <option value="DELIVERED">Đã giao</option>
+                            <option value="CANCELLED">Hủy</option>
+                            <option value="PENDING_APPROVAL">Chờ duyệt</option>
+                        </select>
+                    </div>
+                    <div className="sq-f-group">
+                        <label className="sq-f-label">Thanh toán</label>
+                        <select className="sq-f-input" style={{ width: '100%' }} value={payFilter} onChange={e => { setPayFilter(e.target.value); setPage(0); }}>
+                            <option value="">Tất cả thanh toán</option>
+                            {Object.entries(PAYMENT_STATUS_MAP).map(([k, v]) => <option key={k} value={k}>{v.text}</option>)}
+                        </select>
+                    </div>
+                    <div className="sq-f-group sq-f-group--btns">
+                        <label className="sq-f-label">&nbsp;</label>
+                        <button className="sq-btn-clear" onClick={() => { setKeyword(""); setStatusFilter(""); setPayFilter(""); setPage(0); }} title="Xóa bộ lọc">✕</button>
                     </div>
                 </div>
-            </div>
+            )}
+
+            <div className="sp-card">
                 <table className="sp-table">
                     <thead>
                         <tr>
@@ -126,31 +142,46 @@ export const SalesOrders = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {orders.map(o => {
+                        {orders.length === 0 ? (
+                            <tr><td colSpan={7} className="sp-empty-row">
+                                <div className="sq-empty">
+                                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.2, marginBottom: 16 }}>
+                                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                                    </svg>
+                                    Không tìm thấy đơn hàng nào
+                                </div>
+                            </td></tr>
+                        ) : orders.map(o => {
                             const os = ORDER_STATUS_MAP[o.status?.trim()] || { text: o.status || "—", cls: "so-badge--default" };
                             const py = PAYMENT_STATUS_MAP[o.paymentStatus] || { text: o.paymentStatus || "—", cls: "so-badge--default" };
                             const canSchedule = !o.hasManufactureOrder && (o.paymentStatus === "PAID" || o.paymentStatus === "DEPOSITED");
 
                             return (
                                 <tr key={o.id} className="sp-table__row">
-                                    <td className="sp-td--sku">{o.orderNumber}</td>
+                                    <td><span className="sq-quote-id">{o.orderNumber}</span></td>
                                     <td className="sp-td--name">{o.customerName}</td>
                                     <td>{fmtDate(o.createdDate)}</td>
-                                    <td><span className={`so-badge ${os.cls}`}>{os.text}</span></td>
-                                    <td><span className={`so-badge ${py.cls}`}>{py.text}</span></td>
+                                    <td><span className={`sq-badge ${os.cls}`}>{os.text}</span></td>
+                                    <td><span className={`sq-badge ${py.cls}`}>{py.text}</span></td>
                                     <td className="sp-td--price">{fmt(o.totalAmount)}</td>
                                     <td className="sp-td--actions">
                                         <button className="sp-action-btn" onClick={() => setViewId(o.id)} title="Xem chi tiết">
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
                                         </button>
-                                        {canSchedule && (
-                                            <button className="sp-action-btn" onClick={() => setQuickScheduleOrderId(o.id)} title="Lập lịch sản xuất">
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                        {canSchedule && !isDirector && (
+                                            <button className="sp-action-btn" onClick={() => setQuickScheduleOrderId(o.id)} title={isSalesStaff ? "Lập lịch giao hàng" : "Lập lịch sản xuất"}>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                                             </button>
                                         )}
-                                        {o.status === "PENDING_APPROVAL" && (
-                                            <button className="sp-action-btn" style={{color: '#7c3aed'}} onClick={() => setSelectedForApproval(o)} title="Phê duyệt">
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                        {o.status === "PENDING_APPROVAL" && isSalesManager && (
+                                            <button className="sp-action-btn" style={{ color: '#3b82f6' }} onClick={() => alert("Đã gửi thông báo yêu cầu phê duyệt tới Giám đốc!")} title="Gửi yêu cầu phê duyệt">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+                                            </button>
+                                        )}
+                                        {o.status === "PENDING_APPROVAL" && isDirector && (
+                                            <button className="sp-action-btn" style={{ color: '#7c3aed' }} onClick={() => setSelectedForApproval(o)} title="Phê duyệt">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                                             </button>
                                         )}
                                     </td>

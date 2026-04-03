@@ -46,21 +46,21 @@ export const AddProduct = ({ onBack, onSaved }) => {
     ];
 
     return (
-        <div className="cf-modal-overlay" onClick={onBack}>
-            <div className="cf-modal-container" style={{maxWidth: 1000}} onClick={e => e.stopPropagation()}>
+        <div className="sq-modal-overlay" onClick={onBack}>
+            <div className="sq-modal-box sq-modal-box--large" onClick={e => e.stopPropagation()}>
                 {toast && <div className={`cf-toast cf-toast--${toast.type}`}>{toast.msg}</div>}
 
                 {/* Header */}
-                <div className="cf-modal-header">
+                <div className="sq-modal-header">
                     <div>
-                        <h2 className="cf-modal-title">Chi tiết sản phẩm</h2>
+                        <h2 className="sq-modal-title">Chi tiết sản phẩm</h2>
                         <p className="af-subtitle" style={{margin:0}}>Thông tin chi tiết và lịch sử sản phẩm</p>
                     </div>
-                    <button className="cf-modal-close" onClick={onBack}>✕</button>
+                    <button className="sq-modal-close" onClick={onBack}>✕</button>
                 </div>
 
                 {/* Body */}
-                <div className="cf-modal-body">
+                <div className="sq-modal-body">
                     {error && (
                         <div className="af-error-banner" style={{marginBottom: 16}}>
                             {error}
@@ -139,7 +139,7 @@ export const AddProduct = ({ onBack, onSaved }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="cf-modal-footer">
+                <div className="sq-modal-footer">
                     <button className="cf-submit-btn cf-submit-btn--dark" onClick={handleSave} disabled={saving}>
                         {saving ? "Đang lưu..." : "Lưu sản phẩm"}
                     </button>

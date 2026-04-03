@@ -68,7 +68,25 @@ public class SalesOrder {
     private Integer priorityLevel = 3; //default = 3, 1 = high, 2 = medium, 3 = low
 
     @Column(name="due_date")
-    private LocalDate dueDate; // Thêm trường này để lưu ngày dự kiến giao
+    private LocalDate dueDate; // NgÃ y dá»± kiáº¿n giao hÃ ng
+
+    @Column(name = "delivery_address", columnDefinition = "TEXT")
+    private String deliveryAddress;
+
+    @Column(name = "notes", columnDefinition = "TEXT")
+    private String notes;
+
+    @Column(name = "payment_terms")
+    private String paymentTerms;
+
+    @Column(name = "payment_method")
+    private String paymentMethod;
+
+    @Column(name = "deposit_ratio", precision = 5, scale = 2)
+    private BigDecimal depositRatio = BigDecimal.ZERO;
+
+    @Column(name = "deposit_amount", precision = 15, scale = 2)
+    private BigDecimal depositAmount = BigDecimal.ZERO;
     // ==========================================
     // CÁC MỐI QUAN HỆ THEO ERD
     // ==========================================

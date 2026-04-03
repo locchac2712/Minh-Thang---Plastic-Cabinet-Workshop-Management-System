@@ -1,8 +1,11 @@
 package com.pcwms.backend.services;
 
 import com.pcwms.backend.dto.request.ApprovalRequest;
+import com.pcwms.backend.dto.request.SalesOrderDetailRequest;
+import com.pcwms.backend.dto.request.SalesOrderRequest;
 import com.pcwms.backend.dto.response.SalesOrderDetailResponse;
 import com.pcwms.backend.entity.*;
+import com.pcwms.backend.repository.CustomerRepository;
 import com.pcwms.backend.repository.QuotationRepository;
 import com.pcwms.backend.repository.SalesOrderRepository;
 import com.pcwms.backend.dto.response.SalesOrderListResponse;
@@ -25,11 +28,14 @@ import java.time.LocalDateTime;
 @Service // 👉 PHẢI CÓ CÁI NÀY
 public class SalesOrderService {
 
-    @Autowired // 👉 PHẢI CÓ CÁI NÀY ĐỂ KẾT NỐI DATABASE
+    @Autowired
     private SalesOrderRepository salesOrderRepository;
-
+    @Autowired
+    private CustomerRepository customerRepository;
     @Autowired
     private QuotationRepository quotationRepository;
+    @Autowired
+    private com.pcwms.backend.repository.ProductRepository productRepository;
 
     // =================================================================
     // 1. API: LẤY DANH SÁCH ĐƠN HÀNG (CÓ TÌM KIẾM & LỌC 2 LỚP)
@@ -60,6 +66,9 @@ public class SalesOrderService {
     // =================================================================
     @Transactional
     public SalesOrder generateFromQuotation(Long quotationId) {
+        if (quotationId == null) {
+            throw new IllegalArgumentException("Lỗi: ID Báo giá không được để trống!");
+        }
         Quotation quotation = quotationRepository.findById(quotationId)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Báo giá ID: " + quotationId));
 
@@ -125,6 +134,63 @@ public class SalesOrderService {
         return salesOrderRepository.save(order);
     }
 
+    @Transactional
+    public SalesOrder createSalesOrder(SalesOrderRequest request) {
+        if (request.getCustomerId() == null) {
+            throw new IllegalArgumentException("Lỗi: ID Khách hàng không được để trống!");
+        }
+        Customer customer = customerRepository.findById(request.getCustomerId())
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Khách hàng ID: " + request.getCustomerId()));
+
+        SalesOrder order = new SalesOrder();
+        order.setCustomer(customer);
+        order.setDueDate(request.getDueDate());
+        order.setDeliveryAddress(request.getDeliveryAddress());
+        order.setNotes(request.getNotes());
+        order.setPaymentTerms(request.getPaymentTerms());
+        order.setPaymentMethod(request.getPaymentMethod());
+        order.setDepositRatio(request.getDepositRatio());
+        order.setDepositAmount(request.getDepositAmount());
+        order.setCreatedDate(LocalDateTime.now());
+        order.setPaymentStatus("UNPAID");
+
+        // Sinh mã đơn hàng
+        String year = String.valueOf(LocalDateTime.now().getYear());
+        int randomNum = 1000 + new java.util.Random().nextInt(9000);
+        order.setOrderNumber("SO-" + year + "-" + randomNum);
+
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
+        for (SalesOrderDetailRequest dReq : request.getDetails()) {
+            Product product = productRepository.findById(dReq.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Sản phẩm ID: " + dReq.getProductId()));
+
+            SalesOrderDetail detail = new SalesOrderDetail();
+            detail.setProduct(product);
+            detail.setQuantity(dReq.getQuantity());
+            detail.setUnitPrice(dReq.getUnitPrice());
+            detail.setDiscount(dReq.getDiscount() != null ? dReq.getDiscount() : BigDecimal.ZERO);
+            detail.setNotes(dReq.getNotes());
+
+            order.addDetail(detail);
+            totalAmount = totalAmount.add(detail.getTotalLineAmount());
+        }
+
+        order.setTotalAmount(totalAmount);
+
+        // 👉 CREDIT CHECK
+        BigDecimal currentDebt = customer.getCurrentDebt() != null ? customer.getCurrentDebt() : BigDecimal.ZERO;
+        BigDecimal creditLimit = customer.getCreditLimit() != null ? customer.getCreditLimit() : BigDecimal.ZERO;
+
+        if (currentDebt.compareTo(BigDecimal.ZERO) > 0 || totalAmount.compareTo(creditLimit) > 0) {
+            order.setStatus("PENDING_APPROVAL");
+        } else {
+            order.setStatus("WAITING_FOR_DEPOSIT");
+        }
+
+        return salesOrderRepository.save(order);
+    }
+
     // =================================================================
     // 3. API: XEM CHI TIẾT 1 ĐƠN HÀNG (Dùng khi FE bấm vào 1 dòng trên bảng)
     // =================================================================
@@ -162,6 +228,7 @@ public class SalesOrderService {
             // Cập nhật hạn mức vĩnh viên mới cho KH
             Customer customer = order.getCustomer();
             customer.setCreditLimit(request.getNewCreditLimit());
+            customerRepository.save(customer);
         } else {
             //TH Director reject
             order.setStatus("CANCELLED");

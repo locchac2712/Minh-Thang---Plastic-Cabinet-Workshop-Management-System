@@ -36,18 +36,18 @@ export const AddCustomer = ({ onBack, onSaved }) => {
     };
 
     return (
-        <div className="cf-modal-overlay" onClick={onBack}>
-            <div className="cf-modal-container" onClick={e => e.stopPropagation()}>
+        <div className="sq-modal-overlay" onClick={onBack}>
+            <div className="sq-modal-box sq-modal-box--large" onClick={e => e.stopPropagation()}>
                 {toast && <div className={`cf-toast cf-toast--${toast.type}`}>{toast.msg}</div>}
 
                 {/* Header */}
-                <div className="cf-modal-header">
-                    <h2 className="cf-modal-title">Thêm khách hàng</h2>
-                    <button className="cf-modal-close" onClick={onBack}>✕</button>
+                <div className="sq-modal-header">
+                    <h2 className="sq-modal-title">Thêm khách hàng</h2>
+                    <button className="sq-modal-close" onClick={onBack}>✕</button>
                 </div>
 
                 {/* Body */}
-                <div className="cf-modal-body">
+                <div className="sq-modal-body">
                     <div className="af-card">
                         {error && (
                             <div className="af-error-banner" style={{marginBottom:16}}>
@@ -97,7 +97,7 @@ export const AddCustomer = ({ onBack, onSaved }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="cf-modal-footer">
+                <div className="sq-modal-footer">
                     <button className="af-btn-save af-btn-save--dark" onClick={handleSave} disabled={saving}>
                         {saving ? "Đang lưu..." : "Tạo mới"}
                     </button>

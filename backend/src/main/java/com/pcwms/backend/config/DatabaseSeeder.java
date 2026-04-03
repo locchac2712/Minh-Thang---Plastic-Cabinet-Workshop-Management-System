@@ -59,9 +59,10 @@ public class DatabaseSeeder implements CommandLineRunner {
         if (userRepository.count() == 0) {
             String pass = passwordEncoder.encode("123456");
             createStaffUser("admin", pass, "ROLE_ADMIN", "Nguyễn Quản Trị", "Ban Giám Đốc", "EMP-001", "admin@gmail.com", "0988000001");
+            createStaffUser("director", pass, "ROLE_DIRECTOR", "Trần Giám Đốc", "Ban Giám Đốc", "EMP-002", "director@gmail.com", "0988000002");
             createStaffUser("sales_manager", pass, "ROLE_SALES_MANAGER", "Lê Trưởng Phòng Sale", "Kinh Doanh", "EMP-003", "sales@gmail.com", "0988000003");
             createStaffUser("sale_staff_1", pass, "ROLE_SALES_STAFF", "Phạm Nhân Viên Sale", "Kinh Doanh", "EMP-004", "staff@gmail.com", "0988000004");
-            createStaffUser("warehouse_manager", pass, "ROLE_WAREHOUSE_MANAGER", "Hoàng Thủ Kho", "Kho", "EMP-005", "warehouse@gmail.com", "0988000005");
+            createStaffUser("production_manager", pass, "ROLE_PRODUCTION_MANAGER", "Vũ Quản Lý Sản Xuất", "Sản Xuất", "EMP-005", "production@gmail.com", "0988000005");
         }
 
         // 3. CUSTOMERS

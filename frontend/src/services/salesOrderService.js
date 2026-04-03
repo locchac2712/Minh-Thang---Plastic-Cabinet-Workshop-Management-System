@@ -46,6 +46,10 @@ const salesOrderService = {
         return api.patch(`${BASE}/${id}/priority`, data)
             .then(res => res.data?.data ?? res.data);
     },
+
+    create: (payload) =>
+        api.post(BASE, payload)
+            .then((res) => res.data?.data ?? res.data),
 };
 
 export default salesOrderService;
