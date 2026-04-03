@@ -34,18 +34,25 @@ const isAfternoonShift = (startDate, endDate, day) => {
 const groupEvents = (events) => {
     const groupedMap = new Map();
     events.forEach(ev => {
-        const key = `${ev.productName}-${ev.status}`;
+        const key = `${ev.orderNumber}`;
         if (groupedMap.has(key)) {
             const existing = groupedMap.get(key);
-            existing.totalQuantity = (existing.totalQuantity || 0) + (ev.quantity || 0);
-            if (!existing.moNumbers.includes(ev.moNumber)) {
-                existing.moNumbers.push(ev.moNumber);
-            }
+            // Add product to details list
+            existing.details.push({
+                productName: ev.productName,
+                quantity: ev.quantity,
+                status: ev.status,
+                moNumber: ev.moNumber
+            });
         } else {
             groupedMap.set(key, {
                 ...ev,
-                totalQuantity: ev.quantity || 0,
-                moNumbers: [ev.moNumber]
+                details: [{
+                    productName: ev.productName,
+                    quantity: ev.quantity,
+                    status: ev.status,
+                    moNumber: ev.moNumber
+                }]
             });
         }
     });
@@ -90,6 +97,16 @@ export const PlanCalendar = () => {
             .finally(() => setLoading(false));
     }, []);
 
+    const [selectedOrder, setSelectedOrder] = useState(null);
+
+    const openOrderDetails = (order) => {
+        setSelectedOrder(order);
+    };
+
+    const closeOrderDetails = () => {
+        setSelectedOrder(null);
+    };
+
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -101,22 +118,75 @@ export const PlanCalendar = () => {
 
     const DAY_LABELS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
+    // Product Detail Modal
+    const OrderDetailModal = ({ order, onClose }) => {
+        if (!order) return null;
+        return (
+            <div className="pc-modal-overlay" onClick={onClose}>
+                <div className="pc-modal-content" onClick={e => e.stopPropagation()}>
+                    <div className="pc-modal-header">
+                        <div className="pc-modal-title-group">
+                            <h2 className="pc-modal-title">Chi tiết Đơn hàng #{order.orderNumber}</h2>
+                            <p className="pc-modal-subtitle">Khách hàng: <strong>{order.customerName || "Khách lẻ"}</strong></p>
+                        </div>
+                        <button className="pc-modal-close" onClick={onClose}>&times;</button>
+                    </div>
+                    <div className="pc-modal-body">
+                        <table className="pc-modal-table">
+                            <thead>
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th>Số lượng</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {order.details.map((item, idx) => {
+                                    const si = MO_STATUS_INFO[item.status] || MO_STATUS_INFO["PENDING"];
+                                    return (
+                                        <tr key={idx}>
+                                            <td className="pc-modal-td-name">{item.productName}</td>
+                                            <td className="pc-modal-td-qty">{item.quantity}</td>
+                                            <td className="pc-modal-td-status">
+                                                <span 
+                                                    className="pc-modal-status-badge" 
+                                                    style={{ background: si.bg, color: si.color, borderColor: si.border }}
+                                                >
+                                                    {si.text}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="pc-modal-footer">
+                        <button className="pc-modal-btn-close" onClick={onClose}>Đóng</button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     // Component dùng chung để hiển thị danh sách sản phẩm sau khi gộp
     const RenderShiftEvents = ({ eventList }) => {
         if (eventList.length === 0) return <div className="pc-no-event">—</div>;
         return eventList.map(ev => {
-            const si = MO_STATUS_INFO[ev.status] || MO_STATUS_INFO["PENDING"];
+            const totalQty = ev.details.reduce((sum, item) => sum + (item.quantity || 0), 0);
+            const firstStatus = ev.details[0]?.status || "PENDING";
+            const si = MO_STATUS_INFO[firstStatus] || MO_STATUS_INFO["PENDING"];
             return (
                 <div
-                    key={`${ev.productName}-${ev.status}`}
-                    className="pc-event-pill"
+                    key={`${ev.orderNumber}`}
+                    className="pc-order-pill"
                     style={{ background: si.bg, color: si.color, borderColor: si.border }}
-                    title={`Sản phẩm: ${ev.productName}\nTổng số lượng: ${ev.totalQuantity}\nLệnh SX: ${ev.moNumbers.join(", ")}`}
+                    onClick={() => openOrderDetails(ev)}
+                    title={`Đơn hàng: ${ev.orderNumber}\nKhách hàng: ${ev.customerName}\nTổng số lượng: ${totalQty}`}
                 >
-                    <span className="pc-event-id" style={{ fontWeight: 'bold' }}>
-                        [{ev.totalQuantity}]
-                    </span>
-                    <span className="pc-event-name"> {ev.productName}</span>
+                    <span className="pc-order-id">#{ev.orderNumber}</span>
+                    <span className="pc-order-customer"> - {ev.customerName || "Khách lẻ"}</span>
+                    <span className="pc-order-qty"> - [{totalQty}]</span>
                 </div>
             );
         });
@@ -199,6 +269,9 @@ export const PlanCalendar = () => {
                     </div>
                 )}
             </div>
+            {selectedOrder && (
+                <OrderDetailModal order={selectedOrder} onClose={closeOrderDetails} />
+            )}
         </div>
     );
 };
