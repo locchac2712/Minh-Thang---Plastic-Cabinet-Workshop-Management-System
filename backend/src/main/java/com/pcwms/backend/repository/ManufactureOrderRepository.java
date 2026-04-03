@@ -17,4 +17,6 @@ public interface ManufactureOrderRepository extends JpaRepository<ManufactureOrd
            "WHERE m.status != 'CANCELLED' " +
            "ORDER BY m.startDate ASC")
     List<ManufactureOrder> findAllForCalendar();
+
+
 }

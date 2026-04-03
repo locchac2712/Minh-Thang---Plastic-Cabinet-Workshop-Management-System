@@ -69,8 +69,4 @@ public class WorkOrderService {
     }
 
     //API 2: chot va phat hanh len h san xuat
-    @Transactional
-    public workOrder createWorkOder(CreateWorkOrderRequest request){
-
-    }
 }
