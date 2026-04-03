@@ -734,6 +734,26 @@
 }
 
 /* ── Orders page ────────────────────────────────────────── */
+.so-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.so-toolbar-main {
+    flex: 2;
+}
+
+.so-toolbar-actions {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
 .so-tabs {
     display: flex;
     gap: 6px;
@@ -3080,4 +3100,271 @@
     background-color: #007bff;
     color: white;
     font-weight: bold;
+}/* ── Modern Quick Schedule Styles ────────────────────────── */
+
+/* Calendar Container */
+.so-calendar {
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 16px;
+    user-select: none;
+    margin-bottom: 20px;
+}
+
+.so-calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.so-calendar-nav {
+    background: #fff !important;
+    border: 1.5px solid #e5e7eb !important;
+    color: #6b7280 !important;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+}
+
+.so-calendar-nav:hover {
+    border-color: #7c3aed !important;
+    color: #7c3aed !important;
+    background: #f5f3ff !important;
+}
+
+.so-calendar-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+}
+
+/* Grid Layout */
+.so-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.so-calendar-weekday {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 0 8px;
+}
+
+.so-calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.15s;
+    position: relative;
+    z-index: 1;
+}
+
+.so-calendar-day:hover:not(.so-calendar-day--busy) {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.so-calendar-day--empty {
+    cursor: default;
+}
+
+.so-calendar-day--sunday {
+    color: #ef4444;
+}
+
+.so-calendar-day--today {
+    color: #7c3aed;
+    font-weight: 700;
+}
+
+.so-calendar-day--today::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background: #7c3aed;
+    border-radius: 50%;
+}
+
+.so-calendar-day--busy {
+    background: #f9fafb !important;
+    color: #d1d5db !important;
+    cursor: not-allowed;
+    text-decoration: line-through;
+}
+
+/* Range Highlights */
+.so-calendar-day--start, 
+.so-calendar-day--end {
+    background: #7c3aed !important;
+    color: #fff !important;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+.so-calendar-day--start {
+    border-radius: 10px 0 0 10px;
+}
+
+.so-calendar-day--end {
+    border-radius: 0 10px 10px 0;
+}
+
+.so-calendar-day--start.so-calendar-day--end {
+    border-radius: 10px;
+}
+
+.so-calendar-day--range {
+    background: #f5f3ff !important;
+    color: #6d28d9 !important;
+    border-radius: 0;
+}
+
+.so-calendar-footer {
+    margin-top: 16px;
+    text-align: center;
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+/* Shift Selection Cards */
+.so-shift-group {
+    margin-top: 4px;
+}
+
+.so-shift-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.so-shift-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.so-shift-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #f9fafb;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    width: 100%;
+}
+
+.so-shift-card:hover {
+    border-color: #7c3aed;
+    background: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.so-shift-card--active {
+    background: #f5f3ff !important;
+    border-color: #7c3aed !important;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1) !important;
+}
+
+.so-shift-card__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: #fff;
+    border-radius: 8px;
+    color: #6b7280;
+    transition: all 0.2s;
+    border: 1px solid #e5e7eb;
+}
+
+.so-shift-card--active .so-shift-card__icon {
+    background: #7c3aed;
+    color: #fff;
+    border-color: #7c3aed;
+}
+
+.so-shift-card__content {
+    display: flex;
+    flex-direction: column;
+}
+
+.so-shift-card__title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.so-shift-card__time {
+    font-size: 11px;
+    color: #6b7280;
+}
+/* Product Summary inside Quick Schedule Modal */
+.so-modal-product-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #e2e8f0;
+}
+
+.so-modal-product-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+}
+
+.so-modal-product-name {
+    font-size: 13.5px;
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.so-modal-product-qty {
+    font-size: 13px;
+    background: #f1f5f9;
+    color: #475569;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+}
+
+.so-modal-product-empty {
+    font-size: 13px;
+    color: #94a3b8;
+    font-style: italic;
+    padding: 8px 0;
+    text-align: center;
 }

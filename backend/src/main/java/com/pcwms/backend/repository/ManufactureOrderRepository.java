@@ -9,7 +9,12 @@ import java.util.List;
 
 @Repository
 public interface ManufactureOrderRepository extends JpaRepository<ManufactureOrder, Long> {
-    // Lấy tất cả các lệnh sản xuất để vẽ lên Lịch (Loại bỏ các lệnh đã bị hủy)
-    @Query("SELECT m FROM ManufactureOrder m WHERE m.status != 'CANCELLED' ORDER BY m.startDate ASC")
+    // Lấy tất cả các lệnh sản xuất để vẽ lên Lịch (Eager fetch SalesOrder và Customer)
+    @Query("SELECT m FROM ManufactureOrder m " +
+           "JOIN FETCH m.salesOrder s " +
+           "LEFT JOIN FETCH s.customer c " +
+           "JOIN FETCH m.product p " +
+           "WHERE m.status != 'CANCELLED' " +
+           "ORDER BY m.startDate ASC")
     List<ManufactureOrder> findAllForCalendar();
 }
