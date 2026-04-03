@@ -3,13 +3,14 @@ package com.pcwms.backend.services;
 import com.pcwms.backend.dto.request.BomCalcRequest;
 import com.pcwms.backend.dto.request.CreateWorkOrderRequest;
 import com.pcwms.backend.dto.response.MaterialRequirementResponse;
-import com.pcwms.backend.entity.BillOfMaterial;
-import com.pcwms.backend.entity.BillOfMaterialDetail;
-import com.pcwms.backend.entity.ManufactureOrder;
+import com.pcwms.backend.entity.*;
 import com.pcwms.backend.repository.BillOfMaterialRepository;
+import com.pcwms.backend.repository.ManufactureOrderRepository;
+import com.pcwms.backend.repository.ProductRepository;
+import com.pcwms.backend.repository.WorkOrderRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -22,6 +23,9 @@ import java.util.stream.Collectors;
 public class WorkOrderService {
 
     private final BillOfMaterialRepository bomRepository;
+    private final ManufactureOrderRepository manufactureOrderRepository;
+    private final ProductRepository  productRepository;
+    private final WorkOrderRepository workOrderRepository;
 
     // API CHUYÊN BIỆT ĐỂ BUNG BOM VÀ CỘNG DỒN VẬT TƯ
     public List<MaterialRequirementResponse> calculateMaterialsNeeded(BomCalcRequest request) {
@@ -69,4 +73,39 @@ public class WorkOrderService {
     }
 
     //API 2: chot va phat hanh len h san xuat
+    @Transactional
+    public WorkOrder createWorkOrder(CreateWorkOrderRequest request) {
+
+        // 1. Kiểm tra Kế hoạch tổng (MO) có tồn tại không
+        ManufactureOrder plan = manufactureOrderRepository.findById(request.getManufactureOrderId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Kế hoạch sản xuất tổng thể: " + request.getManufactureOrderId()));
+
+        // 2. Khởi tạo Lệnh giao việc mới
+        WorkOrder wo = new WorkOrder();
+        // Mã Lệnh tự sinh: WO - Ngày - Ca - Random (VD: WO-20260405-SANG-1234)
+        String dateStr = request.getExecutionDate().toString().replace("-", "");
+        wo.setWoNumber(String.format("WO-%s-%s-%d", dateStr, request.getShift(), System.currentTimeMillis() % 10000));
+
+        wo.setManufactureOrder(plan);
+        wo.setExecutionDate(request.getExecutionDate());
+        wo.setShift(request.getShift());
+        wo.setStatus("PENDING"); // Mới tạo thì pending, chờ thợ nhận việc
+        wo.setTechnicalNotes(request.getTechicalNotes());
+
+        // 3. Đắp các chi tiết (Sản phẩm) vào Lệnh
+        for (CreateWorkOrderRequest.WorkOrderItemRequest itemReq : request.getItems()) {
+            Product product = productRepository.findById(itemReq.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy Sản phẩm: " + itemReq.getProductId()));
+
+            WorkOrderDetail detail = new WorkOrderDetail();
+            detail.setProduct(product);
+            detail.setQuantity(itemReq.getQuantity());
+
+            // Dùng hàm helper đã viết trong Entity để nối quan hệ 2 chiều
+            wo.addDetail(detail);
+        }
+
+        // 4. Lưu một phát ăn luôn cả bảng Cha (WorkOrder) lẫn bảng Con (WorkOrderDetail) nhờ Cascade
+        return workOrderRepository.save(wo);
+    }
 }

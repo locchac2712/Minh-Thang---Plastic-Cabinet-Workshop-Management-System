@@ -9,10 +9,10 @@ import java.util.List;
 @Setter
 @Getter
 public class CreateWorkOrderRequest {
-    private Long manufacturreOrderId;
+    private Long manufactureOrderId;
     private LocalDate executionDate;
     private String shift;
-    private String techicalNote;
+    private String techicalNotes;
 
     private List<WorkOrderItemRequest> items;
 
