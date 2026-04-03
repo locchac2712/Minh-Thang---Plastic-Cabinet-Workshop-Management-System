@@ -3,15 +3,14 @@ import "./CreateForms.css";
 import customerService from "../../services/customerService";
 import productService from "../../services/productService";
 import salesOrderService from "../../services/salesOrderService";
-import { PlanCalendarModal } from "./PlanCalendarModal";
-
+import { SingleDatePicker } from "./components/QuotationFormShared";
 const fmt = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "0 đ";
 
 export const CreateOrder = ({ onBack }) => {
     const [customers, setCustomers] = useState([]);
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [showCalendar, setShowCalendar] = useState(false);
+
 
     // Section 1: Thông tin chung
     const [custId, setCustId] = useState("");
@@ -91,12 +90,6 @@ export const CreateOrder = ({ onBack }) => {
         setDepositAmount(calculatedDeposit);
     }, [grandTotal, depositRatio]);
 
-    const handleSelectDateFromCalendar = (date) => {
-        const isoDate = date.toISOString().split('T')[0];
-        setDeliveryDate(isoDate);
-        setShowCalendar(false);
-    };
-
     const handleCreate = async () => {
         if (!custId) return alert("Vui lòng chọn khách hàng!");
         if (rows.length === 0 || rows.some(r => !r.productId)) return alert("Vui lòng chọn sản phẩm cho tất cả các dòng!");
@@ -175,11 +168,13 @@ export const CreateOrder = ({ onBack }) => {
                                         <label className="cf-label">SĐT / Liên hệ</label>
                                         <input className="cf-input cf-input--readonly" readOnly value={customerInfo.phone} />
                                     </div>
-                                    <div className="cf-field" style={{ position: 'relative' }}>
+                                    <div className="cf-field">
                                         <label className="cf-label">Ngày giao dự kiến</label>
-                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                            <input className="cf-input cf-input--date" type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} />
-                                            <button className="cf-add-row-btn" style={{ padding: '8px', minWidth: '42px' }} title="Xem lịch xưởng" onClick={() => setShowCalendar(true)}>📅</button>
+                                        <div style={{ position: 'relative' }}>
+                                            <SingleDatePicker 
+                                                value={deliveryDate} 
+                                                onChange={setDeliveryDate} 
+                                            />
                                         </div>
                                     </div>
                                     <div className="cf-field">
@@ -334,11 +329,6 @@ export const CreateOrder = ({ onBack }) => {
                 </div>
             </div>
 
-            <PlanCalendarModal 
-                isOpen={showCalendar} 
-                onClose={() => setShowCalendar(false)} 
-                onSelectDate={handleSelectDateFromCalendar} 
-            />
         </div>
     );
 };

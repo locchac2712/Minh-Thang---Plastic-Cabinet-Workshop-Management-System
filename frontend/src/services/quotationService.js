@@ -7,9 +7,9 @@ const BASE = "/quotations";
 // QuotationDetailResponse: { id, quotationNumber, customer{}, staff{}, totalAmount, status, note, createdDate, validUntil, details[] }
 
 const STATUS_LABEL = {
-    DRAFT:    { text: "Nháp (Draft)",      cls: "sq-badge--draft"    },
+    DRAFT:    { text: "Chờ duyệt (Pending Approval)", cls: "sq-badge--draft"    },
     SENT:     { text: "Đã gửi (Sent)",     cls: "sq-badge--sent"     },
-    ACCEPTED: { text: "Đã chốt (Accepted)",cls: "sq-badge--accepted" },
+    ACCEPTED: { text: "Đã duyệt (Approved)",cls: "sq-badge--accepted" },
     REJECTED: { text: "Đã hủy (Rejected)", cls: "sq-badge--rejected" },
     EXPIRED:  { text: "Hết hạn (Expired)", cls: "sq-badge--expired"  },
 };

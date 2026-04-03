@@ -144,13 +144,7 @@ export const SalesOrders = () => {
                     <tbody>
                         {orders.length === 0 ? (
                             <tr><td colSpan={7} className="sp-empty-row">
-                                <div className="sq-empty">
-                                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.2, marginBottom: 16 }}>
-                                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-                                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-                                    </svg>
-                                    Không tìm thấy đơn hàng nào
-                                </div>
+                                <div className="sq-empty">Không tìm thấy đơn hàng nào</div>
                             </td></tr>
                         ) : orders.map(o => {
                             const os = ORDER_STATUS_MAP[o.status?.trim()] || { text: o.status || "—", cls: "so-badge--default" };

@@ -168,9 +168,9 @@ export const QuotationItemsTable = ({ rows, products, onUpdate, onAdd, onRemove,
 // ── Summary Panel ───────────────────────────────────────────
 export const QuotationSummary = ({ totals, note, onNoteChange, status, onStatusChange, isReadOnly = false, isEdit = false }) => {
     const statusOptions = [
-        { value: "DRAFT", label: "Bản nháp", color: "#9ca3af" },
+        { value: "DRAFT", label: "Chờ duyệt", color: "#9ca3af" },
         { value: "SENT", label: "Đã gửi", color: "#3b82f6" },
-        { value: "ACCEPTED", label: "Đã chốt", color: "#10b981" },
+        { value: "ACCEPTED", label: "Đã duyệt", color: "#10b981" },
         { value: "REJECTED", label: "Đã hủy", color: "#6b7280" },
         { value: "EXPIRED", label: "Hết hạn", color: "#ef4444" },
     ];

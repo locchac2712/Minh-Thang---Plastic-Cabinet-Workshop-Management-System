@@ -12,9 +12,9 @@ import { fmt, fmtDate } from "../../utils/formatUtils";
 
 
 const STATUS_OPTIONS = [
-    { value: "DRAFT", label: "Bản nháp" },
+    { value: "DRAFT", label: "Chờ duyệt" },
     { value: "SENT", label: "Đã gửi" },
-    { value: "ACCEPTED", label: "Đã chốt" },
+    { value: "ACCEPTED", label: "Đã duyệt" },
     { value: "REJECTED", label: "Đã hủy" },
     { value: "EXPIRED", label: "Hết hạn" },
 ];
@@ -258,7 +258,7 @@ export const SalesQuotes = () => {
                         </thead>
                         <tbody>
                             {quotes.length === 0 ? (
-                                <tr><td colSpan={isDirector ? 7 : 6} className="sp-empty-row"><div className="sq-empty">📋 Không tìm thấy báo giá nào</div></td></tr>
+                                <tr><td colSpan={isDirector ? 7 : 6} className="sp-empty-row"><div className="sq-empty">Không tìm thấy báo giá nào</div></td></tr>
                             ) : quotes.map(q => {
                                 const s = getQuoteStatus(q.status);
                                 const label = STATUS_OPTIONS.find(o => o.value === q.status)?.label || q.status;
@@ -288,6 +288,11 @@ export const SalesQuotes = () => {
                                                         ) : (
                                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                                                         )}
+                                                    </button>
+                                                )}
+                                                {q.status === "DRAFT" && (
+                                                    <button className="sp-action-btn" onClick={() => alert("Chức năng gửi cho Director duyệt đang được phát triển!")} title="Gửi duyệt">
+                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
                                                     </button>
                                                 )}
                                                 <button className="sp-action-btn" onClick={() => setViewingId(q.id)} title="Xem chi tiết">
