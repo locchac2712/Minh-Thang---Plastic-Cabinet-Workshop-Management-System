@@ -6,15 +6,15 @@ import java.util.stream.Collectors;
 
 @Data
 public class MaterialResponse {
-    // 6 trường chính xác theo UI của bạn yêu cầu:
     private String sku;
     private String materialName;
     private String unit;
-    private String supplier; // 👉 Thêm mới để hứng tên Nhà cung cấp
+    private String supplier;
+    private String materialType;
+    private String standardSize;
     private Integer minStockLevel;
     private String description;
 
-    // (Giữ lại các trường này nếu sau này Frontend cần dùng để tính toán)
     private Long id;
     private Integer currentStock;
     private boolean isLowStock;
@@ -22,17 +22,18 @@ public class MaterialResponse {
     public MaterialResponse(Material m) {
         this.id = m.getId();
         this.sku = m.getSku();
-        this.materialName = m.getName(); // Đổi tên biến cho sát UI
+        this.materialName = m.getName();
         this.unit = m.getUnit();
+        this.materialType = m.getMaterialType();
+        this.standardSize = m.getStandardSize();
         this.minStockLevel = m.getMinStockLevel() != null ? m.getMinStockLevel() : 0;
         this.description = m.getDescription();
         this.currentStock = m.getCurrentStock() != null ? m.getCurrentStock() : 0;
         this.isLowStock = this.currentStock <= this.minStockLevel;
 
-        // 👉 Logic gom tên Nhà cung cấp thực tế từ Database
         if (m.getSupplierMaterials() != null && !m.getSupplierMaterials().isEmpty()) {
             this.supplier = m.getSupplierMaterials().stream()
-                    .map(sm -> sm.getSupplier().getName()) // Map chính xác tên biến của bạn luôn
+                    .map(sm -> sm.getSupplier().getName())
                     .collect(Collectors.joining(", "));
         } else {
             this.supplier = "Chưa có nhà cung cấp";

@@ -80,27 +80,28 @@ public class DatabaseSeeder implements CommandLineRunner {
 
         // 4. MATERIALS (Vật tư & Nguyên liệu)
         if (materialRepository.count() == 0) {
-            createMaterial("Hạt nhựa PP (Polypropylene)",    "VT-PP-001",   "Kg",  new BigDecimal("32000"),   500, 100, "Hạt nhựa PP nguyên sinh, dùng sản xuất tủ nhựa chịu lực");
-            createMaterial("Hạt nhựa ABS",                  "VT-ABS-001",  "Kg",  new BigDecimal("55000"),   300, 80,  "Nhựa ABS cao cấp, độ bền va đập cao");
-            createMaterial("Hạt nhựa PVC cứng",             "VT-PVC-001",  "Kg",  new BigDecimal("28000"),   400, 120, "PVC cứng dùng làm khung tủ");
-            createMaterial("Hạt nhựa HDPE",                 "VT-HDPE-001", "Kg",  new BigDecimal("30000"),   250, 60,  "Nhựa HDPE chống ẩm, dùng cho tủ ngoài trời");
-            createMaterial("Bột màu trắng Titanium",        "VT-MAU-001",  "Kg",  new BigDecimal("85000"),   50,  15,  "Bột màu trắng TiO2 dùng pha màu nhựa");
-            createMaterial("Bột màu xanh dương",            "VT-MAU-002",  "Kg",  new BigDecimal("92000"),   30,  10,  "Bột màu xanh dương công nghiệp");
-            createMaterial("Bột màu nâu gỗ",               "VT-MAU-003",  "Kg",  new BigDecimal("78000"),   40,  10,  "Bột màu nâu giả gỗ cho tủ nhựa vân gỗ");
-            createMaterial("Bột màu xám đậm",              "VT-MAU-004",  "Kg",  new BigDecimal("80000"),   25,  8,   "Bột màu xám đậm công nghiệp");
-            createMaterial("Bản lề nhựa 50mm",              "VT-BL-001",   "Cái", new BigDecimal("3500"),    2000, 500, "Bản lề nhựa cường lực cho cánh tủ");
-            createMaterial("Tay nắm tủ nhựa",               "VT-TN-001",   "Cái", new BigDecimal("5000"),    1500, 300, "Tay nắm nhựa mạ chrome dùng cho cửa tủ");
-            createMaterial("Ốc vít inox M4x20",             "VT-OV-001",   "Hộp", new BigDecimal("45000"),   200, 50,  "Hộp 100 ốc vít inox M4x20mm");
-            createMaterial("Ốc vít inox M5x30",             "VT-OV-002",   "Hộp", new BigDecimal("55000"),   150, 40,  "Hộp 100 ốc vít inox M5x30mm");
-            createMaterial("Keo dán nhựa đa năng",          "VT-KEO-001",  "Lít", new BigDecimal("120000"),  80,  20,  "Keo dán nhựa công nghiệp, kết dính mạnh");
-            createMaterial("Chân tủ nhựa điều chỉnh",       "VT-CT-001",   "Cái", new BigDecimal("8000"),    800, 200, "Chân tủ nhựa có thể điều chỉnh chiều cao");
-            createMaterial("Thanh ray trượt ngăn kéo 400mm","VT-RAY-001",  "Bộ",  new BigDecimal("35000"),   300, 80,  "Ray trượt bi 3 tầng cho ngăn kéo tủ");
-            createMaterial("Gioăng cao su chống nước",       "VT-GS-001",   "Mét", new BigDecimal("12000"),   500, 100, "Gioăng cao su dùng cho tủ chống ẩm");
-            createMaterial("Màng co PE bọc sản phẩm",       "VT-PE-001",   "Cuộn",new BigDecimal("95000"),   60,  15,  "Cuộn màng co PE 50cm x 300m dùng đóng gói");
-            createMaterial("Thùng carton đóng gói (lớn)",   "VT-CTN-001",  "Cái", new BigDecimal("18000"),   400, 100, "Thùng carton 5 lớp, kích thước 80x50x60cm");
-            createMaterial("Phụ gia chống UV",               "VT-UV-001",   "Kg",  new BigDecimal("150000"),  20,  5,   "Phụ gia UV Stabilizer cho sản phẩm ngoài trời");
-            createMaterial("Phụ gia tăng độ bền",            "VT-PG-001",   "Kg",  new BigDecimal("130000"),  30,  8,   "Phụ gia Impact Modifier tăng chịu va đập");
-            System.out.println("-> Đã tạo 20 Vật tư mẫu thành công!");
+            // Nhựa tấm
+            createMaterial("Tấm nhựa PP 3mm trắng",   "VT-NT-001", "Tấn", "Nhựa tấm", "1220x2440x3 mm",  "Tấm nhựa PP trắng dày 3mm dùng làm thân tủ");
+            createMaterial("Tấm nhựa PP 5mm trắng",   "VT-NT-002", "Tấn", "Nhựa tấm", "1220x2440x5 mm",  "Tấm nhựa PP trắng dày 5mm dùng làm mặt tủ");
+            createMaterial("Tấm nhựa PP 3mm xanh",    "VT-NT-003", "Tấn", "Nhựa tấm", "1220x2440x3 mm",  "Tấm nhựa PP xanh dày 3mm");
+            createMaterial("Tấm nhựa PP 3mm vân gỗ",  "VT-NT-004", "Tấn", "Nhựa tấm", "1220x2440x3 mm",  "Tấm nhựa PP vân gỗ dày 3mm");
+            createMaterial("Tấm nhựa ABS 2mm",        "VT-NT-005", "Tấn", "Nhựa tấm", "1220x2440x2 mm",  "Tấm nhựa ABS dày 2mm, chống va đập");
+            createMaterial("Tấm nhựa PVC cứng 4mm",   "VT-NT-006", "Tấn", "Nhựa tấm", "1220x2440x4 mm",  "Tấm PVC cứng dùng làm khung tủ");
+            // Phụ kiện
+            createMaterial("Bản lề nhựa 50mm",         "VT-PK-001", "Cái", "Phụ kiện", "50x30 mm",        "Bản lề nhựa cường lực cho cánh tủ");
+            createMaterial("Tay nắm tủ nhựa",          "VT-PK-002", "Cái", "Phụ kiện", "120 mm",          "Tay nắm nhựa mạ chrome dùng cho cửa tủ");
+            createMaterial("Chân tủ nhựa điều chỉnh",  "VT-PK-003", "Cái", "Phụ kiện", "Ø40 mm, cao 50mm","Chân tủ nhựa có thể điều chỉnh chiều cao");
+            createMaterial("Thanh ray trượt ngăn kéo", "VT-PK-004", "Bộ",  "Phụ kiện", "400 mm",          "Ray trượt bi 3 tầng cho ngăn kéo tủ");
+            createMaterial("Gioăng cao su chống nước",  "VT-PK-005", "Cái", "Phụ kiện", "Ø5 mm",           "Gioăng cao su dùng cho tủ chống ẩm");
+            createMaterial("Khóa tủ nhựa",              "VT-PK-006", "Cái", "Phụ kiện", "30x20 mm",        "Khóa cài tủ nhựa, bấm mở");
+            // Ốc vít
+            createMaterial("Ốc vít inox M4x20",        "VT-OV-001", "Cái", "Ốc vít",   "M4x20 mm",       "Ốc vít inox M4 dài 20mm");
+            createMaterial("Ốc vít inox M5x30",        "VT-OV-002", "Cái", "Ốc vít",   "M5x30 mm",       "Ốc vít inox M5 dài 30mm");
+            createMaterial("Ốc vít tự khoan M3x16",    "VT-OV-003", "Cái", "Ốc vít",   "M3x16 mm",       "Ốc vít tự khoan dùng cho nhựa mỏng");
+            createMaterial("Bu lông inox M6x40",       "VT-OV-004", "Cái", "Ốc vít",   "M6x40 mm",       "Bu lông inox M6 dài 40mm, dùng liên kết khung");
+            createMaterial("Đai ốc inox M4",           "VT-OV-005", "Cái", "Ốc vít",   "M4",              "Đai ốc inox M4 đi kèm ốc vít");
+            createMaterial("Đai ốc inox M5",           "VT-OV-006", "Cái", "Ốc vít",   "M5",              "Đai ốc inox M5 đi kèm ốc vít");
+            System.out.println("-> Đã tạo 18 Vật tư mẫu thành công!");
         }
 
         // 5. PRODUCTS
@@ -166,14 +167,13 @@ public class DatabaseSeeder implements CommandLineRunner {
         customerRepository.save(customer);
     }
 
-    private void createMaterial(String name, String sku, String unit, BigDecimal avgCost, int stock, int minStock, String description) {
+    private void createMaterial(String name, String sku, String unit, String materialType, String standardSize, String description) {
         Material m = new Material();
         m.setName(name);
         m.setSku(sku);
         m.setUnit(unit);
-        m.setAverageUnitCost(avgCost);
-        m.setCurrentStock(stock);
-        m.setMinStockLevel(minStock);
+        m.setMaterialType(materialType);
+        m.setStandardSize(standardSize);
         m.setDescription(description);
         m.setIsActive(true);
         materialRepository.save(m);

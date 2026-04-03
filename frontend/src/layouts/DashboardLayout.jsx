@@ -59,7 +59,7 @@ export const DashboardLayout = () => {
             case "users": return <UserManagement />;
             case "bom": return <ManageBOM />;
             case "material": return <ControlMaterial onSelectMaterial={(m) => { setSelectedMaterial(m); setActivePage("materialDetail"); }} />;
-            case "materialDetail": return <MaterialDetail materialId={selectedMaterial?.id} onBack={() => setActivePage("material")} />;
+            case "materialDetail": return <MaterialDetail material={selectedMaterial} onBack={() => setActivePage("material")} onDeleted={() => setActivePage("material")} />;
             case "products": return <ProductList onSelectProduct={(p) => { setSelectedProduct(p); setActivePage("productDetail"); }} />;
             case "productDetail": return <ProductDetail productId={selectedProduct?.id} onBack={() => setActivePage("products")} />;
             case "profile": return <MyProfile />;
