@@ -12,10 +12,12 @@ import { fmt, fmtDate } from "../../utils/formatUtils";
 
 
 const STATUS_OPTIONS = [
-    { value: "DRAFT", label: "Chờ duyệt" },
-    { value: "SENT", label: "Đã gửi" },
-    { value: "ACCEPTED", label: "Đã duyệt" },
-    { value: "REJECTED", label: "Đã hủy" },
+    { value: "DRAFT", label: "Bản nháp" },
+    { value: "WAITING_APPROVAL", label: "Chờ duyệt" },
+    { value: "APPROVED", label: "Đã duyệt nội bộ" },
+    { value: "REJECTED", label: "Từ chối duyệt" },
+    { value: "ACCEPTED", label: "Khách chốt" },
+    { value: "CANCELLED", label: "Đã hủy" },
     { value: "EXPIRED", label: "Hết hạn" },
 ];
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ViewQuoteModal } from "../pages/sales/ViewQuoteModal";
 import "./MainLayout.css";
 import { useAuth } from "../context/AuthContext";
 
@@ -26,12 +27,13 @@ import { ProductDetail }   from "../pages/production/ProductDetail";
 import { MyProfile } from "../pages/common/MyProfile";
 
 // TanStack Query & Services for Prefetching
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import productService from "../services/productService";
 import customerService from "../services/customerService";
 import quotationService from "../services/quotationService";
 import salesOrderService from "../services/salesOrderService";
 import materialService from "../services/materialService";
+import notificationService from "../services/notificationService";
 
 const GLOBAL_NAV = [
     { type: "header", label: "HỆ THỐNG", roles: ["ADMIN", "DIRECTOR", "PRODUCTION_MANAGER", "SALES_STAFF"] },
@@ -124,6 +126,17 @@ export const MainLayout = () => {
     const { user, logout, hasRole } = useAuth();
     const queryClient = useQueryClient();
     
+    // Fetch Notifications
+    const { data: notifData } = useQuery({
+        queryKey: ["NOTIFICATIONS"],
+        queryFn: () => notificationService.getNotifications(),
+        refetchInterval: 15000,
+        enabled: !!user
+    });
+    
+    const notifications = notifData?.data?.notifications || [];
+    const unreadCount = notifData?.data?.unreadCount || 0;
+    
     // Auth Role-based landing page
     const getDefaultPage = () => {
         if (hasRole('ADMIN')) return "users";
@@ -136,9 +149,22 @@ export const MainLayout = () => {
     const [page, setPage] = useState(() => localStorage.getItem("active_page") || getDefaultPage());
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [isNotifOpen, setIsNotifOpen] = useState(false);
+    const [approvalQuoteId, setApprovalQuoteId] = useState(null);
     
     // Sub-page states (Params)
     const [selectedId, setSelectedId] = useState(null);
+
+    const handleNotificationClick = async (notif) => {
+        if (!notif.read) {
+            await notificationService.markAsRead(notif.id);
+            queryClient.invalidateQueries(["NOTIFICATIONS"]);
+        }
+        setIsNotifOpen(false);
+        if (notif.referenceId) {
+            setApprovalQuoteId(notif.referenceId);
+        }
+    };
 
     useEffect(() => {
         localStorage.setItem("active_page", page);
@@ -271,13 +297,44 @@ export const MainLayout = () => {
                     </div>
 
                     <div className="ml-header__right">
-                        <button className="ml-notif-btn">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                            </svg>
-                            <span className="ml-notif-dot" />
-                        </button>
+                        <div className="ml-notif-container" style={{ position: 'relative' }}>
+                            <button className="ml-notif-btn" onClick={() => setIsNotifOpen(!isNotifOpen)}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                </svg>
+                                {unreadCount > 0 && <span className="ml-notif-dot" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'white', fontWeight: 'bold' }}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
+                            </button>
+
+                            {isNotifOpen && (
+                                <div className="ml-notif-dropdown" style={{
+                                    position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: '320px', 
+                                    backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', 
+                                    padding: '12px 0', zIndex: 100, border: '1px solid #eaeaea', maxHeight: '400px', overflowY: 'auto'
+                                }}>
+                                    <div style={{ padding: '0 16px 12px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span>Thông báo</span>
+                                        {unreadCount > 0 && (
+                                            <button onClick={async () => { await notificationService.markAllAsRead(); queryClient.invalidateQueries(["NOTIFICATIONS"]); }} style={{ fontSize: '12px', color: '#0066ff', background: 'none', border: 'none', cursor: 'pointer' }}>Đọc tất cả</button>
+                                        )}
+                                    </div>
+                                    {notifications.length === 0 ? (
+                                        <div style={{ padding: '24px 16px', textAlign: 'center', color: '#999', fontSize: '14px' }}>Không có thông báo mới</div>
+                                    ) : (
+                                        notifications.map(n => (
+                                            <div key={n.id} onClick={() => handleNotificationClick(n)} style={{
+                                                padding: '12px 16px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer',
+                                                backgroundColor: n.read ? '#fff' : '#f0f9ff'
+                                            }}>
+                                                <div style={{ fontSize: '14px', fontWeight: n.read ? 'normal' : '600', color: '#333' }}>{n.title}</div>
+                                                <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>{n.message}</div>
+                                                <div style={{ fontSize: '11px', color: '#999', marginTop: '6px' }}>{new Date(n.createdAt).toLocaleString('vi-VN')}</div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+                        </div>
 
                         <div className="ml-user-container">
                             <div className="ml-user" onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}>
@@ -309,6 +366,17 @@ export const MainLayout = () => {
                 <main className="ml-content">
                     {renderPage()}
                 </main>
+
+                {approvalQuoteId && (
+                    <ViewQuoteModal
+                        quoteId={approvalQuoteId}
+                        onClose={() => setApprovalQuoteId(null)}
+                        onSaved={() => {
+                            queryClient.invalidateQueries(["NOTIFICATIONS"]);
+                            queryClient.invalidateQueries(["QUOTATIONS"]);
+                        }}
+                    />
+                )}
             </div>
         </div>
     );

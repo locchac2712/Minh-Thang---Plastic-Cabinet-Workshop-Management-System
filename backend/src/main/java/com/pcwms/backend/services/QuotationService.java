@@ -27,16 +27,25 @@ public class QuotationService {
     private StaffRepository staffRepository;
     @Autowired
     private ProductRepository productRepository;
+    @Autowired
+    private NotificationRepository notificationRepository;
+    @Autowired
+    private UserRepository userRepository;
 
 
     @Transactional // Đảm bảo lỗi ở đâu thì rollback lại toàn bộ
     public Quotation createQuotation(QuotationRequest request) {
 
-        // 1. Kiểm tra Customer và Staff có tồn tại không
+        // 1. Kiểm tra Customer có tồn tại không
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Khách hàng!"));
-        Staff staff = staffRepository.findById(request.getStaffId())
-                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Nhân viên!"));
+        
+        // 👉 Tự động lấy Staff dựa trên User đang đăng nhập thay vì dùng ID từ frontend vì User.id != Staff.id!
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = userRepository.findByUsername(auth.getName())
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy User đang đăng nhập!"));
+        Staff staff = staffRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Lỗi: User đang đăng nhập không được liên kết với hồ sơ Nhân viên nào!"));
 
         // 2. Khởi tạo Báo Giá
         Quotation quotation = new Quotation();
@@ -160,6 +169,46 @@ public class QuotationService {
         // 4. Cập nhật và lưu DB
         quotation.setStatus(newStatus);
         Quotation savedQuotation = quotationRepository.save(quotation);
+
+        // 5. SEND NOTIFICATIONS
+        if (newStatus.equals("WAITING_APPROVAL")) {
+            List<User> directors = userRepository.findActiveUsersByRoleNames(List.of("DIRECTOR", "ROLE_DIRECTOR"));
+            for (User d : directors) {
+                Notification n = new Notification();
+                n.setUser(d);
+                n.setTitle("Yêu cầu duyệt báo giá");
+                n.setMessage("Báo giá " + savedQuotation.getQuotationNumber() + " đang chờ bạn duyệt.");
+                n.setReferenceId(savedQuotation.getId());
+                n.setType("APPROVAL_REQUEST");
+                notificationRepository.save(n);
+            }
+        } else if (newStatus.equals("APPROVED")) {
+            User u = savedQuotation.getStaff().getUser();
+            if (u != null) {
+                Notification n = new Notification();
+                n.setUser(u);
+                n.setTitle("Báo giá đã được duyệt");
+                n.setMessage("Báo giá " + savedQuotation.getQuotationNumber() + " đã được Giám đốc phê duyệt.");
+                n.setReferenceId(savedQuotation.getId());
+                n.setType("APPROVED");
+                notificationRepository.save(n);
+            }
+        } else if (newStatus.equals("REJECTED")) {
+            User u = savedQuotation.getStaff().getUser();
+            if (u != null) {
+                Notification n = new Notification();
+                n.setUser(u);
+                n.setTitle("Báo giá bị từ chối");
+                String msg = "Báo giá " + savedQuotation.getQuotationNumber() + " đã bị từ chối.";
+                if (reason != null && !reason.trim().isEmpty()) {
+                    msg += " Lý do: " + reason.trim();
+                }
+                n.setMessage(msg);
+                n.setReferenceId(savedQuotation.getId());
+                n.setType("REJECTED");
+                notificationRepository.save(n);
+            }
+        }
 
         return savedQuotation;
     }

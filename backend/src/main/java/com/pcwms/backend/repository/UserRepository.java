@@ -17,6 +17,6 @@ public interface UserRepository extends JpaRepository<User,Long> {
     Optional<User> findByResetToken(String resetToken);
 
     // Tìm user theo roleName — JOIN với bảng roles
-    @Query("SELECT u FROM User u WHERE u.role.roleName IN :roleNames AND u.isActive = true")
+    @Query("SELECT u FROM User u WHERE u.role.roleName IN :roleNames")
     List<User> findActiveUsersByRoleNames(@Param("roleNames") List<String> roleNames);
 }

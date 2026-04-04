@@ -90,7 +90,7 @@ public class QuotationController {
             Quotation updatedQuotation = quotationService.updateQuotationStatus(id, newStatus, reason);
 
             return ResponseEntity.ok(
-                    new ResponseObject("SUCCESS", "Cập nhật trạng thái thành công!", updatedQuotation)
+                    new ResponseObject("SUCCESS", "Cập nhật trạng thái thành công!", new QuotationDetailResponse(updatedQuotation))
             );
 
         } catch (Exception e) {

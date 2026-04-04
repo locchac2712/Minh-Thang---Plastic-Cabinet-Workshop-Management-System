@@ -52,6 +52,9 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
 
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
+    const [rejectMode, setRejectMode] = useState(false);
+    const [rejectReason, setRejectReason] = useState("");
+    const [successMsg, setSuccessMsg] = useState(null);
 
     const handleSaveEdit = async () => {
         const valErr = validate();
@@ -79,27 +82,32 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
         } finally { setSaving(false); }
     };
 
-    const handleUpdateStatus = async (newStatus, msg = "cập nhật trạng thái") => {
-        let reason = null;
-        if (newStatus === "REJECTED") {
-            reason = window.prompt("Vui lòng nhập lý do từ chối báo giá này:");
-            if (reason === null) return; // User cancelled prompt
-            if (!reason.trim()) {
-                alert("Lý do từ chối là bắt buộc!");
-                return;
-            }
-        }
-
+    const handleUpdateStatus = async (newStatus, reason = null) => {
         setSaving(true); setError(null);
         try {
             await quotationService.updateStatus(quoteId, newStatus, reason);
-            await loadQuote();
             if (onSaved) onSaved();
+            if (newStatus === "APPROVED") {
+                setSuccessMsg("Đã phê duyệt báo giá thành công!");
+            } else if (newStatus === "REJECTED") {
+                setSuccessMsg("Đã từ chối báo giá.");
+            } else {
+                setSuccessMsg("Cập nhật trạng thái thành công!");
+            }
+            setTimeout(() => onClose(), 1500);
             return true;
         } catch (e) {
-            setError(e.response?.data?.message || `Lỗi khi ${msg}`);
+            setError(e.response?.data?.message || "Lỗi khi cập nhật trạng thái");
             return false;
         } finally { setSaving(false); }
+    };
+
+    const handleRejectSubmit = () => {
+        if (!rejectReason.trim()) {
+            setError("Lý do từ chối là bắt buộc!");
+            return;
+        }
+        handleUpdateStatus("REJECTED", rejectReason.trim());
     };
 
     const handlePrintAndSend = async () => {
@@ -134,9 +142,14 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                     </div>
 
                     <div className="sq-modal-body">
+                        {successMsg && (
+                            <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', padding: '16px 20px', borderRadius: '12px', marginBottom: '16px', textAlign: 'center', fontSize: '15px', fontWeight: '700', color: '#15803d' }}>
+                                {successMsg}
+                            </div>
+                        )}
                         {loadingInit ? (
                             <div className="sp-state" style={{padding: 40}}><div className="sp-spinner" /></div>
-                        ) : (
+                        ) : !successMsg && (
                             <div className="sq-form-grid">
                                 <div className="sq-form-main">
                                     {quote?.status === "REJECTED" && quote?.rejectionReason && (
@@ -198,6 +211,20 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                                         errors={error && typeof error === 'object' ? error : {}}
                                     />
                                     {error && typeof error === 'string' && <div className="sq-modal-error">{error}</div>}
+
+                                    {rejectMode && (
+                                        <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: '12px', padding: '16px 20px', marginTop: '16px' }}>
+                                            <label style={{ display: 'block', fontWeight: '700', fontSize: '13px', color: '#991b1b', marginBottom: '8px' }}>Nhập lý do từ chối báo giá:</label>
+                                            <textarea
+                                                value={rejectReason}
+                                                onChange={e => setRejectReason(e.target.value)}
+                                                placeholder="Vd: Giá chưa phù hợp, cần điều chỉnh lại sản phẩm..."
+                                                rows={3}
+                                                style={{ width: '100%', border: '1.5px solid #fecaca', borderRadius: '8px', padding: '10px 12px', fontSize: '14px', resize: 'vertical', fontFamily: 'inherit', outline: 'none' }}
+                                                autoFocus
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                                 <QuotationSummary 
                                     totals={totals} 
@@ -214,33 +241,42 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                         )}
                     </div>
 
-                    <div className="sq-modal-footer">
-                        <div className="sq-footer-left">
-                            {error && <span className="sq-field-error">{typeof error === 'string' ? error : "Lỗi dữ liệu"}</span>}
+                    <div className="sq-modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <button className="sq-modal-btn sq-modal-btn--cancel" onClick={onClose}>Đóng</button>
                         </div>
-                        <div className="sq-footer-actions">
+                        <div style={{display:'flex',gap:8}}>
                             {mode === "view" ? (
                                 <>
-                                    <button className="sq-modal-btn sq-modal-btn--cancel" onClick={onClose}>Đóng</button>
-                                    <div style={{display:"flex",gap:8}}>
-                                        {canEdit && (
-                                            <button className="sq-modal-btn sq-modal-btn--submit" onClick={() => setMode("edit")} style={{backgroundColor:"#f1f5f9", color:"#475569"}}>Chỉnh sửa</button>
-                                        )}
-                                        {quote?.status === "WAITING_APPROVAL" && isDirector && (
-                                            <>
-                                                <button className="sq-modal-btn sq-modal-btn--submit" onClick={() => handleUpdateStatus("APPROVED")} style={{backgroundColor:"#10b981", color: "#fff"}}>Phê duyệt</button>
-                                                <button className="sq-modal-btn sq-modal-btn--cancel" onClick={() => handleUpdateStatus("REJECTED")} style={{backgroundColor: "#fee2e2", color: "#ef4444", border: "1px solid #fecaca"}}>Từ chối</button>
-                                            </>
-                                        )}
-                                        {quote?.status === "APPROVED" && (
-                                            <button className="sq-modal-btn sq-modal-btn--submit" onClick={() => handleUpdateStatus("ACCEPTED")} style={{backgroundColor:"#3b82f6", color: "#fff"}}>Chốt đơn hàng</button>
-                                        )}
-                                        {(quote?.status === "APPROVED" || quote?.status === "ACCEPTED") && (
-                                            <button className="sq-modal-btn sq-modal-btn--submit" onClick={handlePrintAndSend} style={{backgroundColor:"#1e293b", color:"#fff"}}>
-                                                In báo giá
+                                    {canEdit && !rejectMode && (
+                                        <button className="sq-modal-btn sq-modal-btn--submit" onClick={() => setMode("edit")} style={{backgroundColor:"#f1f5f9", color:"#475569"}}>Chỉnh sửa</button>
+                                    )}
+                                    {quote?.status === "WAITING_APPROVAL" && isDirector && !rejectMode && (
+                                        <>
+                                            <button className="sq-modal-btn sq-modal-btn--submit" disabled={saving} onClick={() => handleUpdateStatus("APPROVED")} style={{backgroundColor:"#10b981", color: "#fff"}}>
+                                                {saving ? "Đang xử lý..." : "Phê duyệt"}
                                             </button>
-                                        )}
-                                    </div>
+                                            <button className="sq-modal-btn sq-modal-btn--cancel" disabled={saving} onClick={() => setRejectMode(true)} style={{backgroundColor: "#fee2e2", color: "#ef4444", border: "1px solid #fecaca"}}>
+                                                Từ chối
+                                            </button>
+                                        </>
+                                    )}
+                                    {rejectMode && (
+                                        <>
+                                            <button className="sq-modal-btn sq-modal-btn--cancel" onClick={() => { setRejectMode(false); setRejectReason(""); setError(null); }}>Hủy</button>
+                                            <button className="sq-modal-btn sq-modal-btn--submit" disabled={saving || !rejectReason.trim()} onClick={handleRejectSubmit} style={{backgroundColor: "#ef4444", color: "#fff"}}>
+                                                {saving ? "Đang xử lý..." : "Xác nhận từ chối"}
+                                            </button>
+                                        </>
+                                    )}
+                                    {quote?.status === "APPROVED" && (
+                                        <button className="sq-modal-btn sq-modal-btn--submit" onClick={() => handleUpdateStatus("ACCEPTED")} style={{backgroundColor:"#3b82f6", color: "#fff"}}>Chốt đơn hàng</button>
+                                    )}
+                                    {(quote?.status === "APPROVED" || quote?.status === "ACCEPTED") && (
+                                        <button className="sq-modal-btn sq-modal-btn--submit" onClick={handlePrintAndSend} style={{backgroundColor:"#1e293b", color:"#fff"}}>
+                                            In báo giá
+                                        </button>
+                                    )}
                                 </>
                             ) : (
                                 <>
