@@ -40,21 +40,20 @@ public class SalesOrderService {
     // =================================================================
     // 1. API: LẤY DANH SÁCH ĐƠN HÀNG (CÓ TÌM KIẾM & LỌC 2 LỚP)
     // =================================================================
-    public Page<SalesOrderListResponse> getAllSalesOrders(String keyword, String statusStr, String paymentStatus, LocalDate startDate, LocalDate endDate, Pageable pageable) {
+    public Page<SalesOrderListResponse> getAllSalesOrders(String keyword, String statusStr, String paymentStatus, Long customerId, LocalDate startDate, LocalDate endDate, Pageable pageable) {
         String validKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : "";
         String validPaymentStatus = (paymentStatus != null && !paymentStatus.trim().isEmpty()) ? paymentStatus.trim().toUpperCase() : null;
 
         List<String> statuses = null;
         if (statusStr != null && !statusStr.trim().isEmpty()) {
-            List<String> rawList = Arrays.stream(statusStr.split(","))
+            statuses = Arrays.stream(statusStr.split(","))
                     .map(String::trim)
                     .map(String::toUpperCase)
                     .filter(s -> !s.isEmpty())
                     .collect(Collectors.toList());
-            if (!rawList.isEmpty()) statuses = rawList;
         }
 
-        Page<SalesOrder> orderPage = salesOrderRepository.searchSalesOrders(validKeyword, statuses, validPaymentStatus, startDate, endDate, pageable);
+        Page<SalesOrder> orderPage = salesOrderRepository.searchSalesOrders(validKeyword, statuses, validPaymentStatus, customerId, startDate, endDate, pageable);
         return orderPage.map(SalesOrderListResponse::new);
     }
 

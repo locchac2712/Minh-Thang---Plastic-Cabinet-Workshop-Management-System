@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,14 +25,16 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
             ") " +
             "AND (COALESCE(:statuses, NULL) IS NULL OR s.status IN :statuses) " +
             "AND (:paymentStatus IS NULL OR s.paymentStatus = :paymentStatus) " +
+            "AND (:customerId IS NULL OR c.id = :customerId) " +
             "AND (:startDate IS NULL OR s.dueDate >= :startDate) " +
             "AND (:endDate IS NULL OR s.dueDate <= :endDate)")
     Page<SalesOrder> searchSalesOrders(
             @Param("keyword") String keyword,
             @Param("statuses") List<String> statuses,
             @Param("paymentStatus") String paymentStatus,
-            @Param("startDate") java.time.LocalDate startDate,
-            @Param("endDate") java.time.LocalDate endDate,
+            @Param("customerId") Long customerId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
             Pageable pageable);
 
     @Query("SELECT s FROM SalesOrder s JOIN FETCH s.customer WHERE s.id = :id")
@@ -48,4 +51,7 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
             @Param("keyword") String keyword,
             Pageable pageable
     );
+
+    // Cho Dashboard CRM
+    List<SalesOrder> findByCreatedDateBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
 }

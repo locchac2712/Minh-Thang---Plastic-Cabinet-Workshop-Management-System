@@ -11,7 +11,10 @@ import java.time.LocalDateTime;
 public class MOCalendarResponse {
     private Long id;
     private String moNumber;
+    private String orderNumber;
+    private String customerName;
     private String productName;
+    private Integer quantity;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private String status;
@@ -19,7 +22,12 @@ public class MOCalendarResponse {
     public MOCalendarResponse(ManufactureOrder mo) {
         this.id = mo.getId();
         this.moNumber = mo.getMoNumber();
-        this.productName = mo.getProduct().getName(); // Giả sử Product có trường name
+        this.orderNumber = mo.getSalesOrder().getOrderNumber();
+        this.customerName = mo.getSalesOrder().getCustomer() != null 
+                ? mo.getSalesOrder().getCustomer().getName() 
+                : "Khách lẻ";
+        this.productName = mo.getProduct().getName();
+        this.quantity = mo.getQuantity();
         this.startDate = mo.getStartDate();
         this.endDate = mo.getEndDate();
         this.status = mo.getWipStatus();

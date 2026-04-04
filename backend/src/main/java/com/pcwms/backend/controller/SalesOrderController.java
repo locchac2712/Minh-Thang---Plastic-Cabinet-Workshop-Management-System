@@ -49,6 +49,7 @@ public class SalesOrderController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String paymentStatus,
+            @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,
@@ -60,7 +61,7 @@ public class SalesOrderController {
             Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
             Pageable pageable = PageRequest.of(page, size, sort);
 
-            Page<SalesOrderListResponse> orders = salesOrderService.getAllSalesOrders(keyword, status, paymentStatus, startDate, endDate, pageable);
+            Page<SalesOrderListResponse> orders = salesOrderService.getAllSalesOrders(keyword, status, paymentStatus, customerId, startDate, endDate, pageable);
 
             return ResponseEntity.ok(
                     new ResponseObject("SUCCESS", "Lấy danh sách Đơn Hàng thành công!", orders)

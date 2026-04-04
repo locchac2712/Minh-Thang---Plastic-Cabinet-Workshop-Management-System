@@ -21,6 +21,6 @@ public class QuotationRequest {
         private Long productId;
         private Integer quantity;
         private BigDecimal unitPrice;
-        private Double discountPercent; // Nhận % chiết khấu từ giao diện Frontend
+        private Double discountPercent;// Nhận % chiết khấu từ giao diện Frontend
     }
 }

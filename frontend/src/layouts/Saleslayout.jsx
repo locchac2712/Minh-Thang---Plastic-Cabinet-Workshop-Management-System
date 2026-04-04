@@ -4,27 +4,41 @@ import { useAuth } from "../context/AuthContext";
 import { SalesDashboard } from "../pages/sales/SalesDashboard";
 import { SalesProducts } from "../pages/sales/SalesProducts.jsx";
 import { SalesCustomers } from "../pages/sales/SalesCustomers.jsx";
-import { SalesQuotes } from "../pages/sales/SalesQuotes.jsx";
-import { SalesOrders } from "../pages/sales/SalesOrders.jsx";
-import { MyProfile } from "../pages/common/MyProfile";
+import { AddCustomer }   from "../pages/sales/AddCustomer.jsx";
+import { EditCustomer }  from "../pages/sales/EditCustomer.jsx";
+import { CustomerDetail } from "../pages/sales/CustomerDetail.jsx";
+import { SalesQuotes }    from "../pages/sales/SalesQuotes.jsx";
+import { SalesOrders }    from "../pages/sales/SalesOrders.jsx";
+import { CrmDashboard }   from "../pages/sales/CrmDashboard.jsx";
+import { DebtManagement } from "../pages/sales/DebtManagement.jsx";
+import { MyProfile }      from "../pages/common/MyProfile";
 
 const NAV = [
+    { type: "header", label: "HỆ THỐNG" },
     { id: "dashboard", label: "Dashboard", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> },
     { id: "products", label: "Sản phẩm", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg> },
+
+    { type: "header", label: "CRM" },
+    { id: "crm-stats", label: "Tổng quan CRM", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> },
     { id: "customers", label: "Khách hàng", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> },
+    { id: "crm-debt", label: "Công nợ", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> },
+
+    { type: "header", label: "BÁN HÀNG" },
     { id: "quotes", label: "Báo giá", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg> },
     { id: "orders", label: "Đơn hàng", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg> },
     { id: "delivery", label: "Giao hàng", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 17h4V5H2v12h3m1 0h4"></path><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5"></path><rect x="14" y="13" width="6" height="4"></rect><circle cx="7.5" cy="17.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg> },
 ];
 
 const PAGE_TITLES = {
-    dashboard: "Dashboard ",
+    dashboard: "Dashboard",
     products: "Sản phẩm",
-    customers: "Khách hàng",
+    customers: "Quản lý Khách hàng",
     quotes: "Báo giá",
     orders: "Đơn hàng",
     delivery: "Giao hàng",
     profile: "Hồ sơ của tôi",
+    "crm-stats": "Tổng quan CRM",
+    "crm-debt": "Quản lý Công nợ",
 };
 
 const getVNRole = (role) => {
@@ -42,20 +56,33 @@ export const SalesLayout = () => {
     const [page, setPage] = useState("dashboard");
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [selectedCustomerId, setSelectedCustomerId] = useState(null);
+    const [editingCustomerId, setEditingCustomerId] = useState(null);
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
     const handleLogout = () => { logout(); window.location.href = window.location.origin; };
 
+    const handleNavigate = (pageId, param = null) => {
+        if (pageId === "customer-detail") setSelectedCustomerId(param);
+        if (pageId === "edit-customer") setEditingCustomerId(param);
+        setPage(pageId);
+    };
+
     const renderPage = () => {
         switch (page) {
-            case "dashboard": return <SalesDashboard onNavigate={setPage} />;
+            case "dashboard": return <SalesDashboard onNavigate={handleNavigate} />;
             case "products": return <SalesProducts />;
-            case "customers": return <SalesCustomers />;
+            case "customers": return <SalesCustomers onNavigate={handleNavigate} />;
+            case "add-customer": return <AddCustomer onBack={() => setPage("customers")} onSaved={() => setPage("customers")} />;
+            case "edit-customer": return <EditCustomer customerId={editingCustomerId} onBack={() => setPage("customers")} onSaved={() => setPage("customers")} />;
+            case "customer-detail": return <CustomerDetail customerId={selectedCustomerId} onBack={() => setPage("customers")} />;
             case "quotes": return <SalesQuotes />;
             case "orders": return <SalesOrders />;
+            case "crm-stats": return <CrmDashboard />;
+            case "crm-debt": return <DebtManagement />;
             case "profile": return <MyProfile />;
-            default: return <SalesDashboard onNavigate={setPage} />;
+            default: return <SalesDashboard onNavigate={handleNavigate} />;
         }
     };
 
@@ -68,14 +95,18 @@ export const SalesLayout = () => {
                     {isSidebarOpen && <span className="sl-logo__text">Minh Thang_</span>}
                 </div>
                 <nav className="sl-nav">
-                    {NAV.map((n) => (
-                        <button key={n.id}
-                            className={`sl-nav-item${page === n.id ? " sl-nav-item--active" : ""}`}
-                            onClick={() => setPage(n.id)}
-                            title={!isSidebarOpen ? n.label : ""}>
-                            <span className="sl-nav-item__icon">{n.icon}</span>
-                            {isSidebarOpen && <span className="sl-nav-item__label">{n.label}</span>}
-                        </button>
+                    {NAV.map((n, i) => (
+                        n.type === "header" ? (
+                            isSidebarOpen && <div key={i} className="sl-nav-header">{n.label}</div>
+                        ) : (
+                            <button key={n.id}
+                                className={`sl-nav-item${page === n.id ? " sl-nav-item--active" : ""}`}
+                                onClick={() => setPage(n.id)}
+                                title={!isSidebarOpen ? n.label : ""}>
+                                <span className="sl-nav-item__icon">{n.icon}</span>
+                                {isSidebarOpen && <span className="sl-nav-item__label">{n.label}</span>}
+                            </button>
+                        )
                     ))}
                 </nav>
                 <div className="sl-sidebar__footer" style={{ border: 'none', padding: 0 }}>

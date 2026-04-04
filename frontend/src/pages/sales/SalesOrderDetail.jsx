@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import "./SalesPages.css";
 import salesOrderService, { ORDER_STATUS_MAP, PAYMENT_STATUS_MAP } from "../../services/salesOrderService.js";
-import manufactureOrderService from "../../services/manufactureOrderService.js";
 import { PaymentModal } from "./PaymentModal.jsx";
 import { ApprovalModal } from "./ApprovalModal.jsx";
 
@@ -192,12 +191,6 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff, isSalesManager
     const [showProdPopup, setShowProdPopup] = useState(false);
     const [selectedForApproval, setSelectedForApproval] = useState(null);
 
-    // Modal state for schedule
-    const [showScheduleModal, setShowScheduleModal] = useState(false);
-    const [schedItem, setSchedItem] = useState(null);
-    const [schedStart, setSchedStart] = useState("");
-    const [schedEnd, setSchedEnd] = useState("");
-
     const [polling, setPolling] = useState(false);
     const [pollMsg, setPollMsg] = useState("");
     const pollRef          = useRef(null);
@@ -223,24 +216,6 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff, isSalesManager
         loadOrder().finally(() => setLoading(false));
         return () => stopPolling();
     }, [orderId]);
-
-    const handleScheduleSubmit = async () => {
-        if (!schedStart || !schedEnd) return alert("Vui lòng chọn ngày bắt đầu và kết thúc!");
-        try {
-            await manufactureOrderService.manualSchedule({
-                salesOrderId: order.id,
-                productId: schedItem.productId || schedItem.product?.id,
-                quantity: schedItem.quantity,
-                technicalNotes: "",
-                requestedStartDate: schedStart,
-                requestedEndDate: schedEnd
-            });
-            alert("Đã chốt lịch sản xuất thành công!");
-            setShowScheduleModal(false);
-        } catch (err) {
-            alert(err.response?.data?.message || err.message);
-        }
-    };
 
     const handleApprovalSubmit = async (isApproved, limit, note) => {
         try {
@@ -332,7 +307,7 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff, isSalesManager
                         <div className="sod-card__title">📦 Sản phẩm đặt hàng</div>
                         <table className="sod-table">
                             <thead>
-                            <tr><th>#</th><th>Sản phẩm</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>Xếp lịch</th></tr>
+                            <tr><th>#</th><th>Sản phẩm</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr>
                             </thead>
                             <tbody>
                             {(order.details || []).map((item, i) => (
@@ -342,14 +317,6 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff, isSalesManager
                                     <td>{item.quantity}</td>
                                     <td>{fmt(item.unitPrice)}</td>
                                     <td className="sod-td--amount">{fmt(item.totalLineAmount)}</td>
-                                    <td className="sod-td--amount">
-                                        <button onClick={() => {
-                                            setSchedItem(item);
-                                            setShowScheduleModal(true);
-                                        }} style={{background:"none", border:"none", cursor:"pointer", fontSize: "16px"}} title="Chọn ngày bắt đầu & kết thúc dự kiến">
-                                            ✏️
-                                        </button>
-                                    </td>
                                 </tr>
                             ))}
                             </tbody>
@@ -455,39 +422,12 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff, isSalesManager
                     onSend={() => loadOrder()}
                 />
             )}
-            
             {selectedForApproval && (
                 <ApprovalModal
                     order={selectedForApproval}
                     onClose={() => setSelectedForApproval(null)}
                     onSubmit={handleApprovalSubmit}
                 />
-            )}
-
-            {showScheduleModal && (
-                <div className="so-modal-overlay">
-                    <div className="so-modal">
-                        <div className="so-modal-header">
-                            <h2>Xếp lịch sản xuất</h2>
-                            <button className="so-modal-close" onClick={() => setShowScheduleModal(false)}>&times;</button>
-                        </div>
-                        <div className="so-modal-body">
-                            <p style={{marginBottom: "1rem"}}>Mã SP: {schedItem?.productName || schedItem?.product?.name}</p>
-                            <div className="so-form-group">
-                                <label>Ngày bắt đầu dự kiến</label>
-                                <input type="datetime-local" className="so-input" value={schedStart} onChange={e => setSchedStart(e.target.value)} />
-                            </div>
-                            <div className="so-form-group">
-                                <label>Ngày kết thúc dự kiến</label>
-                                <input type="datetime-local" className="so-input" value={schedEnd} onChange={e => setSchedEnd(e.target.value)} />
-                            </div>
-                            <div className="so-modal-footer">
-                                <button className="so-btn-cancel" onClick={() => setShowScheduleModal(false)}>Hủy</button>
-                                <button className="sp-btn-primary" onClick={handleScheduleSubmit}>Lưu và chốt lên Lịch</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             )}
         </div>
     );

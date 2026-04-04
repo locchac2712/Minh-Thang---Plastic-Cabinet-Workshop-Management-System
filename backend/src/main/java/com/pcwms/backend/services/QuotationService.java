@@ -204,12 +204,12 @@ public class QuotationService {
     }
 
     //API LẤY DANH SÁCH BÁO GIÁ
-    public Page<QuotationListResponse> getAllQuotations(String keyword, String status, Pageable pageable) {
+    public Page<QuotationListResponse> getAllQuotations(String keyword, String status, Long customerId, Pageable pageable) {
         // Nếu user truyền chuỗi rỗng "", chuyển thành null để DB bỏ qua điều kiện lọc
         String validKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
         String validStatus = (status != null && !status.trim().isEmpty()) ? status.trim().toUpperCase() : null;
 
-        Page<Quotation> quotationPage = quotationRepository.searchQuotations(validKeyword, validStatus, pageable);
+        Page<Quotation> quotationPage = quotationRepository.searchQuotations(validKeyword, validStatus, customerId, pageable);
 
         // Map nguyên mảng Entity sang DTO siêu nhẹ
         return quotationPage.map(QuotationListResponse::new);

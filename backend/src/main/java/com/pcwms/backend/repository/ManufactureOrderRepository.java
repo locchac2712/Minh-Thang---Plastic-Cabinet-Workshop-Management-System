@@ -12,7 +12,14 @@ public interface ManufactureOrderRepository extends JpaRepository<ManufactureOrd
     List<ManufactureOrder> findByProductionPlanId(Long planId);
     List<ManufactureOrder> findBySalesOrderId(Long salesOrderId);
 
-    // Lấy tất cả các lệnh sản xuất để vẽ lên Lịch (Loại bỏ các lệnh đã bị hủy)
-    @Query("SELECT m FROM ManufactureOrder m WHERE m.wipStatus != 'CANCELLED' ORDER BY m.startDate ASC")
+    // Lấy tất cả các lệnh sản xuất để vẽ lên Lịch (Eager fetch SalesOrder, Customer, Product)
+    @Query("SELECT m FROM ManufactureOrder m " +
+           "JOIN FETCH m.salesOrder s " +
+           "LEFT JOIN FETCH s.customer c " +
+           "JOIN FETCH m.product p " +
+           "WHERE m.wipStatus != 'CANCELLED' " +
+           "ORDER BY m.startDate ASC")
     List<ManufactureOrder> findAllForCalendar();
+
+
 }

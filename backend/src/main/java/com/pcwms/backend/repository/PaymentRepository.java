@@ -14,4 +14,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findBySalesOrderIdAndPayosStatusOrderByIdDesc(Long orderId, String status);
 
     List<Payment> findBySalesOrderIdOrderByIdDesc(Long orderId);
+
+    // Dùng cho Dashboard: Lấy tất cả payment trong khoảng thời gian
+    List<Payment> findByTransactionDateBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
+
+    // Lọc theo trạng thái PayOS
+    List<Payment> findByTransactionDateBetweenAndPayosStatus(java.time.LocalDateTime start, java.time.LocalDateTime end, String status);
 }
