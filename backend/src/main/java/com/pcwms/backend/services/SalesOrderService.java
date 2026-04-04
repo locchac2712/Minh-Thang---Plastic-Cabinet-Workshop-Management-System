@@ -29,15 +29,15 @@ public class SalesOrderService {
     // =================================================================
     // 1. API: LẤY DANH SÁCH ĐƠN HÀNG (CÓ TÌM KIẾM & LỌC 2 LỚP)
     // =================================================================
-    public Page<SalesOrderListResponse> getAllSalesOrders(String keyword, String status, String paymentStatus, Pageable pageable) {
+    public Page<SalesOrderListResponse> getAllSalesOrders(String keyword, String status, String paymentStatus, Long customerId, Pageable pageable) {
         // Nếu không có keyword, gán bằng chuỗi rỗng "" thay vì null
         String validKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : "";
-
+        
         // Trạng thái thì vẫn giữ nguyên null bình thường
         String validStatus = (status != null && !status.trim().isEmpty()) ? status.trim().toUpperCase() : null;
         String validPaymentStatus = (paymentStatus != null && !paymentStatus.trim().isEmpty()) ? paymentStatus.trim().toUpperCase() : null;
 
-        Page<SalesOrder> orderPage = salesOrderRepository.searchSalesOrders(validKeyword, validStatus, validPaymentStatus, pageable);
+        Page<SalesOrder> orderPage = salesOrderRepository.searchSalesOrders(validKeyword, validStatus, validPaymentStatus, customerId, pageable);
         return orderPage.map(SalesOrderListResponse::new);
     }
 

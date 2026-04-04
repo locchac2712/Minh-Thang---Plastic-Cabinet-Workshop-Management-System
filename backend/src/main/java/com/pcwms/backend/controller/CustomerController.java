@@ -18,10 +18,17 @@ public class CustomerController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ResponseObject> getAllCustomer() {
+    public ResponseEntity<ResponseObject> getAllCustomer(@RequestParam(required = false) Boolean active) {
+        Object data;
+        if (active == null) {
+            data = customerService.getAllCustomer();
+        } else if (active) {
+            data = customerService.getAllActiveCustomers();
+        } else {
+            data = customerService.getAllInactiveCustomers();
+        }
         return ResponseEntity.ok(
-                new ResponseObject("SUCCESS", "Lấy danh sách khách hàng thành công",
-                        customerService.getAllCustomer())
+                new ResponseObject("SUCCESS", "Lấy danh sách khách hàng thành công", data)
         );
     }
 
@@ -52,12 +59,21 @@ public class CustomerController {
         );
     }
 
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
+    public ResponseEntity<ResponseObject> toggleStatus(@PathVariable Long id, @RequestParam boolean status) {
+        return ResponseEntity.ok(
+                new ResponseObject("SUCCESS", "Cập nhật trạng thái thành công",
+                        customerService.updateStatus(id, status))
+        );
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') ")
-    public ResponseEntity<ResponseObject> deleteSupplier(@PathVariable Long id) {
+    public ResponseEntity<ResponseObject> deleteCustomer(@PathVariable Long id) {
         customerService.deleteCustomer(id);
         return ResponseEntity.ok(
-                new ResponseObject("SUCCESS", "Xóa khách hàng thành công", null)
+                new ResponseObject("SUCCESS", "Ngừng hoạt động khách hàng thành công", null)
         );
     }
 }

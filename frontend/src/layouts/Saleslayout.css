@@ -50,7 +50,17 @@
     padding: 16px 10px;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
+    padding: 0 8px;
+}
+
+.sl-nav-header {
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    padding: 20px 12px 8px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
 
 .sl-nav-item {

@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -23,11 +25,13 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
             "   OR LOWER(c.name) LIKE LOWER(CAST(CONCAT('%', :keyword, '%') AS String)) " +
             ") " +
             "AND (:status IS NULL OR s.status = :status) " +
-            "AND (:paymentStatus IS NULL OR s.paymentStatus = :paymentStatus)")
+            "AND (:paymentStatus IS NULL OR s.paymentStatus = :paymentStatus) " +
+            "AND (:customerId IS NULL OR c.id = :customerId)")
     Page<SalesOrder> searchSalesOrders(
             @Param("keyword") String keyword,
             @Param("status") String status,
             @Param("paymentStatus") String paymentStatus,
+            @Param("customerId") Long customerId,
             Pageable pageable);
 
     @Query("SELECT s FROM SalesOrder s JOIN FETCH s.customer WHERE s.id = :id")
@@ -45,4 +49,7 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
             @Param("keyword") String keyword,
             Pageable pageable
     );
+
+    // Cho Dashboard CRM
+    List<SalesOrder> findByCreatedDateBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
 }

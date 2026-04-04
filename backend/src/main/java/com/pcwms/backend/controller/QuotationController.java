@@ -74,6 +74,7 @@ public class QuotationController {
     public ResponseEntity<ResponseObject> getAllQuotation(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long customerId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdDate") String sortBy,
@@ -86,7 +87,7 @@ public class QuotationController {
 
             org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
 
-            Page<QuotationListResponse> quotations = quotationService.getAllQuotations(keyword, status, pageable);
+            Page<QuotationListResponse> quotations = quotationService.getAllQuotations(keyword, status, customerId, pageable);
 
             return ResponseEntity.ok(
                     new ResponseObject("SUCCESS", "Lấy danh sách Báo giá thành công!", quotations)

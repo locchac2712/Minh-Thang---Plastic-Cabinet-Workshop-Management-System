@@ -4,13 +4,25 @@ import { useAuth } from "../context/AuthContext";
 import { SalesDashboard } from "../pages/sales/SalesDashboard";
 import { SalesProducts }  from "../pages/sales/SalesProducts.jsx";
 import { SalesCustomers } from "../pages/sales/SalesCustomers.jsx";
+import { AddCustomer }   from "../pages/sales/AddCustomer.jsx";
+import { EditCustomer }  from "../pages/sales/EditCustomer.jsx";
+import { CustomerDetail } from "../pages/sales/CustomerDetail.jsx";
 import { SalesQuotes }    from "../pages/sales/SalesQuotes.jsx";
 import { SalesOrders }    from "../pages/sales/SalesOrders.jsx";
+import { CrmDashboard }  from "../pages/sales/CrmDashboard.jsx";
+import { DebtManagement } from "../pages/sales/DebtManagement.jsx";
 
 const NAV = [
-    { id: "dashboard", label: "Dashboard",    icon: "⊞" },
+    { type: "header", label: "HỆ THỐNG" },
+    { id: "dashboard", label: "Dashboard chính", icon: "⊞" },
     { id: "products",  label: "Sản phẩm",     icon: "☰" },
-    { id: "customers", label: "Khách hàng",   icon: "○" },
+    
+    { type: "header", label: "CRM" },
+    { id: "crm-stats", label: "Tổng quan CRM", icon: "📊" },
+    { id: "customers", label: "Khách hàng",    icon: "👤" },
+    { id: "crm-debt",  label: "Công nợ",       icon: "💰" },
+    
+    { type: "header", label: "BÁN HÀNG" },
     { id: "quotes",    label: "Báo giá",      icon: "◻" },
     { id: "orders",    label: "Đơn bán hàng", icon: "◻" },
     { id: "delivery",  label: "Giao hàng",    icon: "◻" },
@@ -19,26 +31,41 @@ const NAV = [
 const PAGE_TITLES = {
     dashboard: "Dashboard Bán hàng",
     products:  "Sản phẩm",
-    customers: "Khách hàng",
+    customers: "Quản lý Khách hàng",
     quotes:    "Báo giá",
     orders:    "Đơn bán hàng",
     delivery:  "Giao hàng",
+    "crm-stats": "Tổng quan CRM",
+    "crm-debt":  "Quản lý Công nợ",
 };
 
 export const SalesLayout = () => {
     const { user, logout } = useAuth();
     const [page, setPage] = useState("dashboard");
+    const [selectedCustomerId, setSelectedCustomerId] = useState(null);
+    const [editingCustomerId, setEditingCustomerId] = useState(null);
 
     const handleLogout = () => { logout(); window.location.href = window.location.origin; };
 
+    const handleNavigate = (pageId, param = null) => {
+        if (pageId === "customer-detail") setSelectedCustomerId(param);
+        if (pageId === "edit-customer") setEditingCustomerId(param);
+        setPage(pageId);
+    };
+
     const renderPage = () => {
         switch (page) {
-            case "dashboard": return <SalesDashboard onNavigate={setPage} />;
+            case "dashboard": return <SalesDashboard onNavigate={handleNavigate} />;
             case "products":  return <SalesProducts />;
-            case "customers": return <SalesCustomers />;
+            case "customers": return <SalesCustomers onNavigate={handleNavigate} />;
+            case "add-customer": return <AddCustomer onBack={() => setPage("customers")} onSaved={() => setPage("customers")} />;
+            case "edit-customer": return <EditCustomer customerId={editingCustomerId} onBack={() => setPage("customers")} onSaved={() => setPage("customers")} />;
+            case "customer-detail": return <CustomerDetail customerId={selectedCustomerId} onBack={() => setPage("customers")} />;
             case "quotes":    return <SalesQuotes />;
             case "orders":    return <SalesOrders />;
-            default:          return <SalesDashboard onNavigate={setPage} />;
+            case "crm-stats": return <CrmDashboard />;
+            case "crm-debt":  return <DebtManagement />;
+            default:          return <SalesDashboard onNavigate={handleNavigate} />;
         }
     };
 
@@ -51,12 +78,16 @@ export const SalesLayout = () => {
                     <span className="sl-logo__text">Minh Thang_</span>
                 </div>
                 <nav className="sl-nav">
-                    {NAV.map((n) => (
-                        <button key={n.id}
-                                className={`sl-nav-item${page === n.id ? " sl-nav-item--active" : ""}`}
-                                onClick={() => setPage(n.id)}>
-                            <span className="sl-nav-item__label">{n.label}</span>
-                        </button>
+                    {NAV.map((n, i) => (
+                        n.type === "header" ? (
+                            <div key={i} className="sl-nav-header">{n.label}</div>
+                        ) : (
+                            <button key={n.id}
+                                    className={`sl-nav-item${page === n.id ? " sl-nav-item--active" : ""}`}
+                                    onClick={() => setPage(n.id)}>
+                                <span className="sl-nav-item__label">{n.label}</span>
+                            </button>
+                        )
                     ))}
                 </nav>
                 <div className="sl-sidebar__footer">
