@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -45,4 +47,32 @@ public class Customer {
     @OneToMany(mappedBy = "customer")
     @JsonIgnore
     private List<SalesOrder> salesOrders;
+
+    @Column(name = "active", nullable = false)
+    private boolean active = true;
+
+    // --- CRM ENHANCEMENTS ---
+    
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "customer_type")
+    private String customerType; // RETAIL, DISTRIBUTOR, PROJECT
+
+    @Column(name = "source")
+    private String source; // FACEBOOK, ZALO, WEBSITE, REFERRAL
+
+    @Column(name = "birthday")
+    private LocalDate birthday;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_to_id")
+    private Staff assignedTo;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

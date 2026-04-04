@@ -3,8 +3,8 @@ import api from "./api";
 const BASE = "/customers";
 
 const customerService = {
-    getAll: () =>
-        api.get(BASE).then((res) => {
+    getAll: (active) =>
+        api.get(BASE, { params: { active } }).then((res) => {
             const body = res.data;
             if (Array.isArray(body))       return body;
             if (Array.isArray(body?.data)) return body.data;
