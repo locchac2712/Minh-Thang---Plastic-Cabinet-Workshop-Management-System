@@ -63,7 +63,8 @@ public class QuotationController {
     public ResponseEntity<ResponseObject> updateQuotationStatus(
             @PathVariable Long id,
             @RequestParam String status,
-            @RequestParam(required = false) String reason) {
+            @RequestParam(required = false) String reason,
+            @RequestParam(required = false) String note) {
         try {
             String newStatus = status.toUpperCase();
 
@@ -87,7 +88,7 @@ public class QuotationController {
             }
 
             // 👉 3. Nếu Pass qua bức tường lửa, gọi Service chạy Máy trạng thái (State Machine)
-            Quotation updatedQuotation = quotationService.updateQuotationStatus(id, newStatus, reason);
+            Quotation updatedQuotation = quotationService.updateQuotationStatus(id, newStatus, reason, note);
 
             return ResponseEntity.ok(
                     new ResponseObject("SUCCESS", "Cập nhật trạng thái thành công!", new QuotationDetailResponse(updatedQuotation))

@@ -17,6 +17,7 @@ public class QuotationListResponse {
     private BigDecimal totalAmount;
     private String status;
     private String rejectionReason;
+    private String approvalNote;
     private LocalDateTime createdDate;
     private LocalDateTime validUntil;
 
@@ -28,6 +29,7 @@ public class QuotationListResponse {
         this.totalAmount = q.getTotalAmount();
         this.status = q.getStatus();
         this.rejectionReason = q.getRejectionReason();
+        this.approvalNote = q.getApprovalNote();
         this.createdDate = q.getCreatedDate();
         this.validUntil = q.getValidUntil();
     }

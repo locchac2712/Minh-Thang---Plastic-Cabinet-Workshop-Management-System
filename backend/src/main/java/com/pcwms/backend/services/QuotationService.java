@@ -108,7 +108,7 @@ public class QuotationService {
     }
 
     @Transactional
-    public Quotation updateQuotationStatus(Long id, String status, String reason) {
+    public Quotation updateQuotationStatus(Long id, String status, String reason, String note) {
         Quotation quotation = quotationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy báo giá ID: " + id));
 
@@ -149,6 +149,9 @@ public class QuotationService {
                     quotation.setRejectionReason(reason);
                 } else {
                     quotation.setRejectionReason(null); // Clear reason if approved
+                }
+                if(note != null && !note.trim().isEmpty()) {
+                    quotation.setApprovalNote(note.trim());
                 }
                 break;
             case "ACCEPTED":

@@ -20,6 +20,7 @@ public class QuotationDetailResponse {
     private String status;
     private String note;
     private String rejectionReason;
+    private String approvalNote;
     private LocalDateTime createdDate;
     private LocalDateTime validUntil;
     private List<ItemDto> details;
@@ -32,6 +33,7 @@ public class QuotationDetailResponse {
         this.status = q.getStatus();
         this.note = q.getNote();
         this.rejectionReason = q.getRejectionReason();
+        this.approvalNote = q.getApprovalNote();
         this.createdDate = q.getCreatedDate();
         this.validUntil = q.getValidUntil();
 
