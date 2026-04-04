@@ -19,6 +19,10 @@ public class QuotationDetailResponse {
     private BigDecimal totalAmount;
     private String status;
     private String note;
+
+    // 👉 THÊM TRƯỜNG NÀY: Lời nhắn của Giám đốc
+    private String approvalNote;
+
     private LocalDateTime createdDate;
     private LocalDateTime validUntil;
     private List<ItemDto> details;
@@ -30,6 +34,10 @@ public class QuotationDetailResponse {
         this.totalAmount = q.getTotalAmount();
         this.status = q.getStatus();
         this.note = q.getNote();
+
+        // 👉 MAP DATA: Lấy note của Giám đốc từ Entity
+        this.approvalNote = q.getApprovalNote();
+
         this.createdDate = q.getCreatedDate();
         this.validUntil = q.getValidUntil();
 

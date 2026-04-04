@@ -16,6 +16,10 @@ public class QuotationListResponse {
     private String staffName;
     private BigDecimal totalAmount;
     private String status;
+
+    // 👉 THÊM TRƯỜNG NÀY
+    private String approvalNote;
+
     private LocalDateTime createdDate;
     private LocalDateTime validUntil;
 
@@ -26,6 +30,10 @@ public class QuotationListResponse {
         this.staffName = q.getStaff().getFullname();
         this.totalAmount = q.getTotalAmount();
         this.status = q.getStatus();
+
+        // 👉 MAP DATA
+        this.approvalNote = q.getApprovalNote();
+
         this.createdDate = q.getCreatedDate();
         this.validUntil = q.getValidUntil();
     }

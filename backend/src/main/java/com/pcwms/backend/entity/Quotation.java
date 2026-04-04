@@ -54,6 +54,9 @@ public class Quotation {
     @Column(columnDefinition = "TEXT")
     private String note;
 
+    @Column(name = "approval_note", columnDefinition = "TEXT")
+    private String approvalNote;
+
     @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<QuotationDetail> details = new ArrayList<>();
 
