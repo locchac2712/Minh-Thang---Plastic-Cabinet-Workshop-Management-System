@@ -19,12 +19,13 @@ export const CreateQuoteModal = ({ onClose, onCreated }) => {
     const {
         customers, products, loadingData,
         custId, setCustId,
-        validUntil, setValidUntil,
         note, setNote,
+        discountPercent, setDiscountPercent,
         rows,
         addRow, removeRow, updateRow,
         totals,
         validate,
+        getAvailableProducts,
         addCustomerToList,
         customer
     } = useQuotationForm();
@@ -42,13 +43,12 @@ export const CreateQuoteModal = ({ onClose, onCreated }) => {
             const payload = {
                 customerId: Number(custId),
                 staffId: user?.id || 1,
-                validUntil: validUntil ? validUntil + "T23:59:59" : null,
+                discountPercent: Number(discountPercent),
                 note,
                 items: rows.filter(r => r.productId).map(r => ({
                     productId: Number(r.productId),
                     quantity: r.qty,
-                    unitPrice: Number(r.unitPrice),
-                    discountPercent: r.discount,
+                    unitPrice: Number(r.unitPrice)
                 })),
             };
             await quotationService.create(payload);
@@ -74,14 +74,14 @@ export const CreateQuoteModal = ({ onClose, onCreated }) => {
 
                 <div className="sq-modal-body">
                     {loadingData ? (
-                        <div className="sp-state"><div className="sp-spinner" /><span>Đang tải dữ liệu...</span></div>
+                        <div className="sp-state" style={{padding: 40}}><div className="sp-spinner" /></div>
                     ) : (
                         <div className="sq-form-grid">
                             <div className="sq-form-main">
                                 {/* Section 1: Basic Info */}
                                 <div className="sq-form-card">
                                     <div className="sq-form-row">
-                                        <div className="sq-form-field" style={{ flex: 2 }}>
+                                        <div className="sq-form-field">
                                             <label className="sq-form-label">Khách hàng <span className="sq-required-star">*</span></label>
                                             <CustomerSearchSelect
                                                 customers={customers}
@@ -92,9 +92,10 @@ export const CreateQuoteModal = ({ onClose, onCreated }) => {
                                             {errors.custId && <span className="sq-field-error">{errors.custId}</span>}
                                         </div>
                                         <div className="sq-form-field">
-                                            <label className="sq-form-label">Ngày hiệu lực <span className="sq-required-star">*</span></label>
-                                            <SingleDatePicker value={validUntil} onChange={(val) => { setValidUntil(val); setErrors(p => ({...p, validUntil: null})); }} />
-                                            {errors.validUntil && <span className="sq-field-error">{errors.validUntil}</span>}
+                                            <label className="sq-form-label">Thời hạn báo giá</label>
+                                            <div className="sq-form-input sq-form-input--readonly" style={{ background: "#f9fafb", color: "#6b7280", fontWeight: "600" }}>
+                                                Mặc định 15 ngày kể từ khi tạo
+                                            </div>
                                         </div>
                                     </div>
                                     
@@ -124,6 +125,7 @@ export const CreateQuoteModal = ({ onClose, onCreated }) => {
                                 <QuotationItemsTable
                                     rows={rows}
                                     products={products}
+                                    getAvailableProducts={getAvailableProducts}
                                     onUpdate={updateRow}
                                     onAdd={addRow}
                                     onRemove={removeRow}
@@ -134,6 +136,8 @@ export const CreateQuoteModal = ({ onClose, onCreated }) => {
                             {/* Sidebar: Summary & Note */}
                             <QuotationSummary
                                 totals={totals}
+                                discountPercent={discountPercent}
+                                onDiscountChange={setDiscountPercent}
                                 note={note}
                                 onNoteChange={setNote}
                             />
@@ -143,6 +147,8 @@ export const CreateQuoteModal = ({ onClose, onCreated }) => {
 
                 <div className="sq-modal-footer">
                     <div className="sq-footer-left">
+                        {errors.general && <span className="sq-field-error">{errors.general}</span>}
+                        {errors.discount && <span className="sq-field-error">{errors.discount}</span>}
                     </div>
                     <div className="sq-footer-actions">
                         <button className="sq-modal-btn sq-modal-btn--submit" onClick={handleSave} disabled={saving || loadingData}>

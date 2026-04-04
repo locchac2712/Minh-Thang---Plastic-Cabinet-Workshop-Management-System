@@ -8,10 +8,10 @@ export const useQuotationForm = (initialData = null) => {
     
     // Form States
     const [custId, setCustId] = useState("");
-    const [validUntil, setValidUntil] = useState("");
     const [note, setNote] = useState("");
     const [status, setStatus] = useState("DRAFT");
-    const [rows, setRows] = useState([{ productId: "", qty: 1, unitPrice: 0, discount: 0 }]);
+    const [discountPercent, setDiscountPercent] = useState(0);
+    const [rows, setRows] = useState([{ productId: "", qty: 1, unitPrice: 0 }]);
 
     // Load initial data (Customers & Products)
     useEffect(() => {
@@ -37,23 +37,23 @@ export const useQuotationForm = (initialData = null) => {
     useEffect(() => {
         if (initialData) {
             setCustId(String(initialData.customer?.id || initialData.customerId || ""));
-            setValidUntil(initialData.validUntil ? initialData.validUntil.split("T")[0] : "");
             setNote(initialData.note || "");
             setStatus(initialData.status || "DRAFT");
+            setDiscountPercent(initialData.discountPercent || 0);
+
             if (initialData.details || initialData.items) {
                 const details = initialData.details || initialData.items;
                 setRows(details.map(d => ({
                     productId: String(d.productId || d.product?.id || d.id || ""),
                     qty: (d.quantity || d.qty || 1),
-                    unitPrice: Number(d.unitPrice || 0),
-                    discount: d.discountPercent !== undefined ? d.discountPercent : (d.discount || 0),
+                    unitPrice: Number(d.unitPrice || 0)
                 })));
             }
         }
     }, [initialData]);
 
     // Handlers
-    const addRow = () => setRows(prev => [...prev, { productId: "", qty: 1, unitPrice: 0, discount: 0 }]);
+    const addRow = () => setRows(prev => [...prev, { productId: "", qty: 1, unitPrice: 0 }]);
     
     const removeRow = (index) => {
         if (rows.length > 1) {
@@ -65,7 +65,6 @@ export const useQuotationForm = (initialData = null) => {
         setRows(prev => prev.map((row, i) => {
             if (i === index) {
                 const updatedRow = { ...row, [field]: value };
-                // If product changed, update price automatically
                 if (field === "productId") {
                     const pr = products.find(p => String(p.id) === String(value));
                     updatedRow.unitPrice = pr?.sellingPrice ?? pr?.price ?? 0;
@@ -79,7 +78,7 @@ export const useQuotationForm = (initialData = null) => {
     // Calculations
     const calculateTotals = () => {
         const subTotal = rows.reduce((acc, r) => acc + (r.qty * r.unitPrice), 0);
-        const totalDiscount = rows.reduce((acc, r) => acc + ((r.qty * r.unitPrice) * (r.discount / 100)), 0);
+        const totalDiscount = subTotal * (discountPercent / 100);
         const grandTotal = subTotal - totalDiscount;
         return { subTotal, totalDiscount, grandTotal };
     };
@@ -90,7 +89,6 @@ export const useQuotationForm = (initialData = null) => {
     const validate = () => {
         const errors = {};
         if (!custId) errors.custId = "Vui lòng chọn khách hàng";
-        if (!validUntil) errors.validUntil = "Vui lòng chọn ngày hiệu lực";
         
         const validRows = rows.filter(r => r.productId && r.qty > 0);
         if (validRows.length === 0) {
@@ -98,11 +96,9 @@ export const useQuotationForm = (initialData = null) => {
         } else if (rows.some(r => r.productId && r.qty <= 0)) {
             errors.rows = "Số lượng sản phẩm phải lớn hơn 0";
         }
-        
-        // Expiry date validation
-        const today = new Date().toISOString().split("T")[0];
-        if (validUntil && validUntil < today) {
-            errors.validUntil = "Ngày hiệu lực không được ở quá khứ";
+
+        if (discountPercent > 30) {
+            errors.discount = "Chiết khấu không được vượt quá 30%";
         }
         
         return Object.keys(errors).length > 0 ? errors : null;
@@ -112,21 +108,24 @@ export const useQuotationForm = (initialData = null) => {
         setCustomers(prev => [...prev, newCust]);
     };
 
+    // Filtered products for each row to ensure uniqueness
+    const getAvailableProducts = (currentRowId) => {
+        const selectedIds = rows.map(r => String(r.productId)).filter(id => id && id !== String(currentRowId));
+        return products.filter(p => !selectedIds.includes(String(p.id)));
+    };
+
     return {
-        // Data
         customers, products, loadingData,
-        // States
         custId, setCustId,
-        validUntil, setValidUntil,
         note, setNote,
         status, setStatus,
+        discountPercent, setDiscountPercent,
         rows, setRows,
-        // Handlers
         addRow, removeRow, updateRow,
         addCustomerToList,
-        // Helpers
         totals,
         validate,
+        getAvailableProducts,
         customer: customers.find(c => String(c.id) === String(custId))
     };
 };

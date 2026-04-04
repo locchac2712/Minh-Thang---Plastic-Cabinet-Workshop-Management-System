@@ -25,6 +25,14 @@ import { ProductDetail }   from "../pages/production/ProductDetail";
 // Common
 import { MyProfile } from "../pages/common/MyProfile";
 
+// TanStack Query & Services for Prefetching
+import { useQueryClient } from "@tanstack/react-query";
+import productService from "../services/productService";
+import customerService from "../services/customerService";
+import quotationService from "../services/quotationService";
+import salesOrderService from "../services/salesOrderService";
+import materialService from "../services/materialService";
+
 const GLOBAL_NAV = [
     { type: "header", label: "HỆ THỐNG", roles: ["ADMIN", "DIRECTOR", "PRODUCTION_MANAGER", "SALES_STAFF"] },
     { 
@@ -114,6 +122,7 @@ const PAGE_TITLES = {
 
 export const MainLayout = () => {
     const { user, logout, hasRole } = useAuth();
+    const queryClient = useQueryClient();
     
     // Auth Role-based landing page
     const getDefaultPage = () => {
@@ -144,6 +153,44 @@ export const MainLayout = () => {
         if (param) setSelectedId(param);
         setPage(pageId);
         window.scrollTo(0, 0);
+    };
+
+    // Prefetching logic to make app feel "Instant"
+    const handlePrefetch = (id) => {
+        const defaultParams = {};
+        switch (id) {
+            case "products":
+                queryClient.prefetchQuery({
+                    queryKey: ["PRODUCTS", defaultParams],
+                    queryFn: () => productService.getAll(defaultParams)
+                });
+                break;
+            case "customers":
+                queryClient.prefetchQuery({
+                    queryKey: ["CUSTOMERS", defaultParams],
+                    queryFn: () => customerService.getAll(defaultParams)
+                });
+                break;
+            case "quotes":
+                queryClient.prefetchQuery({
+                    queryKey: ["QUOTATIONS", defaultParams],
+                    queryFn: () => quotationService.getAll(defaultParams)
+                });
+                break;
+            case "orders":
+                queryClient.prefetchQuery({
+                    queryKey: ["SALES_ORDERS", defaultParams],
+                    queryFn: () => salesOrderService.getAll(defaultParams)
+                });
+                break;
+            case "material":
+                queryClient.prefetchQuery({
+                    queryKey: ["MATERIALS", defaultParams],
+                    queryFn: () => materialService.getAll(defaultParams)
+                });
+                break;
+            default: break;
+        }
     };
 
     const renderPage = () => {
@@ -200,6 +247,7 @@ export const MainLayout = () => {
                                 key={n.id}
                                 className={`ml-nav-item ${page === n.id ? "ml-nav-item--active" : ""}`}
                                 onClick={() => setPage(n.id)}
+                                onMouseEnter={() => handlePrefetch(n.id)}
                                 title={!isSidebarOpen ? n.label : ""}
                             >
                                 <span className="ml-nav-item__icon">{n.icon}</span>

@@ -32,13 +32,14 @@ export const EditQuoteModal = ({ quoteId, onClose, onSaved }) => {
     const {
         products, loadingData,
         custId,
-        validUntil, setValidUntil,
         note, setNote,
         status, setStatus,
+        discountPercent, setDiscountPercent,
         rows,
         addRow, removeRow, updateRow,
         totals,
         validate,
+        getAvailableProducts,
         customer
     } = useQuotationForm(initialData);
 
@@ -55,18 +56,17 @@ export const EditQuoteModal = ({ quoteId, onClose, onSaved }) => {
             const payload = {
                 customerId: Number(custId),
                 staffId: user?.id || initialData?.staff?.id,
-                validUntil: validUntil ? validUntil + "T23:59:59" : null,
+                discountPercent: Number(discountPercent),
                 note,
                 items: rows.filter(r => r.productId).map(r => ({
                     productId: Number(r.productId),
                     quantity: r.qty,
-                    unitPrice: Number(r.unitPrice),
-                    discountPercent: r.discount,
+                    unitPrice: Number(r.unitPrice)
                 })),
             };
             
             await quotationService.update(quoteId, payload);
-            onSaved();
+            if (onSaved) onSaved();
         } catch (e) {
             setErrors({ general: e.response?.data?.message || "Lỗi khi cập nhật báo giá" });
         } finally {
@@ -78,7 +78,6 @@ export const EditQuoteModal = ({ quoteId, onClose, onSaved }) => {
 
     return (
         <div className="sq-modal-overlay" onClick={onClose}>
-            
             <div className="sq-modal-box sq-modal-box--large" onClick={e => e.stopPropagation()}>
                 
                 <div className="sq-modal-header">
@@ -93,14 +92,14 @@ export const EditQuoteModal = ({ quoteId, onClose, onSaved }) => {
 
                 <div className="sq-modal-body">
                     {isLoading ? (
-                        <div className="sp-state"><div className="sp-spinner" /><span>Đang tải dữ liệu...</span></div>
+                        <div className="sp-state" style={{padding: 40}}><div className="sp-spinner" /></div>
                     ) : (
                         <div className="sq-form-grid">
                             <div className="sq-form-main">
                                 {/* Section 1: Basic Info */}
                                 <div className="sq-form-card">
                                     <div className="sq-form-row">
-                                        <div className="sq-form-field" style={{ flex: 2 }}>
+                                        <div className="sq-form-field">
                                             <label className="sq-form-label">Khách hàng</label>
                                             <div className="sq-form-input sq-form-input--readonly">
                                                 <span style={{color: "#94a3b8", marginRight: 8}}>👤</span>
@@ -108,12 +107,13 @@ export const EditQuoteModal = ({ quoteId, onClose, onSaved }) => {
                                             </div>
                                         </div>
                                         <div className="sq-form-field">
-                                            <label className="sq-form-label">Ngày hiệu lực <span className="sq-required-star">*</span></label>
-                                            <SingleDatePicker value={validUntil} onChange={(val) => { setValidUntil(val); setErrors(p => ({...p, validUntil: null})); }} />
-                                            {errors.validUntil && <span className="sq-field-error">{errors.validUntil}</span>}
+                                            <label className="sq-form-label">Thời hạn báo giá</label>
+                                            <div className="sq-form-input sq-form-input--readonly" style={{ background: "#f9fafb", color: "#6b7280", fontWeight: "600" }}>
+                                                Mặc định 15 ngày kể từ ngày tạo
+                                            </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="sq-form-row">
                                         <div className="sq-form-field">
                                             <label className="sq-form-label">Số điện thoại</label>
@@ -141,6 +141,7 @@ export const EditQuoteModal = ({ quoteId, onClose, onSaved }) => {
                                     <QuotationItemsTable
                                         rows={rows}
                                         products={products}
+                                        getAvailableProducts={getAvailableProducts}
                                         onUpdate={(idx, field, val) => { updateRow(idx, field, val); setErrors(p => ({...p, rows: null})); }}
                                         onAdd={addRow}
                                         onRemove={removeRow}
@@ -154,6 +155,8 @@ export const EditQuoteModal = ({ quoteId, onClose, onSaved }) => {
                             {/* Sidebar: Summary & Note */}
                             <QuotationSummary
                                 totals={totals}
+                                discountPercent={discountPercent}
+                                onDiscountChange={setDiscountPercent}
                                 note={note}
                                 onNoteChange={setNote}
                                 isEdit={true}
@@ -163,13 +166,18 @@ export const EditQuoteModal = ({ quoteId, onClose, onSaved }) => {
                 </div>
 
                 <div className="sq-modal-footer">
-                    <button className="sq-modal-btn sq-modal-btn--cancel" onClick={onClose} disabled={saving}>Đóng</button>
-                    <button className="sq-modal-btn sq-modal-btn--submit" onClick={handleSave} disabled={saving || isLoading}>
-                        {saving ? "Đang lưu..." : "Lưu thay đổi"}
-                    </button>
+                    <div className="sq-footer-left">
+                        {errors.general && <span className="sq-field-error">{errors.general}</span>}
+                        {errors.discount && <span className="sq-field-error">{errors.discount}</span>}
+                    </div>
+                    <div className="sq-footer-actions" style={{ display: "flex", gap: "10px" }}>
+                        <button className="sq-modal-btn sq-modal-btn--cancel" onClick={onClose} disabled={saving}>Đóng</button>
+                        <button className="sq-modal-btn sq-modal-btn--submit" onClick={handleSave} disabled={saving || isLoading}>
+                            {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                        </button>
+                    </div>
                 </div>
             </div>
-            
         </div>
     );
 };

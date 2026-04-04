@@ -19,6 +19,7 @@ public class QuotationDetailResponse {
     private BigDecimal totalAmount;
     private String status;
     private String note;
+    private String rejectionReason;
     private LocalDateTime createdDate;
     private LocalDateTime validUntil;
     private List<ItemDto> details;
@@ -30,6 +31,7 @@ public class QuotationDetailResponse {
         this.totalAmount = q.getTotalAmount();
         this.status = q.getStatus();
         this.note = q.getNote();
+        this.rejectionReason = q.getRejectionReason();
         this.createdDate = q.getCreatedDate();
         this.validUntil = q.getValidUntil();
 

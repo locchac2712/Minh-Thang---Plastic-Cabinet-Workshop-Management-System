@@ -49,11 +49,9 @@ export const SalesProducts = () => {
 
             <div className="sp-card">
                 {loading ? (
-                    <div className="cf-loading" style={{padding: "60px 0"}}>
-                        <div className="cf-spinner"></div>
-                        <span>Đang tải danh sách sản phẩm...</span>
-                    </div>
-
+                    <div className="sp-state"><div className="sp-spinner" /></div>
+                ) : error ? (
+                    <div className="sp-state sp-state--error">{error}</div>
                 ) : (
                     <table className="sp-table">
                         <thead>

@@ -16,6 +16,7 @@ public class QuotationListResponse {
     private String staffName;
     private BigDecimal totalAmount;
     private String status;
+    private String rejectionReason;
     private LocalDateTime createdDate;
     private LocalDateTime validUntil;
 
@@ -26,6 +27,7 @@ public class QuotationListResponse {
         this.staffName = q.getStaff().getFullName();
         this.totalAmount = q.getTotalAmount();
         this.status = q.getStatus();
+        this.rejectionReason = q.getRejectionReason();
         this.createdDate = q.getCreatedDate();
         this.validUntil = q.getValidUntil();
     }

@@ -62,38 +62,34 @@ const CustomStatusSelect = ({ value, onChange, options, disabled = false }) => {
 };
 
 // ── Product Line Table ──────────────────────────────────────
-export const QuotationItemsTable = ({ rows, products, onUpdate, onAdd, onRemove, isReadOnly = false, errors = {} }) => {
+export const QuotationItemsTable = ({ rows, products, getAvailableProducts, onUpdate, onAdd, onRemove, isReadOnly = false, errors = {} }) => {
     return (
         <div className="sq-form-card">
             <div className="sq-form-section-header">
                 <span className="sq-form-section-title">DANH SÁCH SẢN PHẨM</span>
                 {!isReadOnly && <button className="sq-add-row-btn" onClick={onAdd} type="button">+ Thêm dòng mới</button>}
             </div>
-            {/* Added error message display for products */}
             {errors?.rows && <div className="sq-field-error" style={{ marginBottom: '12px', marginLeft: '4px' }}>{errors.rows}</div>}
             <div className={`sq-items-scroll-wrap ${rows.length > 5 ? "sq-items-scroll-wrap--scroll" : ""}`}>
                 <table className="sq-form-table">
                     <thead>
                         <tr>
-                            <th style={{ width: "30%" }}>Sản phẩm <span className="sq-required-star">*</span></th>
-                            <th style={{ width: "110px" }}>Số lượng</th>
-                            <th style={{ width: "140px" }}>Đơn giá</th>
-                            <th style={{ width: "135px" }}>Chiết khấu (%)</th>
+                            <th style={{ width: "40%" }}>Sản phẩm <span className="sq-required-star">*</span></th>
+                            <th style={{ width: "120px" }}>Số lượng</th>
+                            <th style={{ width: "160px" }}>Đơn giá</th>
                             <th style={{ textAlign: "right" }}>Thành tiền</th>
                             {!isReadOnly && <th style={{ width: "50px" }}></th>}
                         </tr>
                     </thead>
                     <tbody>
                         {rows.map((row, i) => {
-                            const lineSubtotal = (row.qty || 0) * (row.unitPrice || 0);
-                            const lineDiscount = lineSubtotal * ((row.discount || 0) / 100);
-                            const lineTotal = lineSubtotal - lineDiscount;
+                            const lineTotal = (row.qty || 0) * (row.unitPrice || 0);
                             
                             return (
                                 <tr key={i}>
                                     <td>
                                         <ProductSearchSelect
-                                            products={products}
+                                            products={getAvailableProducts ? getAvailableProducts(row.productId) : products}
                                             value={row.productId}
                                             onChange={(val) => onUpdate(i, "productId", val)}
                                             disabled={isReadOnly}
@@ -114,24 +110,6 @@ export const QuotationItemsTable = ({ rows, products, onUpdate, onAdd, onRemove,
                                     </td>
                                     <td>
                                         <span className="sq-table-readonly">{fmt(row.unitPrice)}</span>
-                                    </td>
-                                    <td>
-                                        {isReadOnly ? (
-                                            <span className="sq-table-readonly">{row.discount}%</span>
-                                        ) : (
-                                            <div className="sq-discount-field">
-                                                <input
-                                                    className="sq-table-input"
-                                                    type="number"
-                                                    min="0"
-                                                    max="100"
-                                                    step="0.1"
-                                                    value={row.discount}
-                                                    onChange={(e) => onUpdate(i, "discount", Math.min(100, Math.max(0, Number(e.target.value))))}
-                                                />
-                                                <span style={{ fontSize: 12, color: "#9ca3af", fontWeight: 700 }}>%</span>
-                                            </div>
-                                        )}
                                     </td>
                                     <td style={{ textAlign: "right" }}>
                                         <span className="sq-table-readonly sq-table-readonly--total">
@@ -158,7 +136,6 @@ export const QuotationItemsTable = ({ rows, products, onUpdate, onAdd, onRemove,
             </div>
             
             <style>{`
-                .sq-discount-field { display: flex; align-items: center; gap: 4px; padding-right: 8px; }
                 .sq-table-readonly--total { font-weight: 700; color: #111827; }
             `}</style>
         </div>
@@ -166,18 +143,8 @@ export const QuotationItemsTable = ({ rows, products, onUpdate, onAdd, onRemove,
 };
 
 // ── Summary Panel ───────────────────────────────────────────
-export const QuotationSummary = ({ totals, note, onNoteChange, status, onStatusChange, isReadOnly = false, isEdit = false }) => {
-    const statusOptions = [
-        { value: "DRAFT", label: "Chờ duyệt", color: "#9ca3af" },
-        { value: "SENT", label: "Đã gửi", color: "#3b82f6" },
-        { value: "ACCEPTED", label: "Đã duyệt", color: "#10b981" },
-        { value: "REJECTED", label: "Đã hủy", color: "#6b7280" },
-        { value: "EXPIRED", label: "Hết hạn", color: "#ef4444" },
-    ];
-
-    const currentStatus = statusOptions.find(s => s.value === status) || statusOptions[0];
-
-    const canChangeStatus = isEdit && status !== "EXPIRED";
+export const QuotationSummary = ({ totals, discountPercent, onDiscountChange, note, onNoteChange, status, onStatusChange, isReadOnly = false, isEdit = false }) => {
+    const isDiscountWarning = discountPercent > 30;
 
     return (
         <div className="sq-form-sidebar">
@@ -188,12 +155,42 @@ export const QuotationSummary = ({ totals, note, onNoteChange, status, onStatusC
                     <span>Tạm tính</span>
                     <span>{fmt(totals.subTotal)}</span>
                 </div>
-                {totals.totalDiscount > 0 && (
-                    <div className="sq-form-summary-row sq-form-summary-row--discount">
-                        <span>Chiết khấu</span>
-                        <span>- {fmt(totals.totalDiscount)}</span>
+                
+                <div className="sq-form-summary-row" style={{ marginTop: "12px", borderTop: "1px dashed rgba(255,255,255,0.2)", paddingTop: "12px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "100%" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span>Chiết khấu (%)</span>
+                            {isReadOnly ? (
+                                <span style={{ fontWeight: 700 }}>{discountPercent}%</span>
+                            ) : (
+                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        step="0.1"
+                                        value={discountPercent}
+                                        onChange={(e) => onDiscountChange(Math.min(100, Math.max(0, Number(e.target.value))))}
+                                        style={{ width: "60px", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "6px", color: "#fff", padding: "4px 8px", textAlign: "right", fontSize: "14px" }}
+                                    />
+                                    <span style={{ fontSize: "13px", opacity: 0.7 }}>%</span>
+                                </div>
+                            )}
+                        </div>
+                        {isDiscountWarning && (
+                            <span style={{ color: "#fca5a5", fontSize: "11px", fontWeight: "600", marginTop: "2px" }}>
+                                ⚠️ Vượt quá hạn mức 30% quy định
+                            </span>
+                        )}
+                        {totals.totalDiscount > 0 && (
+                            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "12px", color: "rgba(255,255,255,0.6)" }}>
+                                <span>Tiền giảm</span>
+                                <span>- {fmt(totals.totalDiscount)}</span>
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
+
                 <div className="sq-form-summary-divider" />
                 <div className="sq-form-summary-row sq-form-summary-row--total">
                     <span>TỔNG CỘNG</span>
@@ -214,7 +211,6 @@ export const QuotationSummary = ({ totals, note, onNoteChange, status, onStatusC
             </div>
             
             <style>{`
-                .sq-form-summary-row--discount { color: #fbbf24; }
                 .sq-form-summary-row--total { font-size: 18px; font-weight: 700; color: #fff; }
                 .sq-status-badge-large {
                     padding: 8px 12px;
@@ -273,6 +269,7 @@ export const CustomerSearchSelect = ({ customers, value, onChange, onCustomerCre
         const errors = {};
         if (!newCust.name.trim()) errors.name = "Tên khách hàng là bắt buộc";
         if (!newCust.phoneNumber.trim()) errors.phoneNumber = "Số điện thoại là bắt buộc";
+        if (!newCust.email.trim()) errors.email = "Email là bắt buộc để gửi báo giá";
         
         if (newCust.email.trim()) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -289,18 +286,15 @@ export const CustomerSearchSelect = ({ customers, value, onChange, onCustomerCre
         setAddingCust(true); 
         setAddErrors({});
         try {
-            console.log("Adding customer:", newCust);
             const res = await api.post("/customers", {
                 name: newCust.name.trim(),
                 phoneNumber: newCust.phoneNumber.trim(),
-                email: newCust.email.trim() || null,
+                email: newCust.email.trim(),
             });
             const created = res.data?.data || res.data;
             
-            // Show Success UI
             setSuccessMsg("Thêm khách hàng thành công!");
             
-            // Wait slightly before closing and selecting
             setTimeout(() => {
                 if (onCustomerCreated) onCustomerCreated(created);
                 onChange(String(created.id));

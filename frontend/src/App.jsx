@@ -10,14 +10,9 @@ const isResetPage = () => window.location.pathname.startsWith("/reset-password")
 const AppContent = () => {
     const { user, authLoading } = useAuth();
 
-    // 1. Nếu đang trong quá trình xác thực Token khi load trang -> Hiện màn hình chờ
-    if (authLoading) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8f9fa' }}>
-                <div className="loading-spinner">Đang tải hệ thống...</div>
-            </div>
-        );
-    }
+    // 1. Nếu đang trong quá trình xác thực khi load trang, ko hiện j cả (hoặc chỉ hiện khung nếu muốn)
+    // Nhưng theo yêu cầu của user là "bỏ đi được không" -> Bỏ luôn.
+    if (authLoading && !user) return null; 
 
     // 2. Các trang không cần login
     if (isResetPage()) return <ResetPassword />;

@@ -17,7 +17,12 @@ export const AuthProvider = ({ children }) => {
       return null;
     }
   });
-  const [authLoading, setAuthLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(() => {
+    // Nếu đã có user trong localStorage thì không cần hiện màn hình loading hệ thống
+    const token = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
+    return !!token && !savedUser; // Chỉ loading nếu có token mà chưa có user info
+  });
   const [authError,   setAuthError]   = useState(null);
 
   // ── Verify session on mount ───────────────────────────────

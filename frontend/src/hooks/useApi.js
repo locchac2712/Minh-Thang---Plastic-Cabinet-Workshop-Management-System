@@ -1,163 +1,80 @@
-import { useState, useEffect, useCallback } from "react";
-
-// ── BỘ NHỚ ĐỆM TRONG RAM ───────────────────────────────────────
-// Lưu trữ dữ liệu theo cacheKey để hiển thị tức thì khi quay lại trang.
-const apiCache = {};
-
-// Lắng nghe sự kiện đăng xuất để xóa bộ nhớ đệm (bảo mật)
-window.addEventListener("auth-change", () => {
-    if (!localStorage.getItem("token")) {
-        Object.keys(apiCache).forEach(key => delete apiCache[key]);
-    }
-});
+import { useState, useCallback, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 /**
- * useApi - Một hook dùng chung để xử lý logic CRUD (Lấy, Thêm, Sửa, Xóa) cho các tài nguyên.
+ * useApi - Nâng cấp sử dụng React Query để lấy dữ liệu tức thì và quản lý Cache chuyên nghiệp.
  * 
- * @param {Object} service - Đối tượng service chứa các phương thức getAll, create, update, delete (tùy chọn).
- * @param {Object} options - Các tùy chọn bổ sung (initialParams, onFetchSuccess, v.v.).
+ * @param {Object} service - Đối tượng service chứa các phương thức getAll, create, update, delete.
+ * @param {Object} options - Các tùy chọn (initialParams, cacheKey, v.v.).
  */
 export const useApi = (service, options = {}) => {
+    const queryClient = useQueryClient();
     const { 
         initialParams = {}, 
         onFetchSuccess, 
         autoFetch = true,
-        cacheKey = null // Khóa định danh cho bộ nhớ đệm (VD: 'CUSTOMERS')
+        cacheKey = null 
     } = options;
 
-    const [data,    setData]    = useState(() => {
-        // Khởi tạo từ cache nếu có để hiện ngay lập tức
-        if (cacheKey && apiCache[cacheKey]) return apiCache[cacheKey];
-        return { content: [], totalElements: 0, totalPages: 0 };
-    });
-
-    const [loading, setLoading] = useState(false);
-    const [error,   setError]   = useState(null);
-
-    // 1. Fetch dữ liệu
-    const fetchItems = useCallback(async (params) => {
-        const token = localStorage.getItem("token");
-        if (!token) { 
-            setLoading(false);
-            return; 
-        }
-
-        // CHỈ set loading = true nếu chưa có dữ liệu trong cache để tránh hiện Spinner chặn trang
-        if (!cacheKey || !apiCache[cacheKey]) {
-            setLoading(true); 
-        }
-        
-        setError(null);
-        try {
-            const fetchParams = params !== undefined ? params : initialParams;
-            const res = await service.getAll(fetchParams);
-            
-            // Chuẩn hóa dữ liệu: hỗ trợ cả phân trang {content, ...} và mảng đơn []
-            const normalizedData = res?.content 
+    // 1. Fetch dữ liệu với useQuery
+    // QueryKey bao gồm cả cacheKey và params để đảm bảo dữ liệu đúng context
+    const query = useQuery({
+        queryKey: cacheKey ? [cacheKey, initialParams] : null,
+        queryFn: async () => {
+            const res = await service.getAll(initialParams);
+            // Chuẩn hóa dữ liệu tương tự logic cũ
+            return res?.content 
                 ? res 
                 : { 
                     content: Array.isArray(res) ? res : [], 
                     totalElements: res?.totalElements ?? (Array.isArray(res) ? res.length : 0), 
                     totalPages: res?.totalPages ?? 1 
                   };
-            
-            // Cập nhật vào cache
-            if (cacheKey) apiCache[cacheKey] = normalizedData;
-            
-            setData(normalizedData);
-            onFetchSuccess?.(normalizedData);
-        } catch (err) {
-            const status = err.response?.status;
-            if (status === 401) setError("Phiên làm việc hết hạn. Vui lòng đăng nhập lại.");
-            else if (status === 403) setError("Bạn không có quyền thực hiện thao tác này.");
-            else setError(err.response?.data?.message || "Không thể tải dữ liệu");
-        } finally { 
-            setLoading(false); 
-        }
-    }, [service, JSON.stringify(initialParams), cacheKey]);
+        },
+        enabled: autoFetch && !!cacheKey && !!localStorage.getItem("token"),
+        onSuccess: (data) => onFetchSuccess?.(data),
+    });
 
-    // Tự động fetch lần đầu và khi auth thay đổi
-    useEffect(() => {
-        if (autoFetch) {
-            fetchItems();
+    // 2. Các Mutation cho CRUD
+    const createMutation = useMutation({
+        mutationFn: (payload) => service.create(payload),
+        onSuccess: () => {
+            if (cacheKey) queryClient.invalidateQueries({ queryKey: [cacheKey] });
         }
-        const handler = () => { 
-            if (autoFetch && localStorage.getItem("token")) fetchItems(); 
-        };
-        window.addEventListener("auth-change", handler);
-        return () => window.removeEventListener("auth-change", handler);
-    }, [fetchItems, autoFetch]);
+    });
 
-    // 2. Tạo mới
-    const create = async (payload) => {
-        setLoading(true);
-        try {
-            const newItem = await service.create(payload);
-            setData(prev => ({ 
-                ...prev, 
-                content: [newItem, ...prev.content],
-                totalElements: (prev.totalElements || 0) + 1
-            }));
-            return newItem;
-        } catch (err) {
-            setError(err.response?.data?.message || "Lỗi khi tạo mới");
-            throw err;
-        } finally {
-            setLoading(false);
+    const updateMutation = useMutation({
+        mutationFn: ({ id, payload }) => service.update(id, payload),
+        onSuccess: () => {
+            if (cacheKey) queryClient.invalidateQueries({ queryKey: [cacheKey] });
         }
-    };
+    });
 
-    // 3. Cập nhật
-    const update = async (id, payload) => {
-        setLoading(true);
-        try {
-            const updatedItem = await service.update(id, payload);
-            setData(prev => ({
-                ...prev,
-                content: prev.content.map(item => (item.id === id ? updatedItem : item))
-            }));
-            return updatedItem;
-        } catch (err) {
-            setError(err.response?.data?.message || "Lỗi khi cập nhật");
-            throw err;
-        } finally {
-            setLoading(false);
+    const removeMutation = useMutation({
+        mutationFn: (id) => {
+            const deleteFn = service.delete || service.remove;
+            return deleteFn(id);
+        },
+        onSuccess: () => {
+            if (cacheKey) queryClient.invalidateQueries({ queryKey: [cacheKey] });
         }
-    };
+    });
 
-    // 4. Xóa
-    const remove = async (id) => {
-        const deleteFn = service.delete || service.remove;
-        if (!deleteFn) {
-            console.warn("Service không hỗ trợ phương thức delete hoặc remove");
-            return;
-        }
-        setLoading(true);
-        try {
-            await deleteFn(id);
-            setData(prev => ({
-                ...prev,
-                content: prev.content.filter(item => item.id !== id),
-                totalElements: Math.max(0, (prev.totalElements || 0) - 1)
-            }));
-        } catch (err) {
-            setError(err.response?.data?.message || "Lỗi khi xóa");
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    };
+    // 3. Mapping dữ liệu trả về để tương thích với các component cũ
+    const data = useMemo(() => query.data || { content: [], totalElements: 0, totalPages: 0 }, [query.data]);
 
     return { 
         data, 
         items: data.content, 
-        loading, 
-        error, 
-        setError,
-        setData, // Export để component có thể can thiệp thủ công nếu cần
-        refetch: fetchItems, 
-        create, 
-        update, 
-        remove 
+        loading: query.isLoading || query.isFetching, 
+        error: query.error ? (query.error.response?.data?.message || "Lỗi tải dữ liệu") : null,
+        setError: () => {}, // Giữ cho tương thích interface cũ
+        setData: (newData) => {
+            if (cacheKey) queryClient.setQueryData([cacheKey, initialParams], newData);
+        },
+        refetch: query.refetch, 
+        create: createMutation.mutateAsync, 
+        update: (id, payload) => updateMutation.mutateAsync({ id, payload }), 
+        remove: removeMutation.mutateAsync 
     };
 };

@@ -16,7 +16,8 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
 
 // ── Main ViewQuoteModal ───────────────────────────────────
 export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
-    const { user } = useAuth();
+    const { user, hasRole } = useAuth();
+    const isDirector = hasRole("DIRECTOR");
     const [quote, setQuote] = useState(null);
     const [loadingInit, setLoadingInit] = useState(true);
     const [mode, setMode] = useState("view"); // "view" | "edit"
@@ -39,13 +40,14 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
     const {
         products, loadingData,
         custId,
-        validUntil, setValidUntil,
         note, setNote,
         status, setStatus,
+        discountPercent, setDiscountPercent,
         rows,
         addRow, removeRow, updateRow,
         totals,
-        validate
+        validate,
+        getAvailableProducts
     } = useQuotationForm(quote);
 
     const [saving, setSaving] = useState(false);
@@ -60,19 +62,15 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
             const payload = {
                 customerId: Number(custId),
                 staffId: user?.id || quote?.staff?.id,
-                validUntil: validUntil ? validUntil + "T23:59:59" : null,
+                discountPercent: Number(discountPercent),
                 note,
                 items: rows.filter(r => r.productId).map(r => ({
                     productId: Number(r.productId),
                     quantity: r.qty,
-                    unitPrice: Number(r.unitPrice),
-                    discountPercent: r.discount,
+                    unitPrice: Number(r.unitPrice)
                 })),
             };
             await quotationService.update(quoteId, payload);
-            if (status !== quote.status) {
-                await quotationService.updateStatus(quoteId, status);
-            }
             await loadQuote();
             setMode("view");
             if (onSaved) onSaved();
@@ -82,10 +80,19 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
     };
 
     const handleUpdateStatus = async (newStatus, msg = "cập nhật trạng thái") => {
+        let reason = null;
+        if (newStatus === "REJECTED") {
+            reason = window.prompt("Vui lòng nhập lý do từ chối báo giá này:");
+            if (reason === null) return; // User cancelled prompt
+            if (!reason.trim()) {
+                alert("Lý do từ chối là bắt buộc!");
+                return;
+            }
+        }
 
         setSaving(true); setError(null);
         try {
-            await quotationService.updateStatus(quoteId, newStatus);
+            await quotationService.updateStatus(quoteId, newStatus, reason);
             await loadQuote();
             if (onSaved) onSaved();
             return true;
@@ -96,14 +103,11 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
     };
 
     const handlePrintAndSend = async () => {
-        if (quote?.status === "DRAFT") {
-            const ok = await handleUpdateStatus("SENT", "chuyển sang trạng thái Đã gửi");
-            if (!ok) return;
-        }
         printQuotation(quote);
     };
 
-    const isLocked = quote?.status === "ACCEPTED" || quote?.status === "REJECTED" || quote?.status === "EXPIRED";
+    const isLocked = quote?.status === "APPROVED" || quote?.status === "ACCEPTED" || quote?.status === "EXPIRED";
+    const canEdit = quote?.status === "DRAFT" || quote?.status === "REJECTED";
 
     return (
         <>
@@ -116,11 +120,13 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                             </h2>
                             <span className="sq-modal-sub" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                 {quote?.quotationNumber || "..."} · {quote?.customer?.name}
-                                <span className={`sq-badge sq-badge--${quote?.status?.toLowerCase()}`}>
+                                <span className={`sq-badge sq-badge--${quote?.status?.toLowerCase().replace('_', '-')}`}>
                                     {quote?.status === "DRAFT" ? "Bản nháp" :
-                                     quote?.status === "SENT" ? "Đã gửi" :
-                                     quote?.status === "ACCEPTED" ? "Đã chốt" :
-                                     quote?.status === "REJECTED" ? "Đã hủy" : "Hết hạn"}
+                                     quote?.status === "WAITING_APPROVAL" ? "Đang chờ duyệt" :
+                                     quote?.status === "APPROVED" ? "Đã phê duyệt" :
+                                     quote?.status === "REJECTED" ? "Bị từ chối" :
+                                     quote?.status === "ACCEPTED" ? "Đã chốt" : 
+                                     quote?.status === "CANCELLED" ? "Đã hủy" : "Hết hạn"}
                                 </span>
                             </span>
                         </div>
@@ -129,13 +135,22 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
 
                     <div className="sq-modal-body">
                         {loadingInit ? (
-                            <div className="sp-state"><div className="sp-spinner" /><span>Đang tải thông tin...</span></div>
+                            <div className="sp-state" style={{padding: 40}}><div className="sp-spinner" /></div>
                         ) : (
                             <div className="sq-form-grid">
                                 <div className="sq-form-main">
+                                    {quote?.status === "REJECTED" && quote?.rejectionReason && (
+                                        <div className="sq-rejection-banner" style={{ background: "#fef2f2", border: "1px solid #fee2e2", padding: "12px 16px", borderRadius: "8px", marginBottom: "16px", display: "flex", gap: "10px", alignItems: "flex-start" }}>
+                                            <span style={{ fontSize: "18px" }}>⚠️</span>
+                                            <div>
+                                                <div style={{ fontWeight: "700", color: "#991b1b", fontSize: "13px" }}>Lý do từ chối phê duyệt:</div>
+                                                <div style={{ color: "#b91c1c", fontSize: "13.5px", marginTop: "2px" }}>{quote.rejectionReason}</div>
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="sq-form-card">
                                         <div className="sq-form-row">
-                                            <div className="sq-form-field" style={{ flex: 2 }}>
+                                            <div className="sq-form-field">
                                                 <label className="sq-form-label">Khách hàng</label>
                                                 <div className="sq-form-input sq-form-input--readonly">
                                                     <span style={{color: "#94a3b8", marginRight: 8}}>👤</span>
@@ -143,8 +158,10 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                                                 </div>
                                             </div>
                                             <div className="sq-form-field">
-                                                <label className="sq-form-label">Ngày hiệu lực</label>
-                                                <SingleDatePicker value={validUntil} isReadOnly={mode === "view"} onChange={setValidUntil} />
+                                                <label className="sq-form-label">Thời hạn báo giá</label>
+                                                <div className="sq-form-input sq-form-input--readonly" style={{ background: "#f9fafb", color: "#6b7280", fontWeight: "600" }}>
+                                                    Giá trị đến: {fmtDate(quote?.validUntil)} (15 ngày)
+                                                </div>
                                             </div>
                                         </div>
                                         
@@ -173,6 +190,7 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                                     <QuotationItemsTable 
                                         rows={rows} 
                                         products={products} 
+                                        getAvailableProducts={getAvailableProducts}
                                         onUpdate={updateRow} 
                                         onAdd={addRow} 
                                         onRemove={removeRow} 
@@ -183,6 +201,8 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                                 </div>
                                 <QuotationSummary 
                                     totals={totals} 
+                                    discountPercent={discountPercent}
+                                    onDiscountChange={setDiscountPercent}
                                     note={note} 
                                     onNoteChange={setNote} 
                                     status={status}
@@ -195,39 +215,42 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                     </div>
 
                     <div className="sq-modal-footer">
-                        {mode === "view" ? (
-                            <>
-                                <button className="sq-modal-btn sq-modal-btn--cancel" onClick={onClose}>Đóng</button>
-                                <div style={{display:"flex",gap:8}}>
-                                    {quote?.status === "DRAFT" && (
-                                        <>
-                                            <button className="sq-modal-btn sq-modal-btn--submit" onClick={() => setMode("edit")} style={{backgroundColor:"#f1f5f9", color:"#475569"}}>Sửa báo giá</button>
-                                            <button className="sq-modal-btn sq-modal-btn--submit" onClick={handlePrintAndSend} disabled={saving} style={{backgroundColor:"#3b82f6", color:"#fff"}}>
+                        <div className="sq-footer-left">
+                            {error && <span className="sq-field-error">{typeof error === 'string' ? error : "Lỗi dữ liệu"}</span>}
+                        </div>
+                        <div className="sq-footer-actions">
+                            {mode === "view" ? (
+                                <>
+                                    <button className="sq-modal-btn sq-modal-btn--cancel" onClick={onClose}>Đóng</button>
+                                    <div style={{display:"flex",gap:8}}>
+                                        {canEdit && (
+                                            <button className="sq-modal-btn sq-modal-btn--submit" onClick={() => setMode("edit")} style={{backgroundColor:"#f1f5f9", color:"#475569"}}>Chỉnh sửa</button>
+                                        )}
+                                        {quote?.status === "WAITING_APPROVAL" && isDirector && (
+                                            <>
+                                                <button className="sq-modal-btn sq-modal-btn--submit" onClick={() => handleUpdateStatus("APPROVED")} style={{backgroundColor:"#10b981", color: "#fff"}}>Phê duyệt</button>
+                                                <button className="sq-modal-btn sq-modal-btn--cancel" onClick={() => handleUpdateStatus("REJECTED")} style={{backgroundColor: "#fee2e2", color: "#ef4444", border: "1px solid #fecaca"}}>Từ chối</button>
+                                            </>
+                                        )}
+                                        {quote?.status === "APPROVED" && (
+                                            <button className="sq-modal-btn sq-modal-btn--submit" onClick={() => handleUpdateStatus("ACCEPTED")} style={{backgroundColor:"#3b82f6", color: "#fff"}}>Chốt đơn hàng</button>
+                                        )}
+                                        {(quote?.status === "APPROVED" || quote?.status === "ACCEPTED") && (
+                                            <button className="sq-modal-btn sq-modal-btn--submit" onClick={handlePrintAndSend} style={{backgroundColor:"#1e293b", color:"#fff"}}>
                                                 In báo giá
                                             </button>
-                                        </>
-                                    )}
-                                    {quote?.status === "SENT" && (
-                                        <>
-                                            <button className="sq-modal-btn sq-modal-btn--submit" onClick={() => setMode("edit")} style={{backgroundColor:"#f59e0b", color: "#fff"}}>Sửa nội dung</button>
-                                            <button className="sq-modal-btn sq-modal-btn--submit" onClick={() => handleUpdateStatus("ACCEPTED")} disabled={saving} style={{backgroundColor:"#10b981", color: "#fff"}}>
-                                                {saving ? "Đang xử lý..." : "Chốt báo giá"}
-                                            </button>
-                                            <button className="sq-modal-btn sq-modal-btn--cancel" onClick={() => handleUpdateStatus("REJECTED")} disabled={saving} style={{backgroundColor: "#fee2e2", color: "#ef4444", border: "1px solid #fecaca"}}>
-                                                Hủy báo giá
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <button className="sq-modal-btn sq-modal-btn--cancel" onClick={() => setMode("view")} disabled={saving}>Hủy</button>
-                                <button className="sq-modal-btn sq-modal-btn--submit" onClick={handleSaveEdit} disabled={saving}>
-                                    {saving ? "Đang lưu..." : "Lưu thay đổi"}
-                                </button>
-                            </>
-                        )}
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <button className="sq-modal-btn sq-modal-btn--cancel" onClick={() => setMode("view")} disabled={saving}>Hủy</button>
+                                    <button className="sq-modal-btn sq-modal-btn--submit" onClick={handleSaveEdit} disabled={saving}>
+                                        {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

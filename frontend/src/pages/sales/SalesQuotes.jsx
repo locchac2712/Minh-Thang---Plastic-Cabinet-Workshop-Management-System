@@ -38,6 +38,13 @@ const PRICE_RANGE_MAP = {
 };
 
 // ── Shared UI Components ───────────
+const TooltipWrapper = ({ children, text }) => (
+    <div className="sq-tooltip-container">
+        {children}
+        <span className="sq-tooltip-text">{text}</span>
+    </div>
+);
+
 const Toast = ({ msg, type, onClose }) => (
     <div className={`sq-toast sq-toast--${type}`}>
         <span>{msg}</span>
@@ -59,14 +66,14 @@ const CustomStatusSelect = ({ value, onChange, options, placeholder = "Chọn...
     return (
         <div className="sq-custom-select" ref={wrapRef}>
             <div className={`sq-select-trigger${isOpen ? " sq-select-trigger--open" : ""}`} onClick={() => setIsOpen(!isOpen)}>
-                <span>{selected ? selected.label : placeholder}</span>
+                <span style={{ color: selected?.color }}>{selected ? selected.label : placeholder}</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
             </div>
             {isOpen && (
                 <div className="sq-select-popup">
                     {options.map(o => (
                         <div key={o.value} className={`sq-select-item${value === o.value ? " sq-select-item--active" : ""}`} onClick={() => { onChange(o.value); setIsOpen(false); }}>
-                            {o.label}
+                            <span style={{ color: o.color }}>{o.label}</span>
                         </div>
                     ))}
                 </div>
@@ -140,7 +147,7 @@ const CustomDateRangePicker = ({ start, end, onStartChange, onEndChange }) => {
 
 // ── Main Page Component ───────────────────────────────────
 export const SalesQuotes = () => {
-    const { hasRole } = useAuth();
+    const { hasRole, user } = useAuth();
     const isDirector = hasRole("DIRECTOR");
 
     // Filter states
@@ -157,6 +164,7 @@ export const SalesQuotes = () => {
     const [editingId, setEditingId] = useState(null);
     const [viewingId, setViewingId] = useState(null);
     const [printingId, setPrintingId] = useState(null);
+    const [updatingId, setUpdatingId] = useState(null);
     const [showFilters, setShowFilters] = useState(false);
     const [toast, setToast] = useState(null);
 
@@ -189,6 +197,44 @@ export const SalesQuotes = () => {
             showToast("Không thể tải thông tin để in báo giá!", "error");
         } finally {
             setPrintingId(null);
+        }
+    };
+
+    const handleSend = async (id) => {
+        try {
+            setUpdatingId(id);
+            await quotationService.updateStatus(id, "WAITING_APPROVAL");
+            showToast("Đã gửi báo giá cho Giám đốc phê duyệt!");
+            refetch();
+        } catch (err) {
+            showToast(err.response?.data?.message || "Lỗi khi gửi báo giá", "error");
+        } finally {
+            setUpdatingId(null);
+        }
+    };
+
+    const handleUpdateStatus = async (id, newStatus) => {
+        let reason = null;
+        if (newStatus === "REJECTED") {
+            reason = window.prompt("Vui lòng nhập lý do từ chối báo giá này:");
+            if (reason === null) return;
+            if (!reason.trim()) {
+                alert("Lý do từ chối là bắt buộc!");
+                return;
+            }
+        } else {
+            if (!window.confirm(`Bạn có chắc chắn muốn chuyển trạng thái báo giá sang ${newStatus}?`)) return;
+        }
+
+        try {
+            setUpdatingId(id);
+            await quotationService.updateStatus(id, newStatus, reason);
+            showToast("Cập nhật trạng thái thành công!");
+            refetch();
+        } catch (err) {
+            showToast(err.response?.data?.message || "Lỗi khi cập nhật trạng thái", "error");
+        } finally {
+            setUpdatingId(null);
         }
     };
 
@@ -232,15 +278,13 @@ export const SalesQuotes = () => {
             {showFilters && (
                 <div className="sq-filter-panel">
                     <div className="sq-f-group"><label className="sq-f-label">Trạng thái</label><CustomStatusSelect value={statusFilter} options={[{ value: "", label: "Tất cả trạng thái" }, ...STATUS_OPTIONS]} onChange={val => { setStatusFilter(val); setPage(0); }} /></div>
-                    <div className="sq-f-group"><label className="sq-f-label">Ngày hiệu lực</label><CustomDateRangePicker start={startDate} end={endDate} onStartChange={v => { setStartDate(v); setPage(0); }} onEndChange={v => { setEndDate(v); setPage(0); }} /></div>
+                    <div className="sq-f-group"><label className="sq-f-label">Ngày tạo</label><CustomDateRangePicker start={startDate} end={endDate} onStartChange={v => { setStartDate(v); setPage(0); }} onEndChange={v => { setEndDate(v); setPage(0); }} /></div>
                     <div className="sq-f-group"><label className="sq-f-label">Giá trị</label><CustomStatusSelect value={priceRangeId} options={PRICE_RANGE_OPTIONS} onChange={val => { setPriceRangeId(val); setPage(0); }} /></div>
                     <div className="sq-f-group sq-f-group--btns"><label className="sq-f-label">&nbsp;</label><button className="sq-btn-clear" onClick={handleClearFilters} title="Xóa bộ lọc">✕</button></div>
                 </div>
             )}
 
-            {(loading && quotes.length === 0) ? (
-                <div className="sp-state"><div className="sp-spinner" /><span>Đang tải danh sách báo giá...</span></div>
-            ) : error ? (
+            {error ? (
                 <div className="sp-state sp-state--error">{error}</div>
             ) : (
                 <div className="sp-card">
@@ -262,6 +306,10 @@ export const SalesQuotes = () => {
                             ) : quotes.map(q => {
                                 const s = getQuoteStatus(q.status);
                                 const label = STATUS_OPTIONS.find(o => o.value === q.status)?.label || q.status;
+                                const isDraftOrRejected = q.status === "DRAFT" || q.status === "REJECTED";
+                                const isWaiting = q.status === "WAITING_APPROVAL";
+                                const isApproved = q.status === "APPROVED";
+                                
                                 return (
                                     <tr key={q.id} className="sp-table__row">
                                         <td><span className="sq-quote-id">{q.quotationNumber}</span></td>
@@ -269,39 +317,72 @@ export const SalesQuotes = () => {
                                         {isDirector && <td className="sp-td--muted">{q.staffName}</td>}
                                         <td className="sp-td--price">{fmt(q.totalAmount)}</td>
                                         <td>
-                                            <div style={{display:"flex", alignItems:"center", gap:8}}>
-                                                <span className={`sq-badge ${s.cls}`} onClick={() => setEditingId(q.id)} style={{cursor:"pointer"}} title="Bấm để cập nhật trạng thái">{label}</span>
-                                            </div>
+                                            {q.status === "REJECTED" && q.rejectionReason ? (
+                                                <TooltipWrapper text={`Lý do: ${q.rejectionReason}`}>
+                                                    <span className={`sq-badge ${s.cls}`}>{label}</span>
+                                                </TooltipWrapper>
+                                            ) : (
+                                                <span className={`sq-badge ${s.cls}`}>{label}</span>
+                                            )}
                                         </td>
                                         <td className="sp-td--muted">{fmtDate(q.validUntil)}</td>
                                         <td>
                                             <div className="sp-td--actions" style={{justifyContent:"center"}}>
-                                                {(q.status === "DRAFT" || q.status === "SENT") && (
-                                                    <button 
-                                                        className={`sp-action-btn ${printingId === q.id ? "sq-spinning" : ""}`} 
-                                                        onClick={(e) => { e.stopPropagation(); handlePrint(q.id); }} 
-                                                        disabled={printingId === q.id}
-                                                        title="In báo giá"
-                                                    >
-                                                        {printingId === q.id ? (
-                                                            <div className="sp-spinner sp-spinner--small" />
-                                                        ) : (
-                                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                                                        )}
+                                                <TooltipWrapper text="Xem chi tiết">
+                                                    <button className="sp-action-btn" onClick={() => setViewingId(q.id)}>
+                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
                                                     </button>
+                                                </TooltipWrapper>
+
+                                                {(isDraftOrRejected) && (
+                                                    <TooltipWrapper text="Chỉnh sửa">
+                                                        <button className="sp-action-btn" onClick={() => setEditingId(q.id)}>
+                                                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                                                        </button>
+                                                    </TooltipWrapper>
                                                 )}
-                                                {q.status === "DRAFT" && (
-                                                    <button className="sp-action-btn" onClick={() => alert("Chức năng gửi cho Director duyệt đang được phát triển!")} title="Gửi duyệt">
-                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
-                                                    </button>
+
+                                                {(isDraftOrRejected) && (
+                                                    <TooltipWrapper text="Gửi duyệt">
+                                                        <button 
+                                                            className={`sp-action-btn ${updatingId === q.id ? "sq-spinning" : ""}`} 
+                                                            disabled={updatingId === q.id}
+                                                            onClick={() => handleSend(q.id)}
+                                                        >
+                                                            {updatingId === q.id ? <div className="sp-spinner sp-spinner--small" /> : 
+                                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+                                                            }
+                                                        </button>
+                                                    </TooltipWrapper>
                                                 )}
-                                                <button className="sp-action-btn" onClick={() => setViewingId(q.id)} title="Xem chi tiết">
-                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
-                                                </button>
-                                                {q.status !== "ACCEPTED" && q.status !== "REJECTED" && (
-                                                    <button className="sp-action-btn" onClick={() => setEditingId(q.id)} title="Chỉnh sửa">
-                                                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                                                    </button>
+
+                                                {isDirector && isWaiting && (
+                                                    <>
+                                                        <TooltipWrapper text="Phê duyệt">
+                                                            <button className="sp-action-btn sq-approve-btn" onClick={() => handleUpdateStatus(q.id, "APPROVED")}>
+                                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                                                            </button>
+                                                        </TooltipWrapper>
+                                                        <TooltipWrapper text="Từ chối/Yêu cầu sửa">
+                                                            <button className="sp-action-btn sq-reject-btn" onClick={() => handleUpdateStatus(q.id, "REJECTED")}>
+                                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                                            </button>
+                                                        </TooltipWrapper>
+                                                    </>
+                                                )}
+
+                                                {(isApproved || q.status === "ACCEPTED") && (
+                                                    <TooltipWrapper text="In báo giá">
+                                                        <button 
+                                                            className={`sp-action-btn ${printingId === q.id ? "sq-spinning" : ""}`} 
+                                                            onClick={(e) => { e.stopPropagation(); handlePrint(q.id); }} 
+                                                            disabled={printingId === q.id}
+                                                        >
+                                                            {printingId === q.id ? <div className="sp-spinner sp-spinner--small" /> : 
+                                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                                                            }
+                                                        </button>
+                                                    </TooltipWrapper>
                                                 )}
                                             </div>
                                         </td>
@@ -364,6 +445,44 @@ export const SalesQuotes = () => {
                 .sq-page-num--active { background: #4f46e5; border-color: #4f46e5; color: #fff; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
                 .sq-spinning { cursor: wait; pointer-events: none; }
                 .sp-spinner--small { width: 14px; height: 14px; border-width: 2px; }
+
+                /* Tooltip Styles */
+                .sq-tooltip-container { position: relative; display: inline-flex; align-items: center; }
+                .sq-tooltip-text {
+                    visibility: hidden;
+                    width: 120px;
+                    background-color: #1e293b;
+                    color: #fff;
+                    text-align: center;
+                    border-radius: 6px;
+                    padding: 6px 4px;
+                    position: absolute;
+                    z-index: 1000;
+                    bottom: 125%;
+                    left: 50%;
+                    margin-left: -60px;
+                    opacity: 0;
+                    transition: opacity 0.2s;
+                    font-size: 11px;
+                    font-weight: 500;
+                    pointer-events: none;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                }
+                .sq-tooltip-text::after {
+                    content: "";
+                    position: absolute;
+                    top: 100%;
+                    left: 50%;
+                    margin-left: -5px;
+                    border-width: 5px;
+                    border-style: solid;
+                    border-color: #1e293b transparent transparent transparent;
+                }
+                .sq-tooltip-container:hover .sq-tooltip-text { visibility: visible; opacity: 1; }
+
+                /* Action Button Overrides */
+                .sq-approve-btn:hover { background: #ecfdf5 !important; border-color: #10b981 !important; }
+                .sq-reject-btn:hover { background: #fef2f2 !important; border-color: #ef4444 !important; }
             `}</style>
         </div>
     );

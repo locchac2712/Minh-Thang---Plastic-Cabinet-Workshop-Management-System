@@ -62,7 +62,8 @@ public class QuotationController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'DIRECTOR', 'SALES_STAFF')")
     public ResponseEntity<ResponseObject> updateQuotationStatus(
             @PathVariable Long id,
-            @RequestParam String status) {
+            @RequestParam String status,
+            @RequestParam(required = false) String reason) {
         try {
             String newStatus = status.toUpperCase();
 
@@ -86,7 +87,7 @@ public class QuotationController {
             }
 
             // 👉 3. Nếu Pass qua bức tường lửa, gọi Service chạy Máy trạng thái (State Machine)
-            Quotation updatedQuotation = quotationService.updateQuotationStatus(id, newStatus);
+            Quotation updatedQuotation = quotationService.updateQuotationStatus(id, newStatus, reason);
 
             return ResponseEntity.ok(
                     new ResponseObject("SUCCESS", "Cập nhật trạng thái thành công!", updatedQuotation)

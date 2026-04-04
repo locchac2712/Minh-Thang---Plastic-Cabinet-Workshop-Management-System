@@ -134,7 +134,7 @@ export const SalesOrders = () => {
                 </div>
             )}
 
-            {(loading && orders.length === 0) && <div className="sp-state"><div className="sp-spinner" /><span>Đang tải danh sách đơn hàng...</span></div>}
+            {(loading && orders.length === 0) && <div className="sp-state" style={{padding: 20}}><div className="sp-spinner" /></div>}
 
             {error && !loading && (
                 <div className="sp-state sp-state--error">
@@ -463,7 +463,7 @@ export const QuickScheduleModal = ({ orderId, onClose }) => {
                                 </div>
                             ))}
                             {(!orderRef?.details || orderRef.details.length === 0) && (
-                                <div className="so-modal-product-empty">Đang tải thông tin sản phẩm...</div>
+                                <div className="so-modal-product-empty"><div className="sp-spinner" /></div>
                             )}
                         </div>
                     </div>
