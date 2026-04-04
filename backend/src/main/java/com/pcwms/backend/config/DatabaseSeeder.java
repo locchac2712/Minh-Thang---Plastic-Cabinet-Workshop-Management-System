@@ -163,7 +163,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     }
 
     private void createCustomer(String name, String email, String phone, String address, String taxCode, BigDecimal creditLimit) {
-        Customer customer = new Customer(); customer.setName(name); customer.setEmail(email); customer.setPhoneNumber(phone); customer.setAddress(address); customer.setTaxCode(taxCode); customer.setCreditLimit(creditLimit); customer.setCurrentDebt(BigDecimal.ZERO);
+        Customer customer = new Customer(); customer.setName(name); customer.setEmail(email); customer.setPhoneNumber(phone); customer.setAddress(address); customer.setTaxCode(taxCode); customer.setCreditLimit(creditLimit); customer.setCurrentDebt(BigDecimal.ZERO); customer.setActive(true);
         customerRepository.save(customer);
     }
 

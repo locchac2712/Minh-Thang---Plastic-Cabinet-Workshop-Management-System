@@ -1,34 +1,27 @@
-import { useState, useEffect, useCallback } from "react";
+import { useApi } from "./useApi";
 import quotationService from "../services/quotationService.js";
 
+/**
+ * useQuotations - Quản lý báo giá bản mở rộng với lọc phía Client (cho các trường Server chưa hỗ trợ).
+ */
 export const useQuotations = (params = {}) => {
-    const [data,    setData]    = useState({ content: [], totalElements: 0, totalPages: 0 });
-    const [loading, setLoading] = useState(false);
-    const [error,   setError]   = useState(null);
+    // Tạo một wrapper service để tích hợp logic lọc phía Client vào luồng chuẩn của useApi
+    const filteredService = {
+        ...quotationService,
+        getAll: async (p) => {
+            const {
+                keyword, status,
+                startDate, endDate, minAmount, maxAmount,
+                page = 0, size = 10, sortBy, sortDir,
+            } = p;
 
-    // Tách params: server chỉ nhận keyword, status, page, size, sortBy, sortDir
-    // startDate, endDate, minAmount, maxAmount phải filter phía client
-    const {
-        keyword, status,
-        startDate, endDate, minAmount, maxAmount,
-        page = 0, size = 10, sortBy, sortDir,
-    } = params;
+            const hasClientFilter = !!(startDate || endDate || minAmount !== undefined || maxAmount !== undefined);
 
-    const hasClientFilter = !!(startDate || endDate || minAmount !== undefined || maxAmount !== undefined);
-
-    const fetchAll = useCallback(async () => {
-        if (!localStorage.getItem("token")) return;
-        setLoading(true); setError(null);
-        try {
             // Params gửi lên server (chỉ những gì backend hỗ trợ)
-            const serverParams = {};
-            if (keyword) serverParams.keyword = keyword;
-            if (status) serverParams.status = status;
-            if (sortBy) serverParams.sortBy = sortBy;
-            if (sortDir) serverParams.sortDir = sortDir;
+            const serverParams = { keyword, status, sortBy, sortDir };
 
             if (hasClientFilter) {
-                // Khi có filter client-side, load nhiều data hơn để lọc
+                // Khi cần lọc phía client, tải lượng lớn dữ liệu để lọc chính xác
                 serverParams.page = 0;
                 serverParams.size = 1000;
             } else {
@@ -39,10 +32,9 @@ export const useQuotations = (params = {}) => {
             const res = await quotationService.getAll(serverParams);
             let items = res?.content ?? (Array.isArray(res) ? res : []);
 
-            // Áp dụng filter phía client
             if (hasClientFilter) {
+                // Áp dụng filter phía client
                 items = items.filter(q => {
-                    // Lọc theo ngày (validUntil)
                     if (startDate) {
                         const qDate = q.validUntil ? q.validUntil.split("T")[0] : null;
                         if (!qDate || qDate < startDate) return false;
@@ -51,30 +43,38 @@ export const useQuotations = (params = {}) => {
                         const qDate = q.validUntil ? q.validUntil.split("T")[0] : null;
                         if (!qDate || qDate > endDate) return false;
                     }
-                    // Lọc theo giá trị
                     const amt = Number(q.totalAmount) || 0;
                     if (minAmount !== undefined && amt < minAmount) return false;
                     if (maxAmount !== undefined && amt > maxAmount) return false;
                     return true;
                 });
 
-                // Phân trang phía client
                 const totalElements = items.length;
                 const totalPages = Math.max(1, Math.ceil(totalElements / size));
                 const start = page * size;
-                const paginatedItems = items.slice(start, start + size);
-
-                setData({ content: paginatedItems, totalElements, totalPages });
-            } else {
-                if (res?.content) setData(res);
-                else setData({ content: items, totalElements: 0, totalPages: 0 });
+                return { 
+                    content: items.slice(start, start + size), 
+                    totalElements, 
+                    totalPages 
+                };
             }
-        } catch (e) {
-            setError(e.response?.data?.message || "Không thể tải dữ liệu");
-        } finally { setLoading(false); }
-    }, [JSON.stringify(params)]);
 
-    useEffect(() => { fetchAll(); }, [fetchAll]);
+            return res;
+        }
+    };
 
-    return { data, loading, error, refetch: fetchAll };
+    const api = useApi(filteredService, { 
+        initialParams: params,
+        cacheKey: "QUOTATIONS" 
+    });
+
+    return { 
+        data: api.data, 
+        loading: api.loading, 
+        error: api.error, 
+        refetch: api.refetch, 
+        create: api.create, 
+        update: api.update,
+        remove: api.remove 
+    };
 };

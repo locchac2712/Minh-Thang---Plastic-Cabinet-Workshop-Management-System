@@ -1,4 +1,4 @@
-import { EmptyPage } from "../../components/EmptyPage";
+import { EmptyPage } from "../common/EmptyPage";
 
 export const MonitorProduction = () => (
   <EmptyPage

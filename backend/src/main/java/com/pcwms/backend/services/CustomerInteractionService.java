@@ -88,7 +88,7 @@ public class CustomerInteractionService {
                 .customerId(entity.getCustomer().getId())
                 .customerName(entity.getCustomer().getName())
                 .staffId(entity.getStaff().getId())
-                .staffName(entity.getStaff().getFullname())
+                .staffName(entity.getStaff().getFullName())
                 .type(entity.getType())
                 .content(entity.getContent())
                 .interactionDate(entity.getInteractionDate())

@@ -18,7 +18,11 @@ const authService = {
     // POST /api/v1/auth/reset-password
     resetPassword: (otp, newPassword) =>
         api.post("/auth/reset-password", { otp, newPassword }).then((res) => res.data),
+    // GET /api/v1/auth/me
+    getCurrentUser: () =>
+        api.get("/auth/me").then((res) => res.data.data),
 
+    // POST /api/v1/auth/logout
     logout: () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");

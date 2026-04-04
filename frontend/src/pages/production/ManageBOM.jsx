@@ -463,7 +463,7 @@ export const ManageBOM = () => {
           </div>
         </div>
 
-        {loading && <div className="sp-state"><div className="sp-spinner"/><span>Đang thu thập dữ liệu định mức...</span></div>}
+        {(loading && boms.length === 0) && <div className="sp-state"><div className="sp-spinner"/><span>Đang thu thập dữ liệu định mức...</span></div>}
         
         {error && !loading && (
             <div className="sp-state sp-state--error">

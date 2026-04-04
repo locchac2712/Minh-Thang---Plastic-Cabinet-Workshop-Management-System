@@ -145,7 +145,7 @@ export const ProductList = ({ onSelectProduct }) => {
                 </div>
             </div>
 
-            {loading && <div className="sp-state"><div className="sp-spinner"/><span>Đang thu thập dữ liệu sản phẩm...</span></div>}
+            {(loading && products.length === 0) && <div className="sp-state"><div className="sp-spinner"/><span>Đang thu thập dữ liệu sản phẩm...</span></div>}
 
             {error && !loading && (
                 <div className="sp-state sp-state--error">

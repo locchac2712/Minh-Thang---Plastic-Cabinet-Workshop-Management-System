@@ -238,8 +238,8 @@ export const SalesQuotes = () => {
                 </div>
             )}
 
-            {loading ? (
-                <div className="sp-state"><div className="sp-spinner" /><span>Đang tải...</span></div>
+            {(loading && quotes.length === 0) ? (
+                <div className="sp-state"><div className="sp-spinner" /><span>Đang tải danh sách báo giá...</span></div>
             ) : error ? (
                 <div className="sp-state sp-state--error">{error}</div>
             ) : (

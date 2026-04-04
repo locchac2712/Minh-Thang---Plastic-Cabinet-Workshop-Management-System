@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import "./Auth.css";
+import { useAuth } from "../../context/AuthContext";
 
-export const ForgotPasswordModal = ({ onBack, onNext }) => {
+export const ForgotPassword = ({ onBack, onNext }) => {
     const { forgotPassword, setAuthError } = useAuth();
     const [email,   setEmail]   = useState("");
     const [loading, setLoading] = useState(false);
@@ -16,7 +17,6 @@ export const ForgotPasswordModal = ({ onBack, onNext }) => {
         }
         if (loading) return;
 
-        // Kiểm tra định dạng email bằng Regex đơn giản
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(trimmedEmail)) {
             setError("Định dạng email không hợp lệ.");
@@ -39,39 +39,36 @@ export const ForgotPasswordModal = ({ onBack, onNext }) => {
     };
 
     return (
-        <div className="lp-overlay">
-            {/* ── Left panel (Reused from Login) ── */}
-            <div className="lp-left">
-                <div className="lp-left__content">
-                    <h2 className="lp-left__heading lp-left__heading--large">
-                        Hệ thống quản&nbsp;lý<br />
-                        <span className="lp-left__accent">tủ&nbsp;nhựa Minh&nbsp;Thắng</span>
+        <div className="auth-overlay">
+            <div className="auth-left">
+                <div className="auth-left__content">
+                    <h2 className="auth-left__heading">
+                        Hệ thống quản lý<br />
+                        <span className="auth-left__accent">tủ nhựa Minh Thắng</span>
                     </h2>
-                    <p className="lp-left__desc">
-                        Nền tảng số hóa quy trình sản xuất và giám sát
-                        tiến độ đơn hàng thời gian thực.
+                    <p className="auth-left__desc">
+                        Nền tảng số hóa quy trình sản xuất và giám sát tiến độ đơn hàng thời gian thực.
                     </p>
                 </div>
-                <div className="lp-left__footer">© 2026 Tủ Nhựa Minh Thắng</div>
+                <div className="auth-left__footer">© 2026 Tủ Nhựa Minh Thắng</div>
             </div>
 
-            {/* ── Right panel ── */}
-            <div className="lp-right">
-                <div className="lp-card">
-                    <div className="lp-header">
-                        <h1 className="lp-title">Quên mật khẩu</h1>
-                        <p className="lp-subtitle">Nhập email đã đăng ký để nhận mã OTP đặt lại mật khẩu</p>
+            <div className="auth-right">
+                <div className="auth-card">
+                    <div className="auth-header">
+                        <h1 className="auth-title">Quên mật khẩu</h1>
+                        <p className="auth-subtitle">Nhập email đã đăng ký để nhận mã OTP đặt lại mật khẩu</p>
                     </div>
 
-                    {success && <div className="sq-toast sq-toast--success" style={{ marginBottom: 16 }}>{success}</div>}
+                    {success && <div className="auth-toast">{success}</div>}
                     
-                    {error && !error.includes("email") && <div className="lp-error" style={{ marginBottom: 16 }}>{error}</div>}
+                    {error && !error.includes("email") && <div className="auth-error-box">{error}</div>}
 
-                    <div className="lp-form">
-                        <div className="lp-field">
-                            <label className="lp-label">Email tài khoản</label>
+                    <div className="auth-form">
+                        <div className="auth-field">
+                            <label className="auth-label">Email tài khoản</label>
                             <input
-                                className={`lp-input ${error && error.includes("email") ? 'lp-input--error' : ''}`}
+                                className={`auth-input ${error && error.includes("email") ? 'auth-input--error' : ''}`}
                                 type="email"
                                 placeholder="you@company.com"
                                 value={email}
@@ -79,22 +76,21 @@ export const ForgotPasswordModal = ({ onBack, onNext }) => {
                                 onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                                 autoFocus
                             />
-                            {error && error.includes("email") && <span className="lp-field-error">{error}</span>}
+                            {error && error.includes("email") && <span className="auth-field-error">{error}</span>}
                         </div>
 
-                        <button className="lp-btn" onClick={handleSubmit} disabled={loading || !!success} type="button">
+                        <button className="auth-btn" onClick={handleSubmit} disabled={loading || !!success} type="button">
                             <span>{loading ? "Đang xử lý..." : "Nhận mã OTP"}</span>
                             {!loading && (
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                    <line x1="5" y1="12" x2="19" y2="12"/>
-                                    <polyline points="12 5 19 12 12 19"/>
+                                    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
                                 </svg>
                             )}
                         </button>
                     </div>
 
                     <button 
-                        className="lp-forgot" 
+                        className="auth-link" 
                         onClick={onBack} 
                         style={{ 
                             marginTop: 24, 
@@ -103,23 +99,16 @@ export const ForgotPasswordModal = ({ onBack, onNext }) => {
                             display: 'flex', 
                             alignItems: 'center', 
                             justifyContent: 'center', 
-                            gap: '8px', 
-                            background: 'none', 
-                            border: 'none', 
-                            cursor: 'pointer',
-                            color: '#64748b',
-                            fontSize: '14px',
-                            fontWeight: '500'
+                            gap: '8px'
                         }}
                     >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <line x1="19" y1="12" x2="5" y2="12"/>
-                            <polyline points="12 19 5 12 12 5"/>
+                            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                         </svg>
                         Quay lại đăng nhập
                     </button>
 
-                    <div className="lp-footer">© 2026 Minh Thang Factory. All rights reserved.</div>
+                    <div className="auth-footer">© 2026 Minh Thang Factory. All rights reserved.</div>
                 </div>
             </div>
         </div>

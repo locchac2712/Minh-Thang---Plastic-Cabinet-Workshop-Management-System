@@ -1,24 +1,22 @@
-import { useState, useEffect, useCallback } from "react";
+import { useApi } from "./useApi";
 import salesOrderService from "../services/salesOrderService.js";
 
+/**
+ * useSalesOrders - Quản lý danh sách đơn hàng.
+ */
 export const useSalesOrders = (params = {}) => {
-    const [data,    setData]    = useState({ content: [], totalElements: 0, totalPages: 0 });
-    const [loading, setLoading] = useState(false);
-    const [error,   setError]   = useState(null);
+    const api = useApi(salesOrderService, { 
+        initialParams: params,
+        cacheKey: "SALES_ORDERS" 
+    });
 
-    const fetchAll = useCallback(async () => {
-        if (!localStorage.getItem("token")) return;
-        setLoading(true); setError(null);
-        try {
-            const res = await salesOrderService.getAll(params);
-            if (res?.content) setData(res);
-            else setData({ content: Array.isArray(res) ? res : [], totalElements: 0, totalPages: 0 });
-        } catch (e) {
-            setError(e.response?.data?.message || "Không thể tải dữ liệu");
-        } finally { setLoading(false); }
-    }, [JSON.stringify(params)]);
-
-    useEffect(() => { fetchAll(); }, [fetchAll]);
-
-    return { data, loading, error, refetch: fetchAll };
+    return { 
+        data: api.data,
+        loading: api.loading, 
+        error: api.error, 
+        refetch: api.refetch, 
+        create: api.create, 
+        update: api.update,
+        remove: api.remove
+    };
 };

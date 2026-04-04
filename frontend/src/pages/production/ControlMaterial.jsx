@@ -255,7 +255,7 @@ export const ControlMaterial = ({ onSelectMaterial }) => {
                 </div>
             </div>
 
-            {loading && <div className="sp-state"><div className="sp-spinner"/><span>Đang thu thập dữ liệu vật tư...</span></div>}
+            {(loading && materials.length === 0) && <div className="sp-state"><div className="sp-spinner"/><span>Đang thu thập dữ liệu vật tư...</span></div>}
 
             {error && !loading && (
                 <div className="sp-state sp-state--error">

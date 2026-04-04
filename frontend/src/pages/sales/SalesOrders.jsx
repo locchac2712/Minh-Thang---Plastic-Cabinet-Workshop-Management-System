@@ -49,7 +49,7 @@ export const SalesOrders = () => {
     const isDirector = user?.role === "ROLE_DIRECTOR";
     const isProductionManager = user?.role === "ROLE_PRODUCTION_MANAGER";
 
-    const { data, loading, refetch } = useSalesOrders({
+    const { data, loading, error, refetch } = useSalesOrders({
         keyword: keyword || undefined,
         paymentStatus: payFilter || undefined,
         status: statusFilter || undefined,
@@ -133,6 +133,15 @@ export const SalesOrders = () => {
                     </div>
                 </div>
             )}
+
+            {(loading && orders.length === 0) && <div className="sp-state"><div className="sp-spinner" /><span>Đang tải danh sách đơn hàng...</span></div>}
+
+            {error && !loading && (
+                <div className="sp-state sp-state--error">
+                    <span style={{ fontWeight: 600 }}>{error}</span>
+                </div>
+            )}
+
             <div className="sp-card">
                 <table className="sp-table">
                     <thead>

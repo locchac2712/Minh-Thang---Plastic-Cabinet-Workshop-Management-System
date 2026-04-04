@@ -3,42 +3,71 @@
 // JwtResponse: { token, id, username, role }  (role là string đơn)
 // ============================================================
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import authService from "../services/authService";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    // Xóa session cũ khi khởi động app → bắt buộc đăng nhập lại
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    return null;
+    try {
+      const savedUser = localStorage.getItem("user");
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
+    }
   });
-  const [authLoading, setAuthLoading] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [authError,   setAuthError]   = useState(null);
 
-  // ── Login ──────────────────────────────────────────────────
+  // ── Verify session on mount ───────────────────────────────
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setAuthLoading(false);
+      return;
+    }
+
+    const verify = async () => {
+      try {
+        const freshUser = await authService.getCurrentUser();
+        setUser(freshUser);
+        localStorage.setItem("user", JSON.stringify(freshUser));
+      } catch (err) {
+        console.error("Session verification failed", err);
+        // api.js handles 401 redirect, but we clear state here for safety
+        if (err.response?.status === 401) {
+          setUser(null);
+        }
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+    verify();
+  }, []);
+
   const login = async (username, password) => {
-    setAuthLoading(true);
     setAuthError(null);
     try {
       // data = { token, id, username, role }
       const data = await authService.login(username, password);
       const userInfo = { id: data.id, username: data.username, role: data.role };
+      
+      // Lưu vào localStorage trước để nếu user F5 vẫn giữ được phiên
       localStorage.setItem("token", data.token);
       localStorage.setItem("user",  JSON.stringify(userInfo));
-      setUser(userInfo);
-      // Báo cho các hook biết đã login → refetch data
-      window.dispatchEvent(new Event("auth-change"));
-      return true;
+      
+      return userInfo;
     } catch (err) {
       const msg = err.response?.data?.message || "Sai tên đăng nhập hoặc mật khẩu";
       setAuthError(msg);
-      return false;
-    } finally {
-      setAuthLoading(false);
+      return null;
     }
+  };
+
+  const completeLogin = (userInfo) => {
+    setUser(userInfo);
+    window.dispatchEvent(new Event("auth-change"));
   };
 
   // ── Logout ─────────────────────────────────────────────────
@@ -65,7 +94,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
       <AuthContext.Provider
-          value={{ user, login, logout, forgotPassword, resetPassword, hasRole, authLoading, authError, setAuthError }}
+          value={{ user, login, completeLogin, logout, forgotPassword, resetPassword, hasRole, authLoading, authError, setAuthError }}
       >
         {children}
       </AuthContext.Provider>
