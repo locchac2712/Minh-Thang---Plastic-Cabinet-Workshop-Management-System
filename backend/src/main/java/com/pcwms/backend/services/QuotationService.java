@@ -27,8 +27,7 @@ public class QuotationService {
     private StaffRepository staffRepository;
     @Autowired
     private ProductRepository productRepository;
-    @Autowired
-    private SalesOrderService salesOrderService;
+
 
     @Transactional // Đảm bảo lỗi ở đâu thì rollback lại toàn bộ
     public Quotation createQuotation(QuotationRequest request) {
@@ -108,36 +107,65 @@ public class QuotationService {
 
     @Transactional
     public Quotation updateQuotationStatus(Long id, String status) {
-        Quotation quotation = quotationRepository.findById(id).orElseThrow(() -> new RuntimeException("Lôĩ không tìm thấy báo giá ID: " + id));
-        // 1. Chỉ cho phép các trạng thái này được lọt qua
-        List<String> validStatuses = List.of("DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED");
-        if (!validStatuses.contains(status.toUpperCase())) {
-            throw new RuntimeException("Lỗi: Trạng thái không hợp lệ! Chỉ nhận DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED.");
+        Quotation quotation = quotationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy báo giá ID: " + id));
+
+        String currentStatus = quotation.getStatus();
+        String newStatus = status.toUpperCase();
+
+        // 1. Tập hợp các trạng thái hợp lệ trong luồng mới
+        List<String> validStatuses = List.of(
+                "DRAFT", "WAITING_APPROVAL", "APPROVED", "REJECTED",
+                "ACCEPTED", "CANCELLED", "EXPIRED"
+        );
+
+        if (!validStatuses.contains(newStatus)) {
+            throw new RuntimeException("Lỗi: Trạng thái không hợp lệ!");
         }
-        // 2. Chặn logic: Nếu báo giá đã chốt (ACCEPTED) thì cấm quay xe về Nháp (DRAFT)
-        if ("ACCEPTED".equals(quotation.getStatus()) && !"ACCEPTED".equals(status.toUpperCase())) {
-            throw new RuntimeException("Lỗi: Báo giá này đã được chốt đơn, không thể lùi trạng thái về " + status);
+
+        // 2. CHẶN "QUAY XE" NẾU ĐÃ ĐÓNG BĂNG
+        if (List.of("ACCEPTED", "CANCELLED", "EXPIRED").contains(currentStatus)) {
+            throw new RuntimeException("Lỗi: Báo giá đã đóng (ACCEPTED/CANCELLED/EXPIRED), không thể thay đổi trạng thái!");
         }
-        // 3. Cập nhật và lưu DB
-        quotation.setStatus(status.toUpperCase());
+
+        // 3. MÁY TRẠNG THÁI (STATE MACHINE) - Kiểm soát chặt luồng đi
+        switch (newStatus) {
+            case "WAITING_APPROVAL":
+                if (!"DRAFT".equals(currentStatus) && !"REJECTED".equals(currentStatus)) {
+                    throw new RuntimeException("Chỉ báo giá DRAFT hoặc bị REJECTED mới được gửi đi chờ duyệt!");
+                }
+                break;
+            case "APPROVED":
+            case "REJECTED":
+                if (!"WAITING_APPROVAL".equals(currentStatus)) {
+                    throw new RuntimeException("Giám đốc chỉ có thể Duyệt/Từ chối báo giá đang ở trạng thái WAITING_APPROVAL!");
+                }
+                break;
+            case "ACCEPTED":
+            case "CANCELLED":
+                if (!"APPROVED".equals(currentStatus)) {
+                    throw new RuntimeException("Báo giá phải được Giám đốc duyệt (APPROVED) trước khi chốt hoặc hủy với khách hàng!");
+                }
+                break;
+            case "DRAFT":
+                if (!"REJECTED".equals(currentStatus)) {
+                    throw new RuntimeException("Chỉ có thể đưa về DRAFT để làm lại nếu báo giá bị Giám đốc REJECTED!");
+                }
+                break;
+        }
+
+        // 4. Cập nhật và lưu DB
+        quotation.setStatus(newStatus);
         Quotation savedQuotation = quotationRepository.save(quotation);
 
-        // 💡 TINH HOA Ở ĐÂY: Nếu status là ACCEPTED, ta sẽ gọi hàm sinh Đơn Hàng (Sales Order)
-        if ("ACCEPTED".equals(savedQuotation.getStatus())) {
-            System.out.println("🚀 KHÁCH ĐÃ CHỐT DEAL: Chuẩn bị kích hoạt luồng tự động tạo Sales Order!");
-            try {
-                salesOrderService.generateFromQuotation(savedQuotation.getId());
-                System.out.println("✅ Tự động tạo Sales Order thành công cho Báo giá ID: " + savedQuotation.getId());
-            } catch (Exception e) {
-                System.err.println("❌ Lỗi tự động tạo Sales Order: " + e.getMessage());
-                // Lưu ý: Tùy vào yêu cầu nghiệp vụ, có thể throw exception để rollback trạng thái báo giá
-                // Hoặc chỉ log lỗi nếu ưu tiên cập nhật trạng thái báo giá trước.
-                // Ở đây ta throw để đảm bảo tính nhất quán (Atomic).
-                throw new RuntimeException("Không thể tự động tạo đơn hàng: " + e.getMessage());
-            }
-        }
+//        // 5. KÍCH HOẠT LUỒNG TẠO ĐƠN HÀNG KHI KHÁCH CHỐT
+//        if ("ACCEPTED".equals(savedQuotation.getStatus())) {
+//            System.out.println("KHÁCH ĐÃ CHỐT DEAL: Chuẩn bị kích hoạt luồng tự động tạo Sales Order!");
+//            // TODO: Gọi hàm createSalesOrderFromQuotation(savedQuotation)
+//        }
         return savedQuotation;
     }
+
 
     // 👉 API SỬA NỘI DUNG BÁO GIÁ
     @Transactional
@@ -146,8 +174,8 @@ public class QuotationService {
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Báo giá ID " + id));
 
         // 1. Chặn đứng nếu Báo giá đã Chốt hoặc Từ chối
-        if ("ACCEPTED".equals(quotation.getStatus()) || "REJECTED".equals(quotation.getStatus())) {
-            throw new RuntimeException("Lỗi: Báo giá đã chốt hoặc bị từ chối, KHÔNG THỂ sửa đổi nội dung!");
+        if (!"DRAFT".equals(quotation.getStatus()) && !"REJECTED".equals(quotation.getStatus())) {
+            throw new RuntimeException("Lỗi: Chỉ có thể sửa nội dung báo giá khi đang là Nháp (DRAFT) hoặc bị Giám đốc Từ chối (REJECTED)!");
         }
 
         // 2. Cập nhật thông tin chung (Ngày hết hạn, Ghi chú)
