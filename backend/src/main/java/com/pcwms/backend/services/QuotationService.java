@@ -158,8 +158,8 @@ public class QuotationService {
 //            System.out.println("KHÁCH ĐÃ CHỐT DEAL: Chuẩn bị kích hoạt luồng tự động tạo Sales Order!");
 //            // TODO: Gọi hàm createSalesOrderFromQuotation(savedQuotation)
 //        }
-//        return savedQuotation;
-//    }
+        return savedQuotation;
+    }
 
 
     // 👉 API SỬA NỘI DUNG BÁO GIÁ
