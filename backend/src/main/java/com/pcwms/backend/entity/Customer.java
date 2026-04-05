@@ -72,6 +72,7 @@ public class Customer {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to_id")
+    @JsonIgnore
     private Staff assignedTo;
 
     @PrePersist

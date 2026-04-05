@@ -23,10 +23,10 @@ public class CustomerService {
     }
 
     public Customer createCustomer(Customer customer) {
-        if (customer.getPhoneNumber() != null && customerRepository.existsByPhoneNumber(customer.getPhoneNumber())) {
+        if (customer.getPhoneNumber() != null && !customer.getPhoneNumber().trim().isEmpty() && customerRepository.existsByPhoneNumber(customer.getPhoneNumber())) {
             throw new RuntimeException("Số điện thoại này đã được sử dụng bởi một khách hàng khác!");
         }
-        if (customer.getEmail() != null && !customer.getEmail().isEmpty() && customerRepository.existsByEmail(customer.getEmail())) {
+        if (customer.getEmail() != null && !customer.getEmail().trim().isEmpty() && customerRepository.existsByEmail(customer.getEmail())) {
             throw new RuntimeException("Email này đã được sử dụng bởi một khách hàng khác!");
         }
 
