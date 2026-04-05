@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class QuotationService {
@@ -26,33 +27,52 @@ public class QuotationService {
     private StaffRepository staffRepository;
     @Autowired
     private ProductRepository productRepository;
+    @Autowired
+    private NotificationRepository notificationRepository;
+    @Autowired
+    private UserRepository userRepository;
+
 
     @Transactional // Đảm bảo lỗi ở đâu thì rollback lại toàn bộ
     public Quotation createQuotation(QuotationRequest request) {
 
-        // 1. Kiểm tra Customer và Staff có tồn tại không
+        // 1. Kiểm tra Customer có tồn tại không
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Khách hàng!"));
-        Staff staff = staffRepository.findById(request.getStaffId())
-                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Nhân viên!"));
+        
+        // 👉 Tự động lấy Staff dựa trên User đang đăng nhập thay vì dùng ID từ frontend vì User.id != Staff.id!
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = userRepository.findByUsername(auth.getName())
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy User đang đăng nhập!"));
+        Staff staff = staffRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Lỗi: User đang đăng nhập không được liên kết với hồ sơ Nhân viên nào!"));
 
         // 2. Khởi tạo Báo Giá
         Quotation quotation = new Quotation();
-
-        // Tự động sinh mã Báo giá chuẩn form UI (VD: BG-2026-3182)
-        String year = String.valueOf(LocalDateTime.now().getYear());
-        int randomNum = 1000 + new java.util.Random().nextInt(9000); // Random từ 1000 đến 9999
-        quotation.setQuotationNumber("BG-" + year + "-" + randomNum);
-
         quotation.setCustomer(customer);
         quotation.setStaff(staff);
-        quotation.setValidUntil(request.getValidUntil());
         quotation.setNote(request.getNote());
         quotation.setStatus("DRAFT"); // Mặc định là Nháp (Draft)
+        
+        // 2.1 Validate chiết khấu tổng (Max 30%)
+        BigDecimal discountPercent = request.getDiscountPercent() != null ? request.getDiscountPercent() : BigDecimal.ZERO;
+        if (discountPercent.compareTo(new BigDecimal("30")) > 0) {
+            throw new RuntimeException("Lỗi: Chiết khấu không được vượt quá 30% giá trị đơn hàng!");
+        }
+        quotation.setDiscountPercent(discountPercent);
 
-        BigDecimal grandTotal = BigDecimal.ZERO;
+        // Gán mã tạm
+        quotation.setQuotationNumber("TEMP-" + UUID.randomUUID().toString().substring(0, 8));
+        quotation = quotationRepository.save(quotation);
+        
+        // Format mã BG
+        String year = String.valueOf(LocalDateTime.now().getYear());
+        String formattedId = String.format("%04d", quotation.getId());
+        quotation.setQuotationNumber("BG-" + year + "-" + formattedId);
 
-        // 3. Xử lý từng dòng sản phẩm (Detail)
+        BigDecimal subTotal = BigDecimal.ZERO;
+
+        // 3. Xử lý từng dòng sản phẩm
         if (request.getItems() != null && !request.getItems().isEmpty()) {
             for (QuotationRequest.QuotationDetailRequest itemReq : request.getItems()) {
                 Product product = productRepository.findById(itemReq.getProductId())
@@ -63,66 +83,132 @@ public class QuotationService {
                 detail.setQuantity(itemReq.getQuantity());
                 detail.setUnitPrice(itemReq.getUnitPrice());
 
-                // TÍNH TOÁN CHIẾT KHẤU VÀ THÀNH TIỀN
+                // Tính tiền dòng (Chưa chiết khấu dòng nữa)
                 BigDecimal quantityBD = new BigDecimal(itemReq.getQuantity());
-                BigDecimal basePrice = quantityBD.multiply(itemReq.getUnitPrice()); // Tiền gốc = SL * Đơn giá
+                BigDecimal lineAmount = quantityBD.multiply(itemReq.getUnitPrice());
+                detail.setTotalLineAmount(lineAmount);
+                detail.setDiscount(BigDecimal.ZERO); // Không dùng chiết khấu dòng
 
-                BigDecimal discountAmount = BigDecimal.ZERO;
-                // Nếu FE truyền % > 0 thì bắt đầu tính ra tiền mặt
-                if (itemReq.getDiscountPercent() != null && itemReq.getDiscountPercent() > 0) {
-                    BigDecimal percent = BigDecimal.valueOf(itemReq.getDiscountPercent()).divide(BigDecimal.valueOf(100));
-                    discountAmount = basePrice.multiply(percent);
-                }
-
-                // Lưu số TIỀN MẶT chiết khấu xuống DB để Kế toán dễ làm việc
-                detail.setDiscount(discountAmount);
-
-                // Total Line = Tiền gốc - Tiền chiết khấu
-                BigDecimal lineTotal = basePrice.subtract(discountAmount);
-                detail.setTotalLineAmount(lineTotal);
-
-                // Cộng dồn vào Tổng tiền tờ báo giá
-                grandTotal = grandTotal.add(lineTotal);
-
-                // Nối Detail vào Quotation
+                subTotal = subTotal.add(lineAmount);
                 quotation.addDetail(detail);
             }
         } else {
             throw new RuntimeException("Lỗi: Báo giá phải có ít nhất 1 sản phẩm!");
         }
 
-        // 4. Chốt hạ Tổng tiền và Lưu Database
+        // 4. Tính Tổng cộng sau chiết khấu đơn hàng
+        BigDecimal discountMultiplier = BigDecimal.valueOf(100).subtract(discountPercent).divide(BigDecimal.valueOf(100));
+        BigDecimal grandTotal = subTotal.multiply(discountMultiplier);
+        
         quotation.setTotalAmount(grandTotal);
 
         Quotation saved = quotationRepository.save(quotation);
-// Load lại để tránh lazy loading khi map sang DTO
         return quotationRepository.findById(saved.getId())
                 .orElseThrow(() -> new RuntimeException("Lỗi khi tải lại báo giá"));
     }
 
     @Transactional
-    public Quotation updateQuotationStatus(Long id, String status) {
-        Quotation quotation = quotationRepository.findById(id).orElseThrow(() -> new RuntimeException("Lôĩ không tìm thấy báo giá ID: " + id));
-        // 1. Chỉ cho phép các trạng thái này được lọt qua
-        List<String> validStatuses = List.of("DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED");
-        if (!validStatuses.contains(status.toUpperCase())) {
-            throw new RuntimeException("Lỗi: Trạng thái không hợp lệ! Chỉ nhận DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED.");
+    public Quotation updateQuotationStatus(Long id, String status, String reason, String note) {
+        Quotation quotation = quotationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy báo giá ID: " + id));
+
+        String currentStatus = quotation.getStatus();
+        String newStatus = status.toUpperCase();
+
+        // 1. Tập hợp các trạng thái hợp lệ trong luồng mới
+        List<String> validStatuses = List.of(
+                "DRAFT", "WAITING_APPROVAL", "APPROVED", "REJECTED",
+                "EXPIRED"
+        );
+
+        if (!validStatuses.contains(newStatus)) {
+            throw new RuntimeException("Lỗi: Trạng thái không hợp lệ!");
         }
-        // 2. Chặn logic: Nếu báo giá đã chốt (ACCEPTED) thì cấm quay xe về Nháp (DRAFT)
-        if ("ACCEPTED".equals(quotation.getStatus()) && !"ACCEPTED".equals(status.toUpperCase())) {
-            throw new RuntimeException("Lỗi: Báo giá này đã được chốt đơn, không thể lùi trạng thái về " + status);
+
+        // 2. CHẶN "QUAY XE" NẾU ĐÃ ĐÓNG BĂNG
+        if (List.of("EXPIRED").contains(currentStatus)) {
+            throw new RuntimeException("Lỗi: Báo giá đã đóng (EXPIRED), không thể thay đổi trạng thái!");
         }
-        // 3. Cập nhật và lưu DB
-        quotation.setStatus(status.toUpperCase());
+
+        // 3. MÁY TRẠNG THÁI (STATE MACHINE) - Kiểm soát chặt luồng đi
+        switch (newStatus) {
+            case "WAITING_APPROVAL":
+                // Nhân viên gửi từ DRAFT hoặc sau khi bị REJECTED
+                if (!"DRAFT".equals(currentStatus) && !"REJECTED".equals(currentStatus)) {
+                    throw new RuntimeException("Chỉ báo giá DRAFT hoặc bị REJECTED mới được gửi duyệt!");
+                }
+                break;
+            case "APPROVED":
+            case "REJECTED":
+                // Giám đốc duyệt/từ chối từ trạng thái đang chờ
+                if (!"WAITING_APPROVAL".equals(currentStatus)) {
+                    throw new RuntimeException("Chỉ có thể Duyệt/Từ chối báo giá đang ở trạng thái WAITING_APPROVAL!");
+                }
+                // Nếu REJECTED, nạp lý do
+                if ("REJECTED".equals(newStatus)) {
+                    quotation.setRejectionReason(reason);
+                } else {
+                    quotation.setRejectionReason(null); // Clear reason if approved
+                }
+                if(note != null && !note.trim().isEmpty()) {
+                    quotation.setApprovalNote(note.trim());
+                }
+                break;
+            case "DRAFT":
+                // Quay về DRAFT để sửa nếu bị từ chối
+                if (!"REJECTED".equals(currentStatus)) {
+                    throw new RuntimeException("Chỉ khi bị REJECTED mới có thể đưa về DRAFT để chỉnh sửa!");
+                }
+                break;
+        }
+
+        // 4. Cập nhật và lưu DB
+        quotation.setStatus(newStatus);
         Quotation savedQuotation = quotationRepository.save(quotation);
 
-        // 💡 TINH HOA Ở ĐÂY: Nếu status là ACCEPTED, ta sẽ gọi hàm sinh Đơn Hàng (Sales Order)
-        if ("ACCEPTED".equals(savedQuotation.getStatus())) {
-            System.out.println("🚀 KHÁCH ĐÃ CHỐT DEAL: Chuẩn bị kích hoạt luồng tự động tạo Sales Order!");
-            // TODO: Gọi hàm createSalesOrderFromQuotation(savedQuotation) ở bước tiếp theo
+        // 5. SEND NOTIFICATIONS
+        if (newStatus.equals("WAITING_APPROVAL")) {
+            List<User> directors = userRepository.findActiveUsersByRoleNames(List.of("DIRECTOR", "ROLE_DIRECTOR"));
+            for (User d : directors) {
+                Notification n = new Notification();
+                n.setUser(d);
+                n.setTitle("Yêu cầu duyệt báo giá");
+                n.setMessage("Báo giá " + savedQuotation.getQuotationNumber() + " đang chờ bạn duyệt.");
+                n.setReferenceId(savedQuotation.getId());
+                n.setType("APPROVAL_REQUEST");
+                notificationRepository.save(n);
+            }
+        } else if (newStatus.equals("APPROVED")) {
+            User u = savedQuotation.getStaff().getUser();
+            if (u != null) {
+                Notification n = new Notification();
+                n.setUser(u);
+                n.setTitle("Báo giá đã được duyệt");
+                n.setMessage("Báo giá " + savedQuotation.getQuotationNumber() + " đã được Giám đốc phê duyệt.");
+                n.setReferenceId(savedQuotation.getId());
+                n.setType("APPROVED");
+                notificationRepository.save(n);
+            }
+        } else if (newStatus.equals("REJECTED")) {
+            User u = savedQuotation.getStaff().getUser();
+            if (u != null) {
+                Notification n = new Notification();
+                n.setUser(u);
+                n.setTitle("Báo giá bị từ chối");
+                String msg = "Báo giá " + savedQuotation.getQuotationNumber() + " đã bị từ chối.";
+                if (reason != null && !reason.trim().isEmpty()) {
+                    msg += " Lý do: " + reason.trim();
+                }
+                n.setMessage(msg);
+                n.setReferenceId(savedQuotation.getId());
+                n.setType("REJECTED");
+                notificationRepository.save(n);
+            }
         }
+
         return savedQuotation;
     }
+
 
     // 👉 API SỬA NỘI DUNG BÁO GIÁ
     @Transactional
@@ -131,21 +217,27 @@ public class QuotationService {
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Báo giá ID " + id));
 
         // 1. Chặn đứng nếu Báo giá đã Chốt hoặc Từ chối
-        if ("ACCEPTED".equals(quotation.getStatus()) || "REJECTED".equals(quotation.getStatus())) {
-            throw new RuntimeException("Lỗi: Báo giá đã chốt hoặc bị từ chối, KHÔNG THỂ sửa đổi nội dung!");
+        if (!"DRAFT".equals(quotation.getStatus()) && !"REJECTED".equals(quotation.getStatus())) {
+            throw new RuntimeException("Lỗi: Chỉ có thể sửa nội dung báo giá khi đang là Nháp (DRAFT) hoặc bị Giám đốc Từ chối (REJECTED)!");
         }
 
-        // 2. Cập nhật thông tin chung (Ngày hết hạn, Ghi chú)
-        quotation.setValidUntil(request.getValidUntil());
+        // 2. Cập nhật thông tin chung
         quotation.setNote(request.getNote());
+        
+        // 2.1 Validate chiết khấu tổng (Max 30%)
+        BigDecimal discountPercent = request.getDiscountPercent() != null ? request.getDiscountPercent() : BigDecimal.ZERO;
+        if (discountPercent.compareTo(new BigDecimal("30")) > 0) {
+            throw new RuntimeException("Lỗi: Chiết khấu không được vượt quá 30% giá trị đơn hàng!");
+        }
+        quotation.setDiscountPercent(discountPercent);
 
-        // 3. Xóa SẠCH toàn bộ chi tiết cũ (Hibernate sẽ tự động delete dưới Database nhờ orphanRemoval)
+        // 3. Làm sạch chi tiết cũ
         quotation.getDetails().clear();
-        quotationRepository.flush(); // Ép Hibernate xóa ngay lập tức để tránh lỗi trùng lặp
+        quotationRepository.flush();
 
-        BigDecimal grandTotal = BigDecimal.ZERO;
+        BigDecimal subTotal = BigDecimal.ZERO;
 
-        // 4. Vòng lặp nạp lại danh sách chi tiết MỚI TỪ ĐẦU
+        // 4. Vòng lặp nạp lại chi tiết
         if (request.getItems() != null && !request.getItems().isEmpty()) {
             for (QuotationRequest.QuotationDetailRequest itemReq : request.getItems()) {
                 Product product = productRepository.findById(itemReq.getProductId())
@@ -156,45 +248,53 @@ public class QuotationService {
                 detail.setQuantity(itemReq.getQuantity());
                 detail.setUnitPrice(itemReq.getUnitPrice());
 
-                // TÍNH TOÁN LẠI CHIẾT KHẤU VÀ THÀNH TIỀN
                 BigDecimal quantityBD = new BigDecimal(itemReq.getQuantity());
-                BigDecimal basePrice = quantityBD.multiply(itemReq.getUnitPrice());
+                BigDecimal lineAmount = quantityBD.multiply(itemReq.getUnitPrice());
+                detail.setTotalLineAmount(lineAmount);
+                detail.setDiscount(BigDecimal.ZERO);
 
-                BigDecimal discountAmount = BigDecimal.ZERO;
-                if (itemReq.getDiscountPercent() != null && itemReq.getDiscountPercent() > 0) {
-                    BigDecimal percent = BigDecimal.valueOf(itemReq.getDiscountPercent()).divide(BigDecimal.valueOf(100));
-                    discountAmount = basePrice.multiply(percent);
-                }
-
-                detail.setDiscount(discountAmount);
-
-                BigDecimal lineTotal = basePrice.subtract(discountAmount);
-                detail.setTotalLineAmount(lineTotal);
-
-                grandTotal = grandTotal.add(lineTotal);
-
-                // Nối Detail mới vào Quotation
+                subTotal = subTotal.add(lineAmount);
                 quotation.addDetail(detail);
             }
         } else {
             throw new RuntimeException("Lỗi: Báo giá cập nhật phải có ít nhất 1 sản phẩm!");
         }
 
-        // 5. Chốt tổng tiền mới và Lưu DB
+        // 5. Chốt tổng tiền mới sau chiết khấu
+        BigDecimal discountMultiplier = BigDecimal.valueOf(100).subtract(discountPercent).divide(BigDecimal.valueOf(100));
+        BigDecimal grandTotal = subTotal.multiply(discountMultiplier);
+        
         quotation.setTotalAmount(grandTotal);
 
+        // 6. Tự động chuyển sang WAITING_APPROVAL sau khi sửa (nêu đang là DRAFT hoặc REJECTED)
+        quotation.setStatus("WAITING_APPROVAL");
+        quotation.setRejectionReason(null); // Xóa lý do cũ nếu có
+
         Quotation saved = quotationRepository.save(quotation);
+
+        // 7. Gửi thông báo cho Giám đốc
+        List<User> directors = userRepository.findActiveUsersByRoleNames(List.of("DIRECTOR", "ROLE_DIRECTOR"));
+        for (User d : directors) {
+            Notification n = new Notification();
+            n.setUser(d);
+            n.setTitle("Báo giá đã được cập nhật/gửi lại");
+            n.setMessage("Báo giá " + saved.getQuotationNumber() + " đã được nhân viên chỉnh sửa và gửi lại.");
+            n.setReferenceId(saved.getId());
+            n.setType("APPROVAL_REQUEST");
+            notificationRepository.save(n);
+        }
+
         return quotationRepository.findById(saved.getId())
                 .orElseThrow(() -> new RuntimeException("Lỗi khi tải lại báo giá"));
     }
 
     //API LẤY DANH SÁCH BÁO GIÁ
-    public Page<QuotationListResponse> getAllQuotations(String keyword, String status, Long customerId, Pageable pageable) {
+    public Page<QuotationListResponse> getAllQuotations(String keyword, String status, Long customerId, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
         // Nếu user truyền chuỗi rỗng "", chuyển thành null để DB bỏ qua điều kiện lọc
         String validKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
         String validStatus = (status != null && !status.trim().isEmpty()) ? status.trim().toUpperCase() : null;
 
-        Page<Quotation> quotationPage = quotationRepository.searchQuotations(validKeyword, validStatus, customerId, pageable);
+        Page<Quotation> quotationPage = quotationRepository.searchQuotations(validKeyword, validStatus, customerId, startDate, endDate, pageable);
 
         // Map nguyên mảng Entity sang DTO siêu nhẹ
         return quotationPage.map(QuotationListResponse::new);

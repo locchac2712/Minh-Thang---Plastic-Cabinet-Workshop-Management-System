@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -23,18 +25,20 @@ public class Quotation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "quotation_number", unique = true, nullable = false)
+    @Column(name = "quotation_number", unique = true, nullable = false, columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private String quotationNumber;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
     private Customer customer;
 
     // Mở file Quotation.java, tìm đến đoạn Staff:
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "staff_id", nullable = false)
-    @JsonIgnoreProperties({"user", "department", "phoneNumber"}) // 👉 DÙNG CÁI NÀY: Chỉ lấy ID và Tên, bỏ qua các trường nhạy cảm
+    @JsonIgnoreProperties({ "user", "department", "phoneNumber" }) // 👉 DÙNG CÁI NÀY: Chỉ lấy ID và Tên, bỏ qua các
+                                                                   // trường nhạy cảm
     private Staff staff;
 
     @Column(name = "created_date")
@@ -43,7 +47,11 @@ public class Quotation {
     @Column(name = "valid_until")
     private LocalDateTime validUntil;
 
-    // Tổng tiền của cả tờ báo giá
+    // Chiết khấu tổng của cả báo giá (%)
+    @Column(name = "discount_percent", precision = 5, scale = 2)
+    private BigDecimal discountPercent = BigDecimal.ZERO;
+
+    // Tổng tiền của cả báo giá
     @Column(name = "total_amount", precision = 15, scale = 2)
     private BigDecimal totalAmount = BigDecimal.ZERO;
 
@@ -54,13 +62,28 @@ public class Quotation {
     @Column(columnDefinition = "TEXT")
     private String note;
 
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
+    @Column(name = "approval_note", columnDefinition = "TEXT")
+    private String approvalNote;
+
     @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<QuotationDetail> details = new ArrayList<>();
+
+    @PrePersist
+    public void prePersist() {
+        if (this.createdDate == null)
+            this.createdDate = LocalDateTime.now();
+        // Mặc định thời hạn báo giá là 15 ngày kể từ ngày tạo
+        if (this.validUntil == null) {
+            this.validUntil = this.createdDate.plusDays(15);
+        }
+    }
 
     public void addDetail(QuotationDetail detail) {
         details.add(detail);
         detail.setQuotation(this);
     }
-
 
 }

@@ -28,6 +28,10 @@ public class UserService {
     // ===============================================
     // 1. HÀM LẤY THÔNG TIN ĐỂ HIỂN THỊ LÊN FORM
     // ===============================================
+    /**
+     * Lấy thông tin hồ sơ của người dùng hiện tại để hiển thị lên Form.
+     * Đã cập nhật để lấy fullName (CamelCase) thay vì fullname.
+     */
     public UserProfileResponse getMyProfile(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy tài khoản!"));
@@ -37,36 +41,83 @@ public class UserService {
         return new UserProfileResponse(
                 user.getUsername(),
                 user.getEmail(),
-                staff.getFullname(),
+                staff.getFullName(),
                 staff.getPhoneNumber(),
-                staff.getDepartment()
+                staff.getDepartment(),
+                staff.getGender(),
+                staff.getAddress()
         );
     }
 
     // ===============================================
     // 2. HÀM LƯU THÔNG TIN CHỈNH SỬA XUỐNG DB
     // ===============================================
+    /**
+     * Cập nhật thông tin hồ sơ cá nhân.
+     * Cho phép thay đổi cả username và email (có kiểm tra tính duy nhất).
+     * Mọi thay đổi sẽ được lưu log và cập nhật xuống Database ngay lập tức.
+     */
     @Transactional
-    public void updateMyProfile(String username, UpdateProfileRequest request) {
-        User user = userRepository.findByUsername(username)
+    public void updateMyProfile(String currentUsername, UpdateProfileRequest request) {
+        User user = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy tài khoản!"));
         Staff staff = staffRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy hồ sơ nhân viên!"));
 
-        // Cập nhật Email (Bảng User)
-        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+        boolean userChanged = false;
+
+        // 1. Cập nhật Username (Nếu thay đổi)
+        if (request.getUsername() != null && !request.getUsername().trim().isEmpty() 
+            && !request.getUsername().equals(user.getUsername())) {
+            if (userRepository.existsByUsername(request.getUsername())) {
+                throw new RuntimeException("Tên đăng nhập '" + request.getUsername() + "' đã tồn tại.");
+            }
+            user.setUsername(request.getUsername());
+            userChanged = true;
+        }
+
+        // 2. Cập nhật Email (Nếu thay đổi)
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty() 
+            && !request.getEmail().equals(user.getEmail())) {
+            if (userRepository.existsByEmail(request.getEmail())) {
+                throw new RuntimeException("Email '" + request.getEmail() + "' đã được sử dụng bởi tài khoản khác.");
+            }
             user.setEmail(request.getEmail());
+            userChanged = true;
+        }
+
+        if (userChanged) {
             userRepository.save(user);
         }
 
         // Cập nhật Họ Tên và Số điện thoại (Bảng Staff)
-        if (request.getFullname() != null && !request.getFullname().trim().isEmpty()) {
-            staff.setFullname(request.getFullname());
+        if (request.getFullName() != null && !request.getFullName().trim().isEmpty()) {
+            staff.setFullName(request.getFullName());
         }
         if (request.getPhoneNumber() != null) {
             staff.setPhoneNumber(request.getPhoneNumber());
         }
-        staffRepository.save(staff);
+        if (request.getGender() != null) {
+            staff.setGender(request.getGender());
+        }
+        if (request.getAddress() != null) {
+            staff.setAddress(request.getAddress());
+        }
+        staffRepository.saveAndFlush(staff); // Sử dụng saveAndFlush để lưu xuống DB ngay lập tức
+    }
+
+    @Transactional
+    public void changePassword(String username, String currentPassword, String newPassword) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy tài khoản!"));
+        
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new RuntimeException("Mật khẩu hiện tại không chính xác.");
+        }
+        
+        validatePassword(newPassword);
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 
     public List<User> getAllUsers() {

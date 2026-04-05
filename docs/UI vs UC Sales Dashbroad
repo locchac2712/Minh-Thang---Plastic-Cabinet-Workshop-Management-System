@@ -1,0 +1,343 @@
+2.1.x.x Sales Dashboard
+a. UI Specifications
+<<Sales Dashboard>>
+
+Brief Description
+This screen displays a visual overview of sales-related activities for the Sales Staff. It allows the actor to monitor key business indicators such as quotation volume, sales order volume, revenue trend, delivery status, payment status, and top customers/products through 2D or 3D charts. It also allows the actor to filter dashboard data by time range and quickly navigate to related operational screens.
+
+Mockup Screen
+[Insert mockup/screenshot of Sales Dashboard here]
+
+UI Description / UI Requirements / Notes
+
+1. Header Area
+
+Screen Title: Sales Dashboard
+Current User Info: display logged-in user name and role
+Notification Icon: display important sales-related alerts if any
+Profile Shortcut: navigate to My Profile
+Logout Button
+
+2. Filter Panel
+
+Date Range: From Date – To Date
+Period Selector: Today / This Week / This Month / This Quarter / Custom Range
+Customer Filter: optional dropdown to filter by customer
+Order Status Filter: Draft / Pending / Confirmed / In Production / Delivered / Cancelled
+Payment Status Filter: Unpaid / Partially Paid / Paid / Overdue
+Apply Button
+Reset Button
+
+3. KPI Summary Cards
+
+Total Quotations
+Total Sales Orders
+Total Revenue
+Outstanding Debt
+Pending Deliveries
+Overdue Payments
+
+Each KPI card:
+
+displays current value
+may display change percentage compared with previous period
+can be clicked to navigate to the related list/detail screen
+
+4. Sales Charts Section
+The dashboard should support 2D or 3D charts depending on design choice and readability.
+
+Suggested charts:
+
+Revenue Trend Chart
+line chart or 3D column chart
+x-axis: time
+y-axis: revenue
+Quotation vs Sales Order Chart
+clustered bar chart
+compare quotation count and converted sales order count
+Sales by Customer Chart
+bar chart / pie chart / 3D pie chart
+Sales by Product Chart
+bar chart
+Order Status Distribution Chart
+pie chart / doughnut chart
+Payment Status Distribution Chart
+pie chart
+Delivery Status Distribution Chart
+stacked bar or pie chart
+
+5. Quick Navigation Panel
+Shortcuts to:
+
+Customer List
+Quotation List
+Sales Order List
+Delivery Status
+Payment Status
+
+6. Recent Activity Section
+
+latest quotations created
+latest sales orders created
+latest status changes
+latest overdue/unpaid orders
+
+7. Alert / Reminder Section
+Display warnings such as:
+
+overdue payment orders
+delayed delivery orders
+quotations pending too long
+customers exceeding debt threshold
+
+8. UI Requirements / Notes
+
+Dashboard data must be filtered based on user role and access permission.
+Charts must refresh after filter is applied.
+KPI values and chart data must be consistent with the selected filters.
+Clicking a chart segment or KPI card should navigate to the relevant filtered list screen if applicable.
+If no data exists, the screen must show an empty-state message with "No dashboard data found."
+The dashboard should load within an acceptable response time for normal data volume.
+3D charts are optional and should only be used where readability is not reduced.
+Financial values must be displayed in VND format.
+Dates must follow the system’s standard date format.
+b. UC Specifications
+<<SD_UC01_View Sales Dashboard>>
+
+ID and Name
+SD_UC01 – View Sales Dashboard
+
+Primary Actor
+Sales Staff
+
+Secondary Actor
+Director
+
+Description
+As a Sales Staff, I want to view the Sales Dashboard so that I can quickly monitor quotations, sales orders, revenue, delivery status, payment status, and sales performance.
+
+Preconditions
+
+The actor has logged into the system successfully.
+The actor has permission to access the Sales Dashboard.
+Dashboard data has been generated from existing sales-related records.
+
+Postconditions
+
+The Sales Dashboard is displayed with KPI cards, charts, and recent activity.
+The actor can review summarized sales information.
+
+Normal Flow
+
+The actor selects the Sales Dashboard from the navigation menu.
+The system opens the Sales Dashboard screen.
+The system loads default dashboard data for the current period.
+The system displays KPI summary cards.
+The system displays charts for revenue, quotations, sales orders, payment status, delivery status, and other configured metrics.
+The system displays recent sales-related activities and alerts, if any.
+The actor reviews the dashboard information.
+
+Alternative Flows
+
+A1. No dashboard data available
+
+At step 3, the system does not find any dashboard data for the selected/default period.
+The system displays the dashboard layout with empty widgets and with "No dashboard data found."
+
+A2. User clicks a KPI card or chart segment
+
+At step 7, the actor clicks a KPI card or a chart segment.
+The system navigates the actor to the corresponding screen with related filter conditions applied.
+
+Exception
+
+E1. User does not have permission
+
+At step 1, the actor attempts to access the Sales Dashboard without permission.
+The system blocks access and displays with "You do not have permission to access this screen."
+
+E2. Dashboard data loading error
+
+At step 3, the system cannot load dashboard data due to processing or data source issues.
+The system displays with "Unable to load dashboard data."
+
+Business Rule
+
+Dashboard data must only include records within the actor’s permitted scope.
+Financial indicators shown on the dashboard must be calculated from valid sales order and payment records only.
+Cancelled quotations or cancelled sales orders must not be counted in revenue metrics.
+Overdue payment metrics must be based on unpaid or partially paid orders past due date.
+The default period is the current month unless configured differently by the system administrator.
+<<SD_UC02_Filter Sales Dashboard Data>>
+
+ID and Name
+SD_UC02 – Filter Sales Dashboard Data
+
+Primary Actor
+Sales Staff
+
+Secondary Actor
+Director
+
+Description
+As a Sales Staff, I want to filter dashboard data so that I can analyze sales performance by date range, customer, order status, and payment status.
+
+Preconditions
+
+The actor is viewing the Sales Dashboard.
+The actor has permission to use dashboard filtering.
+
+Postconditions
+
+The dashboard is refreshed based on the selected filter criteria.
+KPI cards, charts, and activity sections reflect the updated filter conditions.
+
+Normal Flow
+
+The actor opens the Sales Dashboard.
+The actor enters or selects one or more filter criteria, including date range, customer, order status, or payment status.
+The actor clicks the Apply button.
+The system validates the filter input.
+The system retrieves dashboard data matching the selected criteria.
+The system refreshes the KPI cards.
+The system refreshes the charts.
+The system refreshes the recent activity and alert sections.
+The actor reviews the filtered dashboard result.
+
+Alternative Flows
+
+A1. Actor resets filter
+
+At step 2, the actor clicks the Reset button instead of Apply.
+The system clears all custom filter conditions.
+The system reloads the default dashboard data.
+
+A2. Filter returns no matching data
+
+At step 5, the system finds no matching data.
+The system displays empty charts and KPI values with "No dashboard data found."
+
+Exception
+
+E1. Invalid date range
+
+At step 4, the system detects that From Date is later than To Date.
+The system displays with "From Date must be earlier than or equal to To Date."
+The system does not apply the filter.
+
+E2. Filter processing error
+
+At step 5, the system fails to retrieve filtered data.
+The system displays with "Unable to apply dashboard filters."
+
+Business Rule
+
+From Date must be earlier than or equal to To Date.
+If no customer is selected, the system uses all accessible customers.
+If no status is selected, the system uses all statuses within the user’s access scope.
+Filtered results must update all dashboard widgets consistently.
+The system must preserve the current filter state until the actor resets it or leaves the screen.
+<<SD_UC03_View Sales Alerts and Reminders>>
+
+ID and Name
+SD_UC03 – View Sales Alerts and Reminders
+
+Primary Actor
+Sales Staff
+
+Secondary Actor
+Director
+
+Description
+As a Sales Staff, I want to view sales alerts and reminders on the dashboard so that I can quickly identify urgent orders, overdue payments, and delayed deliveries.
+
+Preconditions
+
+The actor has accessed the Sales Dashboard.
+Relevant alert conditions exist or alert rules are configured.
+
+Postconditions
+
+The actor can view current sales alerts and reminders.
+The actor may navigate to related records for further action.
+
+Normal Flow
+
+The actor opens the Sales Dashboard.
+The system checks configured alert conditions.
+The system displays alert items such as overdue payments, delayed deliveries, and pending quotations.
+The actor reviews the alert list.
+The actor selects an alert item.
+The system navigates the actor to the related detail or list screen.
+
+Alternative Flows
+
+A1. No alerts available
+
+At step 2, the system finds no active alert condition.
+The system displays with "No alerts at this time."
+
+Exception
+
+E1. Alert retrieval error
+
+At step 2, the system cannot retrieve alert data.
+The system displays with "Unable to load alerts."
+
+Business Rule
+
+Alert severity must be determined by configured business rules.
+Overdue payment alerts must be based on due date and unpaid balance.
+Delivery alerts must be based on expected delivery date and actual delivery status.
+Pending quotation alerts may be shown when quotation age exceeds the configured threshold.
+<<SD_UC04_Navigate from Dashboard>>
+
+ID and Name
+SD_UC04 – Navigate from Sales Dashboard
+
+Primary Actor
+Sales Staff
+
+Secondary Actor
+Director
+
+Description
+As a Sales Staff, I want to navigate from dashboard widgets to detailed screens so that I can investigate the underlying operational data.
+
+Preconditions
+
+The actor is viewing the Sales Dashboard.
+Related destination screens exist and the actor has permission to access them.
+
+Postconditions
+
+The actor is redirected to the selected target screen.
+Relevant context or filters may be transferred to the destination screen.
+
+Normal Flow
+
+The actor views the Sales Dashboard.
+The actor clicks a KPI card, chart segment, or quick navigation item.
+The system identifies the related destination screen.
+The system transfers relevant filter context if applicable.
+The system opens the destination screen, such as Customer List, Quotation List, Sales Order List, Delivery Status, or Payment Status.
+
+Alternative Flows
+
+A1. Destination has no matching records
+
+At step 5, the destination screen opens but no records match the transferred filter.
+The system displays the destination screen with "No data found."
+
+Exception
+
+E1. Access denied to destination screen
+
+At step 5, the actor does not have permission to access the destination screen.
+The system displays with "You do not have permission to access this screen."
+
+Business Rule
+
+Navigation from dashboard widgets should preserve the analytical context when possible.
+Only destination screens within the actor’s permission scope may be opened.
+Dashboard navigation must not modify underlying business data.

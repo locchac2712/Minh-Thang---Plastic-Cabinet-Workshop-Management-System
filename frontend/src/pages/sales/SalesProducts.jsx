@@ -22,7 +22,6 @@ export const SalesProducts = () => {
             <div className="sp-page-header">
                 <div>
                     <h1 className="sp-title">Quản lý sản phẩm</h1>
-                    <p className="sp-sub">Quản lý danh sách sản phẩm và vật tư trong hệ thống</p>
                 </div>
             </div>
 
@@ -50,15 +49,9 @@ export const SalesProducts = () => {
 
             <div className="sp-card">
                 {loading ? (
-                    <div className="cf-loading" style={{padding: "60px 0"}}>
-                        <div className="cf-spinner"></div>
-                        <span>Đang tải danh sách sản phẩm...</span>
-                    </div>
+                    <div className="sp-state"><div className="sp-spinner" /></div>
                 ) : error ? (
-                    <div className="af-error-banner" style={{margin: 24}}>
-                        <div style={{flex: 1}}>{error}</div>
-                        <button className="cf-submit-btn" style={{padding: "6px 16px", fontSize: "12px"}} onClick={refetch}>Thử lại</button>
-                    </div>
+                    <div className="sp-state sp-state--error">{error}</div>
                 ) : (
                     <table className="sp-table">
                         <thead>

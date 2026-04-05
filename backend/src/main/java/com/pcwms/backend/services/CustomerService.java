@@ -14,17 +14,20 @@ public class CustomerService {
     private CustomerRepository customerRepository;
 
     public List<Customer> getAllCustomer() {
-        return customerRepository.findAll();
+        return customerRepository.findAllWithAssignedTo();
     }
 
     public Customer getCustomerById(Long id) {
-        return customerRepository.findById(id)
+        return customerRepository.findByIdWithAssignedTo(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng với ID: " + id));
     }
 
     public Customer createCustomer(Customer customer) {
-        if (customerRepository.existsByName(customer.getName())) {
-            throw new RuntimeException("Tên khách hàng đã tồn tại trong hệ thống!");
+        if (customer.getPhoneNumber() != null && customerRepository.existsByPhoneNumber(customer.getPhoneNumber())) {
+            throw new RuntimeException("Số điện thoại này đã được sử dụng bởi một khách hàng khác!");
+        }
+        if (customer.getEmail() != null && !customer.getEmail().isEmpty() && customerRepository.existsByEmail(customer.getEmail())) {
+            throw new RuntimeException("Email này đã được sử dụng bởi một khách hàng khác!");
         }
 
         // Tự động tạo mã khách hàng nếu để trống (KH + STT)
@@ -75,10 +78,10 @@ public class CustomerService {
     }
 
     public List<Customer> getAllActiveCustomers() {
-        return customerRepository.findByActiveTrue();
+        return customerRepository.findByActiveTrueWithAssignedTo();
     }
 
     public List<Customer> getAllInactiveCustomers() {
-        return customerRepository.findByActiveFalse();
+        return customerRepository.findByActiveFalseWithAssignedTo();
     }
 }

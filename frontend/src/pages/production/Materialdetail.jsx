@@ -11,13 +11,10 @@ import materialService from "../../services/materialService.js";
 const EditForm = ({ initial, onSave, onClose, loading }) => {
     const [form, setForm] = useState({
         materialName:  initial.materialName || "",
-        sku:           initial.sku          || "",
         unit:          initial.unit         || "",
-        currentStock:  initial.currentStock ?? 0,
-        minStockLevel: initial.minStockLevel ?? 0,
-        price:         initial.price        ?? 0,
+        materialType:  initial.materialType || "",
+        standardSize:  initial.standardSize || "",
         description:   initial.description  || "",
-        active:        initial.active       ?? true,
     });
     const set = (f, v) => setForm((p) => ({ ...p, [f]: v }));
 
@@ -31,32 +28,22 @@ const EditForm = ({ initial, onSave, onClose, loading }) => {
                 <div className="md-modal__body">
                     <div className="md-form-row">
                         <div className="md-form-group">
-                            <label>SKU *</label>
-                            <input value={form.sku} onChange={(e) => set("sku", e.target.value)} />
-                        </div>
-                        <div className="md-form-group">
                             <label>Tên vật liệu *</label>
                             <input value={form.materialName} onChange={(e) => set("materialName", e.target.value)} />
                         </div>
-                    </div>
-                    <div className="md-form-row">
                         <div className="md-form-group">
                             <label>Đơn vị</label>
-                            <input value={form.unit || ""} onChange={(e) => set("unit", e.target.value)} placeholder="kg, cái, hộp..." />
-                        </div>
-                        <div className="md-form-group">
-                            <label>Nhà cung cấp</label>
-                            <input value={form.supplier || ""} onChange={(e) => set("supplier", e.target.value)} />
+                            <input value={form.unit || ""} onChange={(e) => set("unit", e.target.value)} placeholder="Kg, cái, hộp..." />
                         </div>
                     </div>
                     <div className="md-form-row">
                         <div className="md-form-group">
-                            <label>Tồn kho hiện tại</label>
-                            <input type="number" value={form.currentStock ?? 0} onChange={(e) => set("currentStock", Number(e.target.value))} />
+                            <label>Loại NVL</label>
+                            <input value={form.materialType || ""} onChange={(e) => set("materialType", e.target.value)} />
                         </div>
                         <div className="md-form-group">
-                            <label>Tồn kho tối thiểu</label>
-                            <input type="number" value={form.minStockLevel ?? 0} onChange={(e) => set("minStockLevel", Number(e.target.value))} />
+                            <label>Kích thước chuẩn</label>
+                            <input value={form.standardSize || ""} onChange={(e) => set("standardSize", e.target.value)} />
                         </div>
                     </div>
                     <div className="md-form-group">
@@ -69,7 +56,7 @@ const EditForm = ({ initial, onSave, onClose, loading }) => {
                     <button
                         className="btn btn--primary"
                         onClick={() => onSave(form)}
-                        disabled={loading || !form.materialName || !form.sku}
+                        disabled={loading || !form.materialName}
                     >
                         {loading ? "Đang lưu..." : "Lưu thay đổi"}
                     </button>
@@ -83,7 +70,9 @@ const EditForm = ({ initial, onSave, onClose, loading }) => {
 const ConfirmDelete = ({ name, onConfirm, onClose, loading }) => (
     <div className="md-overlay" onClick={onClose}>
         <div className="md-confirm" onClick={(e) => e.stopPropagation()}>
-            <div className="md-confirm__icon">🗑️</div>
+            <div className="md-confirm__icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </div>
             <h3>Xác nhận xóa</h3>
             <p>Bạn chắc chắn muốn xóa <strong>{name}</strong>?<br />Hành động này không thể hoàn tác.</p>
             <div className="md-confirm__actions">
@@ -171,12 +160,12 @@ export const MaterialDetail = ({ material: initialMaterial, onBack, onDeleted })
                 <div className="md-actions">
                     {canWrite && (
                         <button className="btn btn--primary" onClick={() => setShowEdit(true)} disabled={actionLoading}>
-                            ✏️ Cập nhật
+                            Cập nhật
                         </button>
                     )}
                     {canDelete && (
                         <button className="btn btn--danger-outline" onClick={() => setShowDelete(true)}>
-                            🗑️ Xóa
+                            Xóa
                         </button>
                     )}
                 </div>
@@ -200,41 +189,21 @@ export const MaterialDetail = ({ material: initialMaterial, onBack, onDeleted })
             {/* Content grid */}
             <div className="md-grid">
 
-                {/* Stock card */}
-                <div className="md-card md-card--stock">
-                    <div className="md-card__title">📦 Tồn kho</div>
-                    <div className="md-stock-number">
-                        {material.currentStock ?? 0}
-                        <span className="md-stock-unit"> {material.unit}</span>
-                    </div>
-                    <div className="md-stock-bar-wrap">
-                        <div className="md-stock-bar">
-                            <div
-                                className={`md-stock-bar__fill${material.lowStock ? " md-stock-bar__fill--low" : ""}`}
-                                style={{ width: `${stockPercent}%` }}
-                            />
-                        </div>
-                        <span className="md-stock-bar-label">
-              Tối thiểu: {material.minStockLevel ?? 0} {material.unit}
-            </span>
-                    </div>
-                </div>
-
                 {/* Info card */}
                 <div className="md-card md-card--info">
-                    <div className="md-card__title">📋 Thông tin chi tiết</div>
+                    <div className="md-card__title">Thông tin chi tiết</div>
                     <div className="md-info-list">
                         <InfoRow label="SKU"               value={material.sku} highlight />
                         <InfoRow label="Tên vật liệu"      value={material.materialName} />
                         <InfoRow label="Đơn vị tính"       value={material.unit} />
-                        <InfoRow label="Tồn kho hiện tại"  value={`${material.currentStock ?? 0} ${material.unit ?? ""}`} />
-                        <InfoRow label="Tồn kho tối thiểu" value={`${material.minStockLevel ?? 0} ${material.unit ?? ""}`} />
+                        <InfoRow label="Loại NVL"          value={material.materialType} />
+                        <InfoRow label="Kích thước chuẩn"  value={material.standardSize} />
                     </div>
                 </div>
 
                 {/* Description card */}
                 <div className="md-card md-card--desc">
-                    <div className="md-card__title">📝 Mô tả</div>
+                    <div className="md-card__title">Mô tả</div>
                     <p className="md-desc-text">
                         {material.description || "Chưa có mô tả cho vật liệu này."}
                     </p>

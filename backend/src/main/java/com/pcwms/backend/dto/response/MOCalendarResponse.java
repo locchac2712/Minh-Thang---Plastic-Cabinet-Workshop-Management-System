@@ -30,6 +30,6 @@ public class MOCalendarResponse {
         this.quantity = mo.getQuantity();
         this.startDate = mo.getStartDate();
         this.endDate = mo.getEndDate();
-        this.status = mo.getStatus();
+        this.status = mo.getWipStatus();
     }
 }

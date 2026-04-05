@@ -1,0 +1,614 @@
+2.1.x.x Material List
+a. UI Specifications
+Material List Screen
+
+Brief Description
+This screen displays the list of material records in the system. It allows the authorized actor to view, search, filter, and navigate to material details or the material form for creating or updating material information. This screen supports master data management for raw materials used in product BOM and production planning.
+
+Mockup Screen
+[Insert mockup of Material List Screen here]
+
+UI Components / Field Description / Requirements
+
+No.	Component / Field	Type	Description	Requirements / Notes
+1	Page Title	Label	Display screen name: Material List	Fixed text
+2	Breadcrumb	Label	Show navigation path, e.g. Home > Material Management > Material List	Optional
+3	Search Bar	Textbox	Allows user to enter keyword to search materials by code or name	Accept partial match
+4	Status Filter	Dropdown	Filter materials by status	Values: All, Active, Inactive
+5	Material Type Filter	Dropdown	Filter materials by material category/type	Optional depending on scope
+6	Search Button	Button	Execute search/filter action	Refresh result grid
+7	Reset Button	Button	Clear search/filter criteria	Return default list
+8	Add New Button	Button	Navigate to Material Form Screen for creating new material	Visible only to actor with permission
+9	Material Table	Data Grid	Display material list	Supports paging
+10	Material Code	Column	Unique code of material	Clickable to open detail
+11	Material Name	Column	Name of material	Required display
+12	Unit	Column	Unit of measure of material	Example: sheet, kg, meter
+13	Standard Size	Column	Standard dimension/specification of material	Optional if applicable
+14	Status	Column	Current status of material	Active / Inactive
+15	Updated At	Column	Last updated date/time	Format dd/MM/yyyy HH:mm
+16	View Detail Action	Icon/Button	Open Material Detail Screen	One row one action
+17	Edit Action	Icon/Button	Open Material Form Screen in edit mode	Visible only to actor with permission
+18	Pagination	Control	Navigate between pages	Default page size configurable
+
+UI Requirements / Notes
+
+The screen shall display only materials that the actor is authorized to access.
+The material list shall be shown in descending order of latest updated record by default.
+The user may search by Material Code or Material Name.
+Clicking on Material Code or View Detail shall navigate to Material Detail Screen.
+Clicking Add New shall navigate to Material Form Screen in create mode.
+Clicking Edit shall navigate to Material Form Screen in update mode.
+If no data matches the search criteria, the system shall display an empty state with message: with "No material found."
+Inactive materials may still appear in the list for traceability, depending on filter condition.
+This screen is a list/navigation screen, not a CRUD use case by itself; it may cover multiple use cases such as viewing, searching, and navigating to material detail/form.
+b. UC Specifications
+UC-MAT-01_View Material List
+
+ID and Name
+UC-MAT-01 – View Material List
+
+Primary Actor:
+Authorized User
+
+Secondary Actor:
+Production Manager, Administrator
+
+Description:
+As an authorized user, I want to view the list of materials so that I can monitor and access material master data used in BOM and production activities.
+
+Preconditions:
+
+The actor has logged into the system successfully.
+The actor has permission to access material management.
+
+Postconditions:
+
+The material list is displayed on screen.
+The actor can continue to search, filter, or open material detail/form.
+
+Normal Flow:
+
+The actor selects Material Management from the navigation menu.
+The system opens Material List Screen.
+The system retrieves material records from the database.
+The system displays the material list with default paging and sorting.
+The actor views the displayed material information.
+
+Alternative Flows:
+
+A1. No material data exists
+
+In step 3, the system does not find any material record.
+The system displays an empty list with "No material found."
+
+Exception:
+
+E1. Actor has no permission
+
+In step 1, the actor attempts to access the screen without permission.
+The system denies access and displays with "You do not have permission to access this function."
+
+Business Rule:
+
+BR-01: Only authorized users can access Material List Screen.
+BR-02: Material code must be unique in the system.
+BR-03: Inactive materials may still be displayed for historical reference.
+UC-MAT-02_Search Material
+
+ID and Name
+UC-MAT-02 – Search Material
+
+Primary Actor:
+Authorized User
+
+Secondary Actor:
+Production Manager, Administrator
+
+Description:
+As an authorized user, I want to search and filter materials so that I can quickly find the required material record.
+
+Preconditions:
+
+The actor is on Material List Screen.
+The system has loaded the search controls.
+
+Postconditions:
+
+The filtered material list is displayed based on the entered search criteria.
+
+Normal Flow:
+
+The actor enters keyword into the Search Bar and/or selects filter criteria such as Status or Material Type.
+The actor clicks the Search button.
+The system validates the input criteria.
+The system searches material records matching the criteria.
+The system refreshes the material table with matching records.
+The actor views the search result.
+
+Alternative Flows:
+
+A1. Actor resets the criteria
+
+The actor clicks the Reset button.
+The system clears all entered search/filter criteria.
+The system reloads the default material list.
+
+A2. No matching result found
+
+In step 4, the system finds no matching record.
+The system displays an empty list with "No material found."
+
+Exception:
+
+E1. Invalid input format
+
+In step 3, the system detects invalid search input.
+The system highlights the invalid field and displays with "Invalid search criteria."
+
+Business Rule:
+
+BR-04: Search keyword shall support partial matching on material code and material name.
+BR-05: Search result shall only include records that match all selected filters.
+UC-MAT-03_Open Material Detail
+
+ID and Name
+UC-MAT-03 – Open Material Detail
+
+Primary Actor:
+Authorized User
+
+Secondary Actor:
+Production Manager, Administrator
+
+Description:
+As an authorized user, I want to open a material detail screen from the material list so that I can review full material information.
+
+Preconditions:
+
+The actor is on Material List Screen.
+At least one material record is displayed.
+
+Postconditions:
+
+The selected material’s detail is displayed on Material Detail Screen.
+
+Normal Flow:
+
+The actor locates a material record in the list.
+The actor clicks on Material Code or View Detail action of the selected record.
+The system opens Material Detail Screen for the selected material.
+The system displays detailed information of that material.
+
+Alternative Flows:
+
+A1. Material record no longer exists
+
+In step 3, the system cannot find the selected material record.
+The system stays on Material List Screen and displays with "The selected material does not exist."
+
+Exception:
+
+E1. Actor has no permission to view detail
+
+In step 2, the actor attempts to open a material detail without permission.
+The system denies access and displays with "You do not have permission to access this function."
+
+Business Rule:
+
+BR-06: Only existing material records can be opened.
+BR-07: Material detail access shall follow role-based authorization.
+UC-MAT-04_Open Material Form
+
+ID and Name
+UC-MAT-04 – Open Material Form
+
+Primary Actor:
+Authorized User
+
+Secondary Actor:
+Administrator
+
+Description:
+As an authorized user, I want to navigate from the material list to the material form so that I can create a new material or edit an existing material.
+
+Preconditions:
+
+The actor is on Material List Screen.
+The actor has create or update permission.
+
+Postconditions:
+
+Material Form Screen is opened in create mode or update mode.
+
+Normal Flow:
+
+The actor clicks Add New to create a new material, or clicks Edit on an existing material row.
+The system checks the actor’s permission.
+The system opens Material Form Screen.
+If the actor selected Add New, the form is displayed in create mode.
+If the actor selected Edit, the system loads the selected material data and displays the form in update mode.
+
+Alternative Flows:
+
+A1. Selected material is inactive but still editable by authorized actor
+
+The actor clicks Edit on an inactive material.
+The system allows opening the form if the actor has sufficient permission.
+The form is displayed in update mode.
+
+Exception:
+
+E1. Actor has no create/update permission
+
+In step 2, the system determines that the actor does not have proper permission.
+The system does not open the form and displays with "You do not have permission to perform this action."
+
+E2. Selected material no longer exists
+
+In step 5, the system cannot load the selected material data.
+The system remains on Material List Screen and displays with "The selected material does not exist."
+
+Business Rule:
+
+BR-08: Only users with create permission can access create mode.
+BR-09: Only users with update permission can access update mode.
+BR-10: Material Form Screen shall reuse one UI for both create and update actions.
+2.1.x.x Material Detail Modal Pop-up
+a. UI Specifications
+Material Detail Modal
+
+Brief Description
+This modal displays detailed information of a selected material from the Material List Screen. It allows the authorized actor to view full material specifications and optionally perform actions such as edit, activate, or deactivate the material. The modal is opened as an overlay without navigating away from the current screen.
+
+Mockup Screen
+[Insert mockup of Material Detail Modal Pop-up here]
+
+UI Components / Field Description / Requirements
+No.	Component / Field	Type	Description	Requirements / Notes
+1	Modal Title	Label	Display: Material Detail	Fixed text
+2	Close Button (X)	Icon Button	Close modal	Always visible
+3	Material Code	Text	Unique identifier of material	Read-only
+4	Material Name	Text	Name of material	Read-only
+5	Material Type	Text	Category/type of material	Optional
+6	Unit	Text	Unit of measure	Example: sheet, kg
+7	Standard Size	Text	Dimension/specification	Optional
+8	Description	Text Area	Additional notes	Optional
+9	Status	Badge	Show Active / Inactive	Color-coded
+10	Created At	Text	Created date/time	Read-only
+11	Updated At	Text	Last updated date/time	Read-only
+12	Created By	Text	User who created material	Optional
+13	Updated By	Text	Last updated user	Optional
+14	Edit Button	Button	Open Material Form Screen in update mode	Visible with permission
+15	Activate Button	Button	Activate material	Visible when status = Inactive
+16	Deactivate Button	Button	Deactivate material	Visible when status = Active
+17	Close Button	Button	Close modal	Same as X button
+UI Requirements / Notes
+The modal shall appear as an overlay on top of Material List Screen.
+Background content shall be disabled while modal is open.
+The modal shall be centered and responsive.
+Only one modal instance can be opened at a time.
+Status shall be visually distinguishable:
+Active → green badge
+Inactive → grey/red badge
+Clicking outside modal or pressing ESC may close modal (optional).
+Edit / Activate / Deactivate buttons shall be displayed based on user permission.
+This modal is used for quick view, avoiding navigation to another screen.
+b. UC Specifications
+UC-MAT-05_View Material Detail (Modal)
+
+ID and Name
+UC-MAT-05 – View Material Detail (Modal)
+
+Primary Actor:
+Authorized User
+
+Secondary Actor:
+Production Manager, Administrator
+
+Description:
+As an authorized user, I want to view detailed information of a material in a modal so that I can quickly review its data without leaving the current screen.
+
+Preconditions:
+
+The actor is on Material List Screen
+At least one material record exists
+
+Postconditions:
+
+Material detail modal is displayed
+Actor can perform further actions or close modal
+
+Normal Flow:
+
+The actor clicks Material Code or View Detail icon on a material row.
+The system retrieves material data.
+The system opens Material Detail Modal Pop-up.
+The system displays full material information.
+The actor reviews the information.
+
+Alternative Flows:
+
+A1. Actor closes modal
+
+The actor clicks Close button (X) or Close button.
+The system closes the modal.
+The actor returns to Material List Screen.
+
+Exception:
+
+E1. Material not found
+
+In step 2, the system cannot find the material record.
+The system displays message with "The selected material does not exist."
+The modal is not opened.
+
+E2. System error while loading data
+
+In step 2, system error occurs.
+The system displays with "Unable to load material details."
+
+Business Rule:
+
+BR-01: Only authorized users can view material details.
+BR-02: Material information displayed must reflect the latest saved data.
+BR-03: Modal shall not allow editing directly; editing must be done via Material Form Screen.
+UC-MAT-06_Activate Material
+
+ID and Name
+UC-MAT-06 – Activate Material
+
+Primary Actor:
+Administrator
+
+Secondary Actor:
+None
+
+Description:
+As an administrator, I want to activate an inactive material so that it can be used in BOM and production.
+
+Preconditions:
+
+Material status = Inactive
+Actor has permission
+
+Postconditions:
+
+Material status is updated to Active
+
+Normal Flow:
+
+The actor clicks Activate Button.
+The system displays confirmation dialog with "Are you sure you want to activate this material?"
+The actor confirms.
+The system updates material status to Active.
+The system updates UI and displays with "Material activated successfully."
+
+Alternative Flows:
+
+A1. Actor cancels action
+
+At step 2, actor selects Cancel.
+The system closes dialog.
+
+Exception:
+
+E1. Material already active
+
+System detects status is already Active.
+Display with "Material is already active."
+
+Business Rule:
+
+BR-04: Only Active materials can be used in BOM and production planning
+UC-MAT-07_Deactivate Material
+
+ID and Name
+UC-MAT-07 – Deactivate Material
+
+Primary Actor:
+Administrator
+
+Secondary Actor:
+None
+
+Description:
+As an administrator, I want to deactivate a material so that it is no longer used in new BOM or production processes.
+
+Preconditions:
+
+Material status = Active
+Actor has permission
+
+Postconditions:
+
+Material status is updated to Inactive
+
+Normal Flow:
+
+The actor clicks Deactivate Button.
+The system displays confirmation dialog with "Are you sure you want to deactivate this material?"
+The actor confirms.
+The system updates status to Inactive.
+The system updates UI and displays with "Material deactivated successfully."
+
+Alternative Flows:
+
+A1. Actor cancels action
+
+At step 2, actor selects Cancel.
+The system closes dialog.
+
+Exception:
+
+E1. Material is being used in active BOM
+
+System detects dependency.
+System blocks action and displays with "Material cannot be deactivated because it is used in active BOM."
+
+Business Rule:
+
+BR-05: Material used in active BOM cannot be deactivated
+BR-06: Deactivated material must not be selectable in new transactions
+2.1.x.x Material Form Modal Pop-up
+a. UI Specifications
+Material Form Modal
+
+Brief Description
+This modal allows the authorized actor to create a new material or update an existing material. It is opened as an overlay from Material List Screen or Material Detail Modal without navigating away from the current screen.
+
+Mockup Screen
+[Insert mockup of Material Form Modal Pop-up here]
+
+UI Components / Field Description / Requirements
+No.	Component / Field	Type	Description	Requirements / Notes
+1	Modal Title	Label	Display: Create Material / Update Material	Dynamic based on mode
+2	Close Button (X)	Icon Button	Close modal	Always visible
+3	Material Code	Textbox	Unique identifier of material	Required, unique, read-only in update mode
+4	Material Name	Textbox	Name of material	Required
+5	Material Type	Dropdown	Category/type of material	Optional
+6	Unit	Dropdown	Unit of measure	Required
+7	Standard Size	Textbox	Dimension/specification	Optional
+8	Description	Text Area	Additional notes	Optional
+9	Status	Dropdown / Toggle	Active / Inactive	Default = Active (create mode)
+10	Save Button	Button	Save material information	Validate before submit
+11	Cancel Button	Button	Close modal without saving	Return to previous screen
+UI Requirements / Notes
+The modal shall support 2 modes:
+Create mode → all fields editable
+Update mode → Material Code is read-only
+Required fields:
+Material Code
+Material Name
+Unit
+The system shall validate input before saving.
+Validation errors shall be displayed inline below fields.
+Duplicate Material Code is not allowed.
+Clicking Save shall trigger create/update logic.
+Clicking Cancel or X shall close modal without saving.
+After successful save:
+Modal closes
+Material List Screen is refreshed
+This modal is reused for both create and update → 1 UI – multiple UC
+b. UC Specifications
+UC-MAT-08_Create Material
+
+ID and Name
+UC-MAT-08 – Create Material
+
+Primary Actor:
+Administrator
+
+Secondary Actor:
+None
+
+Description:
+As an administrator, I want to create a new material so that it can be used in BOM and production.
+
+Preconditions:
+
+Actor is on Material List Screen
+Actor has create permission
+
+Postconditions:
+
+New material is created and stored in the system
+Material appears in Material List
+
+Normal Flow:
+
+The actor clicks Add New button.
+The system opens Material Form Modal in create mode.
+The actor inputs material information.
+The actor clicks Save.
+The system validates input data.
+The system saves new material.
+The system closes modal and refreshes Material List.
+The system displays with "Material created successfully."
+
+Alternative Flows:
+
+A1. Actor cancels creation
+
+The actor clicks Cancel or X.
+The system closes modal.
+
+Exception:
+
+E1. Missing required fields
+
+In step 5, required fields are empty.
+The system highlights fields and displays with "Please fill in all required fields."
+
+E2. Duplicate material code
+
+In step 5, system detects duplicate code.
+The system displays with "Material code already exists."
+
+E3. Invalid format input
+
+The system detects invalid data format.
+The system displays with "Invalid input data."
+
+Business Rule:
+
+BR-01: Material Code must be unique
+BR-02: Required fields must be filled
+BR-03: Default status = Active when creating
+UC-MAT-09_Update Material
+
+ID and Name
+UC-MAT-09 – Update Material
+
+Primary Actor:
+Administrator
+
+Secondary Actor:
+None
+
+Description:
+As an administrator, I want to update material information so that the system reflects accurate and up-to-date data.
+
+Preconditions:
+
+Material exists
+Actor has update permission
+
+Postconditions:
+
+Material information is updated successfully
+
+Normal Flow:
+
+The actor clicks Edit from Material List or Detail.
+The system opens Material Form Modal in update mode.
+The system loads existing material data.
+The actor updates information.
+The actor clicks Save.
+The system validates data.
+The system updates material record.
+The system closes modal and refreshes list.
+The system displays with "Material updated successfully."
+
+Alternative Flows:
+
+A1. Actor cancels update
+
+The actor clicks Cancel.
+The system closes modal.
+
+Exception:
+
+E1. Material not found
+
+In step 3, material no longer exists.
+The system displays with "Material does not exist."
+
+E2. Validation failed
+
+In step 6, invalid input detected.
+The system displays appropriate error message.
+
+Business Rule:
+
+BR-04: Material Code cannot be changed after creation
+BR-05: Updated data must be valid and consistent

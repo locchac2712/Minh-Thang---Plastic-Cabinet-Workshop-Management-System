@@ -44,6 +44,12 @@ public class Material {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "material_type")
+    private String materialType; // Loại NVL: Nhựa tấm, Phụ kiện, Ốc vít
+
+    @Column(name = "standard_size")
+    private String standardSize; // Kích thước chuẩn
+
     @Column(name = "is_active")
     private Boolean isActive = true; // Trạng thái sử dụng (Đổi active thành isActive cho chuẩn Java Bean)
 

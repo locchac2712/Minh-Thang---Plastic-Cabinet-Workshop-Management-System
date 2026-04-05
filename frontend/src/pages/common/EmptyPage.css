@@ -1,0 +1,29 @@
+.empty-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  text-align: center;
+  gap: 14px;
+}
+
+.empty-page-icon {
+  font-size: 52px;
+  line-height: 1;
+  opacity: 0.4;
+}
+
+.empty-page-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.empty-page-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  max-width: 320px;
+  line-height: 1.6;
+}

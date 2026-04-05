@@ -23,7 +23,7 @@ public class QuotationDetail {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quotation_id", nullable = false)
-    @JsonIgnore // 👉 GẮN CÁI KHIÊN NÀY VÀO ĐÂY LÀ CHẶN ĐỨNG VÒNG LẶP!
+    @JsonIgnore 
     private Quotation quotation;
 
     @ManyToOne(fetch = FetchType.LAZY)

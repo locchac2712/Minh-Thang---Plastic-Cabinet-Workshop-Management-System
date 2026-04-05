@@ -7,11 +7,11 @@ const BASE = "/quotations";
 // QuotationDetailResponse: { id, quotationNumber, customer{}, staff{}, totalAmount, status, note, createdDate, validUntil, details[] }
 
 const STATUS_LABEL = {
-    DRAFT:    { text: "Nháp (Draft)",      cls: "sq-badge--draft"    },
-    SENT:     { text: "Đã gửi (Sent)",     cls: "sq-badge--sent"     },
-    ACCEPTED: { text: "Đã chốt (Accepted)",cls: "sq-badge--accepted" },
-    REJECTED: { text: "Đã hủy (Rejected)", cls: "sq-badge--rejected" },
-    EXPIRED:  { text: "Hết hạn (Expired)", cls: "sq-badge--expired"  },
+    DRAFT:    { text: "Bản nháp", color: "#64748b" },
+    WAITING_APPROVAL: { text: "Chờ duyệt", color: "#f59e0b" },
+    APPROVED: { text: "Đã duyệt", color: "#10b981" },
+    REJECTED: { text: "Từ chối duyệt", color: "#ef4444" },
+    EXPIRED:  { text: "Hết hạn", color: "#4b5563" },
 };
 
 export const getQuoteStatus = (status) =>
@@ -34,9 +34,9 @@ const quotationService = {
     update: (id, payload) =>
         api.put(`${BASE}/${id}/update`, payload).then((res) => res.data?.data ?? res.data),
 
-    // POST /quotations/{id}/status?status=SENT
-    updateStatus: (id, status) =>
-        api.post(`${BASE}/${id}/status`, null, { params: { status } }).then((res) => res.data?.data ?? res.data),
+    // PUT /quotations/{id}/status?status=SENT&reason=...
+    updateStatus: (id, status, reason) =>
+        api.put(`${BASE}/${id}/status`, null, { params: { status, reason } }).then((res) => res.data?.data ?? res.data),
 };
 
 export default quotationService;

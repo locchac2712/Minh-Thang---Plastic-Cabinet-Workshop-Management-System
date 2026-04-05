@@ -16,6 +16,9 @@ public class CustomerController {
     @Autowired
     private CustomerService customerService;
 
+    @Autowired
+    private com.pcwms.backend.repository.PaymentRepository paymentRepository;
+
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ResponseObject> getAllCustomer(@RequestParam(required = false) Boolean active) {
@@ -38,6 +41,15 @@ public class CustomerController {
         return ResponseEntity.ok(
                 new ResponseObject("SUCCESS", "Lấy thông tin khách hàng thành công",
                         customerService.getCustomerById(id))
+        );
+    }
+
+    @GetMapping("/{id}/payments")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ResponseObject> getCustomerPayments(@PathVariable Long id) {
+        return ResponseEntity.ok(
+                new ResponseObject("SUCCESS", "Lấy lịch sử giao dịch thành công",
+                        paymentRepository.findByCustomerIdOrderByTransactionDateDesc(id))
         );
     }
 

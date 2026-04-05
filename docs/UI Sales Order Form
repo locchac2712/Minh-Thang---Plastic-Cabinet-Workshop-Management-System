@@ -1,0 +1,115 @@
+# 2.1.4.x Màn hình Tạo đơn hàng (Sales Order Form)
+
+## a. Đặc tả Giao diện (UI Specifications)
+
+**Mô tả tóm tắt:**
+Màn hình này cho phép Nhân viên kinh doanh tạo mới một đơn hàng bán trong hệ thống. Màn hình hỗ trợ nhập thông tin khách hàng, thông tin giao hàng, điều khoản thanh toán, danh sách sản phẩm, và tự động tính tổng giá trị đơn hàng trước khi lưu. Hệ thống cũng hỗ trợ kiểm tra điều kiện tín dụng để xác định đơn hàng có cần phê duyệt hay không.
+
+**Mockup Screen:**
+[Chèn mockup Màn hình Tạo đơn hàng tại đây]
+
+## UI Components / Field Description
+
+| #  | Tên trường / Thành phần         | Mô tả                                                                                                                                          |
+| -- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1  | Tiêu đề màn hình                | Hiển thị tên màn hình “Tạo đơn hàng”.                                                                                                          |
+| 2  | Mã đơn hàng                     | Hiển thị mã đơn hàng do hệ thống tự sinh sau khi lưu hoặc hiển thị dạng tạm nếu thiết kế hỗ trợ.                                               |
+| 3  | Khách hàng                      | Dropdown cho phép chọn khách hàng đã có trong hệ thống.                                                                                        |
+| 4  | Số điện thoại khách hàng        | Tự động hiển thị theo khách hàng đã chọn, có thể cho phép chỉnh nếu nghiệp vụ hỗ trợ.                                                          |
+| 5  | Địa chỉ giao hàng               | Trường nhập hoặc hiển thị địa chỉ giao hàng của khách hàng.                                                                                    |
+| 6  | Ngày đặt hàng                   | Mặc định là ngày hiện tại, có thể chỉ đọc hoặc cho phép chỉnh theo quyền.                                                                      |
+| 7  | Ngày giao dự kiến               | Trường chọn ngày giao hàng dự kiến cho đơn hàng.                                                                                               |
+| 8  | Điều khoản thanh toán           | Dropdown cho phép chọn điều khoản thanh toán như Thanh toán ngay, Đặt cọc trước, Thanh toán sau giao hàng, hoặc điều khoản khác theo cấu hình. |
+| 9  | Phương thức thanh toán dự kiến  | Dropdown chọn phương thức thanh toán như Tiền mặt, Chuyển khoản, hoặc phương thức khác.                                                        |
+| 10 | Tỷ lệ / số tiền đặt cọc yêu cầu | Trường nhập tỷ lệ phần trăm hoặc số tiền đặt cọc nếu điều khoản thanh toán yêu cầu đặt cọc.                                                    |
+| 11 | Hạn thanh toán                  | Trường chọn ngày hoặc số ngày thanh toán kể từ ngày giao / ngày tạo đơn, tùy thiết kế hệ thống.                                                |
+| 12 | Ghi chú đơn hàng                | Trường nhập ghi chú bổ sung cho đơn hàng.                                                                                                      |
+| 13 | Ghi chú giao hàng               | Trường nhập yêu cầu riêng liên quan đến giao hàng.                                                                                             |
+| 14 | Trạng thái phê duyệt            | Hiển thị trạng thái kiểm tra tín dụng, ví dụ: Không cần phê duyệt / Chờ phê duyệt.                                                             |
+| 15 | Thông tin công nợ khách hàng    | Khu vực hiển thị công nợ hiện tại, hạn mức tín dụng, và cảnh báo nếu vượt ngưỡng.                                                              |
+| 16 | Bảng sản phẩm                   | Khu vực hiển thị danh sách các dòng sản phẩm của đơn hàng.                                                                                     |
+| 17 | Sản phẩm                        | Dropdown chọn sản phẩm cho từng dòng.                                                                                                          |
+| 18 | Đơn vị tính                     | Hiển thị đơn vị tính của sản phẩm.                                                                                                             |
+| 19 | Số lượng                        | Trường nhập số lượng đặt mua của từng sản phẩm.                                                                                                |
+| 20 | Đơn giá                         | Trường nhập đơn giá bán của từng sản phẩm.                                                                                                     |
+| 21 | Chiết khấu dòng                 | Trường nhập mức chiết khấu của từng dòng nếu hệ thống hỗ trợ.                                                                                  |
+| 22 | Thành tiền dòng                 | Tự động tính thành tiền của từng dòng sau chiết khấu.                                                                                          |
+| 23 | Ghi chú dòng sản phẩm           | Trường nhập ghi chú riêng cho từng dòng sản phẩm nếu cần.                                                                                      |
+| 24 | Nút Thêm dòng                   | Thêm một dòng sản phẩm mới vào bảng sản phẩm.                                                                                                  |
+| 25 | Nút Xóa dòng                    | Xóa dòng sản phẩm tương ứng khỏi bảng sản phẩm.                                                                                                |
+| 26 | Tạm tính                        | Hiển thị tổng tiền trước chiết khấu/tổng hợp khác.                                                                                             |
+| 27 | Tổng chiết khấu                 | Hiển thị tổng giá trị chiết khấu của đơn hàng.                                                                                                 |
+| 28 | Tổng tiền đơn hàng              | Hiển thị tổng giá trị cuối cùng của đơn hàng.                                                                                                  |
+| 29 | Số tiền cần đặt cọc             | Hệ thống tự tính theo điều khoản thanh toán hoặc cho phép nhập theo cấu hình.                                                                  |
+| 30 | Nút Lưu nháp                    | Lưu đơn hàng ở trạng thái nháp nếu hệ thống có hỗ trợ.                                                                                         |
+| 31 | Nút Tạo đơn hàng                | Lưu đơn hàng mới vào hệ thống.                                                                                                                 |
+| 32 | Nút Hủy                         | Hủy thao tác tạo đơn và quay về màn hình trước đó.                                                                                             |
+| 33 | Nút Quay lại                    | Quay về màn hình Danh sách đơn hàng mà không lưu dữ liệu.                                                                                      |
+
+## UI Requirements / Notes
+
+| #  | Requirements                                                                                                                         |
+| -- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 1  | Màn hình chỉ cho phép truy cập đối với actor có quyền tạo đơn hàng.                                                                  |
+| 2  | Trường Khách hàng là bắt buộc.                                                                                                       |
+| 3  | Đơn hàng phải có ít nhất một dòng sản phẩm hợp lệ trước khi được tạo.                                                                |
+| 4  | Số lượng phải là số nguyên lớn hơn hoặc bằng 1.                                                                                      |
+| 5  | Đơn giá phải lớn hơn 0.                                                                                                              |
+| 6  | Nếu có Chiết khấu dòng thì giá trị chiết khấu không được vượt quá giá trị dòng hàng.                                                 |
+| 7  | Thành tiền dòng, Tạm tính, Tổng chiết khấu, Tổng tiền đơn hàng phải được hệ thống tự động tính lại khi người dùng thay đổi dữ liệu.  |
+| 8  | Điều khoản thanh toán là trường bắt buộc nếu hệ thống quản lý công nợ và đặt cọc.                                                    |
+| 9  | Nếu người dùng chọn điều khoản thanh toán có đặt cọc, hệ thống phải hiển thị và yêu cầu nhập trường Tỷ lệ / số tiền đặt cọc yêu cầu. |
+| 10 | Hệ thống phải hiển thị cảnh báo công nợ khi khách hàng đang vượt hạn mức tín dụng hoặc có nợ quá hạn.                                |
+| 11 | Trạng thái phê duyệt phải được xác định tự động theo kết quả kiểm tra tín dụng.                                                      |
+| 12 | Sau khi tạo, trạng thái đơn hàng ban đầu có thể là `PENDING`, `PENDING_APPROVAL`, hoặc trạng thái khác theo cấu hình nghiệp vụ.      |
+| 13 | Các trường thông tin khách hàng như số điện thoại, địa chỉ có thể được tự động điền từ hồ sơ khách hàng để giảm thao tác nhập liệu.  |
+
+---
+
+Nếu muốn viết “đúng chất đặc tả” hơn nữa, bạn nên chia bố cục UI của màn hình này thành 4 vùng:
+
+* **Thông tin chung đơn hàng**
+* **Thông tin thanh toán**
+* **Danh sách sản phẩm**
+* **Tóm tắt đơn hàng**
+
+Ví dụ:
+
+## Suggested UI Layout Sections
+
+### 1. Order Information Section
+
+* Khách hàng
+* Số điện thoại
+* Địa chỉ giao hàng
+* Ngày đặt hàng
+* Ngày giao dự kiến
+* Ghi chú đơn hàng
+
+### 2. Payment Information Section
+
+* Điều khoản thanh toán
+* Phương thức thanh toán dự kiến
+* Tỷ lệ / số tiền đặt cọc yêu cầu
+* Hạn thanh toán
+* Trạng thái phê duyệt
+* Thông tin công nợ khách hàng
+
+### 3. Product Lines Section
+
+* Bảng sản phẩm
+* Sản phẩm
+* Đơn vị tính
+* Số lượng
+* Đơn giá
+* Chiết khấu
+* Thành tiền
+* Ghi chú dòng
+
+### 4. Order Summary Section
+
+* Tạm tính
+* Tổng chiết khấu
+* Tổng tiền đơn hàng
+* Số tiền cần đặt cọc
+

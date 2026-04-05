@@ -17,8 +17,11 @@ public class QuotationDetailResponse {
     private CustomerDto customer;
     private StaffDto staff;
     private BigDecimal totalAmount;
+    private BigDecimal discountPercent;
     private String status;
     private String note;
+    private String rejectionReason;
+    private String approvalNote;
     private LocalDateTime createdDate;
     private LocalDateTime validUntil;
     private List<ItemDto> details;
@@ -28,8 +31,11 @@ public class QuotationDetailResponse {
         this.id = q.getId();
         this.quotationNumber = q.getQuotationNumber();
         this.totalAmount = q.getTotalAmount();
+        this.discountPercent = q.getDiscountPercent();
         this.status = q.getStatus();
         this.note = q.getNote();
+        this.rejectionReason = q.getRejectionReason();
+        this.approvalNote = q.getApprovalNote();
         this.createdDate = q.getCreatedDate();
         this.validUntil = q.getValidUntil();
 
@@ -37,10 +43,16 @@ public class QuotationDetailResponse {
         this.customer = new CustomerDto(q.getCustomer().getId(), q.getCustomer().getName(), q.getCustomer().getEmail(), q.getCustomer().getPhoneNumber(), q.getCustomer().getAddress());
 
         // Lọc thông tin Sales (Cực sạch, không dính dáng đến User/Password)
-        this.staff = new StaffDto(q.getStaff().getId(), q.getStaff().getFullname(), q.getStaff().getEmployeeId());
+        this.staff = new StaffDto(q.getStaff().getId(), q.getStaff().getFullName(), q.getStaff().getEmployeeId());
 
         // Lọc mảng Sản phẩm chi tiết
-        this.details = q.getDetails().stream().map(d -> new ItemDto(
+        this.details = q.getDetails().stream().map(d -> {
+            Double p = 0.0;
+            BigDecimal sub = d.getUnitPrice().multiply(new BigDecimal(d.getQuantity()));
+            if (sub.compareTo(BigDecimal.ZERO) > 0 && d.getDiscount() != null) {
+                p = d.getDiscount().divide(sub, 4, java.math.RoundingMode.HALF_UP).multiply(new BigDecimal(100)).doubleValue();
+            }
+            return new ItemDto(
                 d.getId(),
                 d.getProduct().getId(),
                 d.getProduct().getName(),
@@ -48,30 +60,32 @@ public class QuotationDetailResponse {
                 d.getQuantity(),
                 d.getUnitPrice(),
                 d.getDiscount(),
+                p,
                 d.getTotalLineAmount()
-        )).collect(Collectors.toList());
+            );
+        }).collect(Collectors.toList());
     }
 
     // ================= CLASS NỘI BỘ (Để nhét dữ liệu gọn gàng) =================
     @Getter @Setter
     public static class CustomerDto {
-        private Long id; private String name; private String email; private String phone; private String address;
-        public CustomerDto(Long id, String name, String email, String phone, String address) { this.id = id; this.name = name; this.email = email; this.phone = phone; this.address = address; }
+        private Long id; private String name; private String email; private String phoneNumber; private String address;
+        public CustomerDto(Long id, String name, String email, String phoneNumber, String address) { this.id = id; this.name = name; this.email = email; this.phoneNumber = phoneNumber; this.address = address; }
     }
 
     @Getter @Setter
     public static class StaffDto {
-        private Long id; private String fullname; private String employeeId;
-        public StaffDto(Long id, String fullname, String employeeId) { this.id = id; this.fullname = fullname; this.employeeId = employeeId; }
+        private Long id; private String fullName; private String employeeId;
+        public StaffDto(Long id, String fullName, String employeeId) { this.id = id; this.fullName = fullName; this.employeeId = employeeId; }
     }
 
     @Getter @Setter
     public static class ItemDto {
         private Long id; private Long productId; private String productName; private String productSku;
-        private Integer quantity; private BigDecimal unitPrice; private BigDecimal discount; private BigDecimal totalLineAmount;
-        public ItemDto(Long id, Long productId, String productName, String productSku, Integer quantity, BigDecimal unitPrice, BigDecimal discount, BigDecimal totalLineAmount) {
+        private Integer quantity; private BigDecimal unitPrice; private BigDecimal discount; private Double discountPercent; private BigDecimal totalLineAmount;
+        public ItemDto(Long id, Long productId, String productName, String productSku, Integer quantity, BigDecimal unitPrice, BigDecimal discount, Double discountPercent, BigDecimal totalLineAmount) {
             this.id = id; this.productId = productId; this.productName = productName; this.productSku = productSku;
-            this.quantity = quantity; this.unitPrice = unitPrice; this.discount = discount; this.totalLineAmount = totalLineAmount;
+            this.quantity = quantity; this.unitPrice = unitPrice; this.discount = discount; this.discountPercent = discountPercent; this.totalLineAmount = totalLineAmount;
         }
     }
 }

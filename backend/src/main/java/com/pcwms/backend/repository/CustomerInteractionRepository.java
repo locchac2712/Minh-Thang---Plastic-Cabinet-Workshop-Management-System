@@ -16,4 +16,7 @@ public interface CustomerInteractionRepository extends JpaRepository<CustomerInt
     
     // Tìm các nhắc hẹn đến hạn
     List<CustomerInteraction> findByReminderDateBeforeAndIsResolvedFalse(LocalDateTime now);
+
+    // Lấy 10 tương tác gần đây nhất cho dashboard
+    List<CustomerInteraction> findTop10ByOrderByInteractionDateDesc();
 }

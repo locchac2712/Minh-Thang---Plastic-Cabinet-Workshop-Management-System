@@ -1,14 +1,18 @@
 package com.pcwms.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.List;
 
 @Entity
 @Table(name = "staff")
 @Data
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Staff {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,7 +25,8 @@ public class Staff {
     private User user;
 
     @Column(name= "fullname", nullable = false)
-    private String fullname;
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    private String fullName; // Đổi từ 'fullname' -> 'fullName' để đồng bộ CamelCase nhưng giữ nguyên mapping DB
 
     @Column(name= "department")
     private String department;
@@ -32,7 +37,14 @@ public class Staff {
     @Column(name= "phone_number")
     private String phoneNumber;
 
+    @Column(name = "gender")
+    private String gender;
+
+    @Column(name = "address")
+    private String address;
+
     @OneToMany(mappedBy = "staff")
+    @JsonIgnore
     private List<WarehouseTransaction> warehouseTransactions;
 
 

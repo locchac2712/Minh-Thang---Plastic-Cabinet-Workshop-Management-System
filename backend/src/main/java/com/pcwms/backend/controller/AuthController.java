@@ -20,6 +20,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -44,7 +47,6 @@ public class AuthController {
     @Autowired
     AuthService authService;
 
-    // API Đăng nhập
     @PostMapping("/login")
     public ResponseEntity<ResponseObject> authenticateUser(@RequestBody LoginRequest loginRequest) {
         try {
@@ -55,25 +57,26 @@ public class AuthController {
             // 2. Nếu thành công, set thông tin vào Security Context
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // 3. ĐẢO LÊN TRƯỚC: Lấy thông tin User (UserDetails) ra khỏi Authentication
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-
-            // 4. SỬA Ở ĐÂY: Truyền username (String) vào hàm thay vì truyền cục authentication
             String jwt = jwtUtils.generateJwtToken(userDetails.getUsername());
-
-            // 5. Lấy role (vì dự án của mình mỗi người 1 role nên lấy cái đầu tiên)
             String role = userDetails.getAuthorities().iterator().next().getAuthority();
 
-            // 6. Đóng gói dữ liệu trả về
             JwtResponse jwtResponse = new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), role);
 
             return ResponseEntity.ok(
-                    new ResponseObject("SUCCESS", "Đăng nhập thành công!", jwtResponse)
-            );
+                    new ResponseObject("SUCCESS", "Đăng nhập thành công!", jwtResponse));
+        } catch (DisabledException e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.", null));
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", "Tên đăng nhập hoặc mật khẩu không chính xác.", null));
+        } catch (AuthenticationException e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", "Lỗi xác thực: " + e.getMessage(), null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(
-                    new ResponseObject("ERROR", "Sai tên đăng nhập hoặc mật khẩu", null)
-            );
+                    new ResponseObject("ERROR", "Có lỗi xảy ra: " + e.getMessage(), null));
         }
     }
 
@@ -83,12 +86,10 @@ public class AuthController {
             String message = authService.forgotPassword(request.getEmail());
             // Trả về JSON chuẩn chỉ
             return ResponseEntity.ok(
-                    new ResponseObject("SUCCESS", message, null)
-            );
+                    new ResponseObject("SUCCESS", message, null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(
-                    new ResponseObject("ERROR", e.getMessage(), null)
-            );
+                    new ResponseObject("ERROR", e.getMessage(), null));
         }
     }
 
@@ -102,12 +103,34 @@ public class AuthController {
             authService.resetPassword(request.getOtp(), request.getNewPassword());
 
             return ResponseEntity.ok(
-                    new ResponseObject("SUCCESS", "Mật khẩu của bạn đã được thay đổi thành công!", null)
-            );
+                    new ResponseObject("SUCCESS", "Mật khẩu của bạn đã được thay đổi thành công!", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(
-                    new ResponseObject("ERROR", e.getMessage(), null)
-            );
+                    new ResponseObject("ERROR", e.getMessage(), null));
         }
+    }
+
+    // ==========================================
+    // API Lấy Thông Tin Người Dùng
+    // ==========================================
+    @GetMapping("/me")
+    public ResponseEntity<ResponseObject> getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getPrincipal().equals("anonymousUser")) {
+            return ResponseEntity.status(401)
+                    .body(new ResponseObject("ERROR", "Chưa đăng nhập hoặc phiên làm việc hết hạn", null));
+        }
+
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        String role = userDetails.getAuthorities().iterator().next().getAuthority();
+
+        java.util.Map<String, Object> data = new java.util.HashMap<>();
+        data.put("id", userDetails.getId());
+        data.put("username", userDetails.getUsername());
+        data.put("role", role);
+
+        return ResponseEntity.ok(
+                new ResponseObject("SUCCESS", "Lấy thông tin người dùng thành công", data));
     }
 }

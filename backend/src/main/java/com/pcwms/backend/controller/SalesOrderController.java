@@ -2,6 +2,7 @@ package com.pcwms.backend.controller;
 
 import com.pcwms.backend.dto.request.ApprovalRequest;
 import com.pcwms.backend.dto.request.PriorityRequest;
+import com.pcwms.backend.dto.request.SalesOrderRequest;
 import com.pcwms.backend.dto.response.PaymentHistoryResponse;
 import com.pcwms.backend.dto.response.ResponseObject;
 import com.pcwms.backend.dto.response.SalesOrderDetailResponse;
@@ -19,9 +20,12 @@ import org.springframework.data.domain.Sort;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import com.pcwms.backend.security.services.UserDetailsImpl;
 import org.springframework.web.bind.annotation.*;
 
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,6 +50,8 @@ public class SalesOrderController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String paymentStatus,
             @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdDate") String sortBy,
@@ -55,7 +61,7 @@ public class SalesOrderController {
             Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
             Pageable pageable = PageRequest.of(page, size, sort);
 
-            Page<SalesOrderListResponse> orders = salesOrderService.getAllSalesOrders(keyword, status, paymentStatus, customerId, pageable);
+            Page<SalesOrderListResponse> orders = salesOrderService.getAllSalesOrders(keyword, status, paymentStatus, customerId, startDate, endDate, pageable);
 
             return ResponseEntity.ok(
                     new ResponseObject("SUCCESS", "Lấy danh sách Đơn Hàng thành công!", orders)
@@ -83,6 +89,21 @@ public class SalesOrderController {
         }
     }
 
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
+    public ResponseEntity<ResponseObject> createSalesOrder(@RequestBody SalesOrderRequest request) {
+        try {
+            SalesOrder newOrder = salesOrderService.createSalesOrder(request);
+            return ResponseEntity.ok(
+                    new ResponseObject("SUCCESS", "Tạo Đơn hàng thành công!", new SalesOrderDetailResponse(newOrder))
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", e.getMessage(), null)
+            );
+        }
+    }
+
     @PostMapping("/from-quotation/{quotationId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> createOrderFromQuotation(@PathVariable Long quotationId) {
@@ -100,15 +121,16 @@ public class SalesOrderController {
         }
     }
 
-    //API Director Approval
     @PutMapping("/{id}/approval")
-    @PreAuthorize("hasRole('DIRECTOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('DIRECTOR')")
     public ResponseEntity<ResponseObject> approveOrRejectOrder(
             @PathVariable Long id,
-            @RequestBody ApprovalRequest request
+            @RequestBody ApprovalRequest request,
+            Authentication authentication
     ) {
         try {
-            Long directorId = 1L; // TODO: Lấy từ UserDetails (SecurityContext)
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+            Long directorId = userDetails.getId(); 
             SalesOrder updatedOrder = salesOrderService.processApproval(id, request, directorId);
             String msg = request.isApproved() ? "Đã PHÊ DUYỆT đơn hàng thành công!" : "Đã TỪ CHỐI đơn hàng!";
             return ResponseEntity.ok(
@@ -123,7 +145,7 @@ public class SalesOrderController {
 
     // API: LẤY LỊCH SỬ THANH TOÁN CỦA 1 ĐƠN HÀNG CỤ THỂ
     @GetMapping("/{id}/payments")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR', 'SALES_MANAGER', 'SALES_STAFF')") // Thêm role Kế toán vào đây nếu có
+    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR', 'SALES_MANAGER', 'SALES_STAFF', 'PRODUCTION_MANAGER')") // Thêm role Kế toán vào đây nếu có
     public ResponseEntity<ResponseObject> getOrderPaymentHistory(@PathVariable("id") Long orderId) {
         try {
             // 1. Kiểm tra xem đơn hàng có tồn tại không
@@ -214,6 +236,37 @@ public class SalesOrderController {
                     new ResponseObject(
                             "SUCCESS",
                             "Đã CHỐT ĐƠN và đổi mức độ ưu tiên thành: " + priorityText,
+                            new SalesOrderDetailResponse(order)
+                    )
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", e.getMessage(), null)
+            );
+        }
+    }
+
+    // API: Cập nhật riêng Ngày giao dự kiến
+    @PatchMapping("/{id}/due-date")
+    @PreAuthorize("hasAnyRole('SALES_STAFF', 'SALES_MANAGER', 'ADMIN', 'DIRECTOR')")
+    public ResponseEntity<ResponseObject> updateDueDate(
+            @PathVariable Long id,
+            @RequestBody PriorityRequest request
+    ) {
+        try {
+            SalesOrder order = salesOrderRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy Đơn hàng: " + id));
+
+            if (request.getDueDate() != null) {
+                order.setDueDate(request.getDueDate());
+            }
+
+            salesOrderRepository.save(order);
+
+            return ResponseEntity.ok(
+                    new ResponseObject(
+                            "SUCCESS",
+                            "Đã cập nhật Ngày giao dự kiến thành công!",
                             new SalesOrderDetailResponse(order)
                     )
             );

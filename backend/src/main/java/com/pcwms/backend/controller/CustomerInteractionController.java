@@ -43,4 +43,11 @@ public class CustomerInteractionController {
         interactionService.resolveReminder(id);
         return ResponseEntity.ok(new ResponseObject("SUCCESS", "Đã đánh dấu hoàn thành nhắc hẹn", null));
     }
+
+    @GetMapping("/notes/recent")
+    @PreAuthorize("hasRole('SALES_STAFF') or hasRole('SALES_MANAGER') or hasRole('DIRECTOR') or hasRole('ADMIN')")
+    public ResponseEntity<ResponseObject> getRecentNotes() {
+        return ResponseEntity.ok(new ResponseObject("SUCCESS", "Lấy ghi chú gần đây thành công", 
+                interactionService.getRecentNotes()));
+    }
 }

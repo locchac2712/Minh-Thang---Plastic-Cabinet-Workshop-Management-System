@@ -26,10 +26,10 @@ public class ManufactureOrderService {
     private final SalesOrderRepository salesOrderRepository;
     private final ProductRepository productRepository;
 
-
     // THUẬT TOÁN ĐÚC LỆNH SẢN XUẤT (FORWARD SCHEDULING & VALIDATION)
     @Transactional
-    public ManufactureOrder createManufactureOrder(Long salesOrderId, Long productId, Integer quantity, String technicalNotes, LocalDateTime requestedStartDate) {
+    public ManufactureOrder createManufactureOrder(Long salesOrderId, Long productId, Integer quantity,
+            String technicalNotes, LocalDateTime requestedStartDate) {
 
         SalesOrder salesOrder = salesOrderRepository.findById(salesOrderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Đơn hàng: " + salesOrderId));
@@ -48,8 +48,7 @@ public class ManufactureOrderService {
         if (product.getEstimatedProductionHours() == null) {
             throw new RuntimeException(String.format(
                     "Sản phẩm [%s] chưa được cài đặt 'Thời gian sản xuất dự kiến'. Vui lòng cập nhật thông tin sản phẩm trước!",
-                    product.getName()
-            ));
+                    product.getName()));
         }
 
         // 1. TÍNH TỔNG SỐ CA LÀM VIỆC CẦN THIẾT
@@ -60,7 +59,8 @@ public class ManufactureOrderService {
 
         // 2. THIẾT LẬP ĐIỂM XUẤT PHÁT (Ngày Quản đốc chọn)
         LocalDateTime currentDay = requestedStartDate;
-        // Tự động gán ca dựa vào giờ pick: Chọn trước 12h trưa -> Ca sáng (1). Chọn sau 12h -> Ca chiều (2).
+        // Tự động gán ca dựa vào giờ pick: Chọn trước 12h trưa -> Ca sáng (1). Chọn sau
+        // 12h -> Ca chiều (2).
         int currentShift = requestedStartDate.getHour() < 12 ? 1 : 2;
 
         LocalDateTime finalEndDate = null;
@@ -86,8 +86,7 @@ public class ManufactureOrderService {
             if (isOverlapping(shiftStart, shiftEnd, existingMOs)) {
                 throw new RuntimeException(String.format(
                         "❌ THẤT BẠI: Nếu bắt đầu vào %s, đến khoảng %s xưởng sẽ bị trùng lịch với một Lệnh khác đang chạy! Vui lòng chọn ngày khác.",
-                        requestedStartDate.toLocalDate(), shiftStart
-                ));
+                        requestedStartDate.toLocalDate(), shiftStart));
             }
 
             finalEndDate = shiftEnd; // Liên tục cập nhật ngày kết thúc
@@ -107,8 +106,7 @@ public class ManufactureOrderService {
         if (finalEndDate.toLocalDate().isAfter(targetEndDate)) {
             throw new RuntimeException(String.format(
                     "⚠️ CẢNH BÁO TRỄ HẠN: Nếu bắt đầu vào %s, hệ thống tính toán đến tận %s mới làm xong. Hạn chót bắt buộc của xưởng là %s. Không thể chốt kế hoạch này!",
-                    requestedStartDate.toLocalDate(), finalEndDate.toLocalDate(), targetEndDate
-            ));
+                    requestedStartDate.toLocalDate(), finalEndDate.toLocalDate(), targetEndDate));
         }
 
         // 4. MỌI ĐIỀU KIỆN ĐỀU PASS -> CHỐT LỆNH SẢN XUẤT!
@@ -117,20 +115,22 @@ public class ManufactureOrderService {
         mo.setSalesOrder(salesOrder);
         mo.setProduct(product);
         mo.setQuantity(quantity);
-        mo.setStatus("PLANNED");
+        mo.setWipStatus("PLANNED");
         mo.setStartDate(requestedStartDate);
         mo.setEndDate(finalEndDate); // Do hệ thống tự tính ra
         mo.setTechnicalNotes(technicalNotes);
 
         manufactureOrderRepository.save(mo);
-        log.info("🎉 Quản đốc đã chốt thành công MO: {} | Từ {} đến {}", mo.getMoNumber(), mo.getStartDate(), mo.getEndDate());
+        log.info("🎉 Quản đốc đã chốt thành công MO: {} | Từ {} đến {}", mo.getMoNumber(), mo.getStartDate(),
+                mo.getEndDate());
 
         return mo;
     }
 
     // TẠO LỆNH SẢN XUẤT THỦ CÔNG (MANUAL SCHEDULING - BỎ QUA KIỂM DUYỆT THUẬT TOÁN)
     @Transactional
-    public ManufactureOrder createManualManufactureOrder(Long salesOrderId, Long productId, Integer quantity, String technicalNotes, LocalDateTime startDate, LocalDateTime endDate) {
+    public ManufactureOrder createManualManufactureOrder(Long salesOrderId, Long productId, Integer quantity,
+            String technicalNotes, LocalDateTime startDate, LocalDateTime endDate) {
         SalesOrder salesOrder = salesOrderRepository.findById(salesOrderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Đơn hàng: " + salesOrderId));
 
@@ -150,20 +150,22 @@ public class ManufactureOrderService {
         mo.setSalesOrder(salesOrder);
         mo.setProduct(product);
         mo.setQuantity(quantity);
-        mo.setStatus("PLANNED");
+        mo.setWipStatus("PLANNED");
         mo.setStartDate(startDate);
         mo.setEndDate(endDate);
         mo.setTechnicalNotes(technicalNotes);
 
         manufactureOrderRepository.save(mo);
-        log.info("✏️ Quản đốc đã tự xếp lịch thủ công thành công MO: {} | Từ {} đến {}", mo.getMoNumber(), mo.getStartDate(), mo.getEndDate());
+        log.info("✏️ Quản đốc đã tự xếp lịch thủ công thành công MO: {} | Từ {} đến {}", mo.getMoNumber(),
+                mo.getStartDate(), mo.getEndDate());
 
         return mo;
     }
 
     // Hàm isOverlapping giữ nguyên như cũ nhé!
 
-    // --- HELPER: Kiểm tra xem 1 khoảng thời gian có đè lên MO nào đang có không ---
+    // --- HELPER: Kiểm tra xem 1 khoảng thời gian có đè lên MO nào đang có không
+    // ---
     private boolean isOverlapping(LocalDateTime start, LocalDateTime end, List<ManufactureOrder> existingMOs) {
         for (ManufactureOrder mo : existingMOs) {
             // Điều kiện Overlap: Thời điểm bắt đầu của Ca < Thời điểm kết thúc của MO

@@ -158,7 +158,7 @@ export const EditCustomer = ({ customerId, onBack, onSaved }) => {
                         <select className="af-input" value={form.assignedToId} onChange={e => set("assignedToId", e.target.value)}>
                             <option value="">-- Chọn nhân viên --</option>
                             {staffs.map(s => (
-                                <option key={s.id} value={s.id}>{s.fullname} ({s.department})</option>
+                                <option key={s.id} value={s.id}>{s.fullName || s.fullname} - {s.employeeId}</option>
                             ))}
                         </select>
                     </div>

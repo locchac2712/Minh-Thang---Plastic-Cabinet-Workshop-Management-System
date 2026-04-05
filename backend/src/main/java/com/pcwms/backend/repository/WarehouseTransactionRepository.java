@@ -18,8 +18,8 @@ public interface WarehouseTransactionRepository extends JpaRepository<WarehouseT
 
     // 2. Lấy danh sách phân trang + Tìm kiếm theo Mã chứng từ (Reference ID) hoặc Tên thủ kho
     @Query("SELECT w FROM WarehouseTransaction w WHERE w.type = :type " +
-            "AND (LOWER(w.referenceId) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "OR LOWER(w.staff.fullname) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+            "AND (LOWER(CAST(w.referenceId AS text)) LIKE LOWER(CONCAT('%', CAST(:keyword AS text), '%')) " +
+            "OR LOWER(CAST(w.staff.fullName AS text)) LIKE LOWER(CONCAT('%', CAST(:keyword AS text), '%')))")
     Page<WarehouseTransaction> searchByTypeAndKeyword(
             @Param("type") TransactionType type,
             @Param("keyword") String keyword,

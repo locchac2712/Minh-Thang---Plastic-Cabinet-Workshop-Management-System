@@ -26,7 +26,17 @@ const crmService = {
     // Đánh dấu đã xử lý nhắc hẹn
     resolveReminder: (id) =>
         api.patch(`${BASE_CRM}/interactions/${id}/resolve`)
-           .then(res => res.data)
+           .then(res => res.data),
+
+    // Lấy các ghi chú tương tác gần đây (Tất cả ghi chú Timeline)
+    getRecentNotes: () =>
+        api.get(`${BASE_CRM}/interactions/notes/recent`)
+           .then(res => res.data?.data || []),
+
+    // Lấy lịch sử giao dịch (Payment)
+    getTransactions: (customerId) =>
+        api.get(`/customers/${customerId}/payments`)
+           .then(res => res.data?.data || [])
 };
 
 export default crmService;

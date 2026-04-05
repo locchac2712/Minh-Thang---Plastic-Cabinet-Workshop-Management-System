@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import "./SalesPages.css";
 import salesOrderService, { ORDER_STATUS_MAP, PAYMENT_STATUS_MAP } from "../../services/salesOrderService.js";
 import { PaymentModal } from "./PaymentModal.jsx";
+import { ApprovalModal } from "./ApprovalModal.jsx";
+import { SingleDatePicker } from "./components/QuotationFormShared";
 
 const fmt     = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "—";
 const fmtDate = (d) => d ? new Date(d).toLocaleString("vi-VN") : "—";
@@ -96,7 +98,6 @@ const ProductionOrderPopup = ({ order, onClose, onSend }) => {
                     display: "flex", alignItems: "center", justifyContent: "space-between",
                 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <span style={{ fontSize: 24 }}>🔄</span>
                         <div>
                             <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Cập nhật Lệnh Sản Xuất</div>
                             <div style={{ color: "#ddd6fe", fontSize: 12, marginTop: 2 }}>Mã đơn: {order.orderNumber}</div>
@@ -109,11 +110,11 @@ const ProductionOrderPopup = ({ order, onClose, onSend }) => {
                 </div>
 
                 <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
-                    <PopSection title="👤 Khách hàng">
+                    <PopSection title="Khách hàng">
                         <PopField label="Tên khách"  value={order.customer?.name} />
                     </PopSection>
 
-                    <PopSection title="🎯 Mức độ ưu tiên">
+                    <PopSection title="Mức độ ưu tiên">
                         <div style={{ display: "flex", gap: 10 }}>
                             {PRIORITY_OPTIONS.map(opt => (
                                 <button key={opt.value} onClick={() => setPriority(opt.value)} style={{
@@ -130,16 +131,13 @@ const ProductionOrderPopup = ({ order, onClose, onSend }) => {
                         </div>
                     </PopSection>
 
-                    <PopSection title="📅 Hạn hoàn thành (Dự kiến)">
-                        <input
-                            type="date"
-                            value={dueDate}
-                            onChange={e => setDueDate(e.target.value)}
-                            style={{
-                                width: "100%", padding: "10px 12px", borderRadius: 8,
-                                border: "1.5px solid #e2e8f0", fontSize: 13, outline: "none", boxSizing: "border-box"
-                            }}
-                        />
+                    <PopSection title="Hạn hoàn thành (Dự kiến)">
+                        <div style={{ position: 'relative' }}>
+                            <SingleDatePicker 
+                                value={dueDate} 
+                                onChange={setDueDate} 
+                            />
+                        </div>
                     </PopSection>
 
                     <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
@@ -181,13 +179,14 @@ const PopField = ({ label, value }) => (
 /* ─────────────────────────────────────────────────────────────
    MAIN COMPONENT
 ───────────────────────────────────────────────────────────── */
-export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
+export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff, isSalesManager, isDirector }) => {
     const [order,         setOrder]         = useState(null);
     const [payments,      setPayments]      = useState([]);
     const [loading,       setLoading]       = useState(true);
     const [error,         setError]         = useState(null);
     const [showPayModal,  setShowPayModal]  = useState(false);
     const [showProdPopup, setShowProdPopup] = useState(false);
+    const [selectedForApproval, setSelectedForApproval] = useState(null);
 
     const [polling, setPolling] = useState(false);
     const [pollMsg, setPollMsg] = useState("");
@@ -214,6 +213,18 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
         loadOrder().finally(() => setLoading(false));
         return () => stopPolling();
     }, [orderId]);
+
+    const handleApprovalSubmit = async (isApproved, limit, note) => {
+        try {
+            const payload = { isApproved, newCreditLimit: limit, approvalNote: note };
+            await salesOrderService.processApproval(order.id, payload);
+            alert(isApproved ? "Phê duyệt đơn hàng thành công!" : "Từ chối đơn hàng thành công!");
+            setSelectedForApproval(null);
+            loadOrder();
+        } catch (err) {
+            alert("Lỗi: " + (err.response?.data?.message || "Không thể xử lý"));
+        }
+    };
 
     const total       = Number(order?.totalAmount || 0);
     const paymentList = Array.isArray(payments) ? payments : [];
@@ -268,7 +279,7 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
         <div className="sod-page">
             <div className="sod-header">
                 <div>
-                    <h1 className="sod-title">📑 Chi tiết Đơn hàng</h1>
+                    <h1 className="sod-title">Chi tiết Đơn hàng</h1>
                     <div className="sod-header-meta">
                         <span className="so-order-id">#{order.orderNumber}</span>
                         <span className={`so-badge ${py.cls}`}>{py.text}</span>
@@ -280,9 +291,10 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
             <div className="sod-grid">
                 <div className="sod-col-main">
                     <div className="sod-card">
-                        <div className="sod-card__title">ℹ️ Thông tin chung</div>
+                        <div className="sod-card__title">Thông tin chung</div>
                         <div className="sod-info-grid">
                             <InfoRow label="Ngày tạo"       value={fmtDate(order.createdDate)} />
+                            <InfoRow label="Ngày giao dự kiến" value={order.dueDate ? new Date(order.dueDate).toLocaleDateString("vi-VN") : "Chưa xác định"} />
                             <InfoRow label="Khách hàng"     value={order.customer?.name} />
                             <InfoRow label="Số điện thoại"  value={order.customer?.phone} />
                             <InfoRow label="Địa chỉ"        value={order.customer?.address} />
@@ -290,7 +302,7 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
                     </div>
 
                     <div className="sod-card">
-                        <div className="sod-card__title">📦 Sản phẩm đặt hàng</div>
+                        <div className="sod-card__title">Sản phẩm đặt hàng</div>
                         <table className="sod-table">
                             <thead>
                             <tr><th>#</th><th>Sản phẩm</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr>
@@ -319,7 +331,7 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
                 <div className="sod-col-side">
                     {isSalesStaff && (
                         <div className="sod-card">
-                            <div className="sod-card__title">💰 Thanh toán</div>
+                            <div className="sod-card__title">Thanh toán</div>
                             <div className="sod-side-row"><span className="sod-side-label">Tổng đơn</span><span className="sod-side-value">{fmt(total)}</span></div>
                             <div className="sod-side-row"><span className="sod-side-label">Đã trả</span><span className="sod-side-value" style={{color:"#16a34a"}}>{fmt(totalPaid)}</span></div>
                             <div className="sod-divider"/>
@@ -329,7 +341,7 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
 
                             {isProcessing && currentPayStatus !== "PAID" && (
                                 <button className="pm-trigger-btn" onClick={() => setShowPayModal(true)} disabled={polling}>
-                                    💳 Thanh toán / Đặt cọc
+                                    Thanh toán / Đặt cọc
                                 </button>
                             )}
 
@@ -342,14 +354,34 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
                                         border: "1.5px solid #7c3aed", boxShadow: "none"
                                     }}
                                 >
-                                    🔄 Cập nhật lệnh sản xuất
+                                    Cập nhật lệnh sản xuất
+                                </button>
+                            )}
+
+                            {order.status === "PENDING_APPROVAL" && isSalesManager && (
+                                <button 
+                                    className="pm-trigger-btn" 
+                                    style={{ marginTop: 10, background: "#3b82f6" }} 
+                                    onClick={() => alert("Đã gửi thông báo yêu cầu phê duyệt tới Giám đốc!")}
+                                >
+                                    Gửi yêu cầu phê duyệt
+                                </button>
+                            )}
+
+                            {order.status === "PENDING_APPROVAL" && isDirector && (
+                                <button 
+                                    className="pm-trigger-btn" 
+                                    style={{ marginTop: 10, background: "#7c3aed" }} 
+                                    onClick={() => setSelectedForApproval(order)}
+                                >
+                                    Phê duyệt đơn hàng
                                 </button>
                             )}
                         </div>
                     )}
 
                     <div className="sod-card">
-                        <div className="sod-card__title">🕒 Lịch sử giao dịch</div>
+                        <div className="sod-card__title">Lịch sử giao dịch</div>
                         {paymentList.length === 0 ? (
                             <div style={{fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "10px 0"}}>Chưa có giao dịch</div>
                         ) : (
@@ -360,7 +392,7 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
                                             <span className="sod-pay-amount">{fmt(p.amount)}</span>
                                             <span className="sod-pay-date">{fmtDate(p.transactionDate)}</span>
                                         </div>
-                                        <div className="sod-pay-method">💳 {p.paymentMethod}</div>
+                                        <div className="sod-pay-method">{p.paymentMethod}</div>
                                     </div>
                                 ))}
                             </div>
@@ -386,6 +418,13 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff }) => {
                     order={order}
                     onClose={() => setShowProdPopup(false)}
                     onSend={() => loadOrder()}
+                />
+            )}
+            {selectedForApproval && (
+                <ApprovalModal
+                    order={selectedForApproval}
+                    onClose={() => setSelectedForApproval(null)}
+                    onSubmit={handleApprovalSubmit}
                 />
             )}
         </div>

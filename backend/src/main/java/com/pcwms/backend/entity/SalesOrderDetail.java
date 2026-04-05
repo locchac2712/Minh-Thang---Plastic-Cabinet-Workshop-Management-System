@@ -42,6 +42,9 @@ public class SalesOrderDetail {
     @Column(name = "discount", precision = 15, scale = 2)
     private BigDecimal discount = BigDecimal.ZERO;
 
+    @Column(name = "notes", columnDefinition = "TEXT")
+    private String notes;
+
     // Thêm hàm này thì lúc trả JSON về FE, tự động nó sẽ ra trường "totalLineAmount"
     public BigDecimal getTotalLineAmount() {
         if (unitPrice == null || quantity == null) return BigDecimal.ZERO;

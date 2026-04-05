@@ -1,9 +1,9 @@
-import { EmptyPage } from "../../components/EmptyPage.jsx";
+import { EmptyPage } from "../common/EmptyPage";
 
 export const MonitorProduction = () => (
   <EmptyPage
-    icon=""
-    title="Monitor Production"
-    description="Real-time production monitoring and analytics will be displayed here."
+    icon="📊"
+    title="Giám sát sản xuất"
+    description="Tính năng theo dõi sản xuất và phân tích thời gian thực đang được phát triển."
   />
 );

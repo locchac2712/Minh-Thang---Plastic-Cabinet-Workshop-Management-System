@@ -1,115 +1,456 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./CreateForms.css";
-
-const fmt = (v) => new Intl.NumberFormat("vi-VN").format(v) + " đ";
-
-const MOCK_CUSTOMERS = [
-    { id: 1, name: "Công ty TNHH Khách Hàng VIP" },
-    { id: 2, name: "Anh Tuấn Mua Lẻ" },
-];
-const MOCK_PRODUCTS = [
-    { id: 1, name: "Bàn làm việc Gỗ Sồi",             price: 1_500_000 },
-    { id: 2, name: "Ghế xoay văn phòng cao cấp",       price: 800_000  },
-    { id: 3, name: "Tủ hồ sơ 3 buồng Gỗ Công Nghiệp", price: 2_200_000 },
-];
+import customerService from "../../services/customerService";
+import productService from "../../services/productService";
+import salesOrderService from "../../services/salesOrderService";
+import quotationService from "../../services/quotationService";
+import { SingleDatePicker, QuotationSearchSelect } from "./components/QuotationFormShared";
+const fmt = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "0 đ";
 
 export const CreateOrder = ({ onBack }) => {
-    const [custId,   setCustId]   = useState("");
-    const [delivery, setDelivery] = useState("");
-    const [address,  setAddress]  = useState("");
-    const [note,     setNote]     = useState("");
-    const [rows,     setRows]     = useState([{ productId: "", qty: 1, unitPrice: "" }]);
+    const [customers, setCustomers] = useState([]);
+    const [products, setProducts] = useState([]);
+    const [quotations, setQuotations] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const setRow = (i, f, v) => setRows(p => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r));
-    const addRow    = () => setRows(p => [...p, { productId: "", qty: 1, unitPrice: "" }]);
-    const removeRow = (i) => setRows(p => p.filter((_, idx) => idx !== i));
-    const pickProduct = (i, pid) => {
-        const pr = MOCK_PRODUCTS.find(p => String(p.id) === String(pid));
-        setRows(p => p.map((r, idx) => idx === i ? { ...r, productId: pid, unitPrice: pr?.price ?? "" } : r));
+    const [selectedQuoteId, setSelectedQuoteId] = useState("");
+
+
+    // Section 1: Thông tin chung
+    const [custId, setCustId] = useState("");
+    const [customerInfo, setCustomerInfo] = useState({ phone: "", email: "", creditLimit: 0, currentDebt: 0 });
+    const [address, setAddress] = useState("");
+    const [orderNote, setOrderNote] = useState("");
+
+    const [availableCredit, setAvailableCredit] = useState(0);
+
+    // Section 2: Thông tin thanh toán
+    const [paymentTerms, setPaymentTerms] = useState("CASH_ON_DELIVERY");
+    const [paymentMethod, setPaymentMethod] = useState("CASH");
+    const [depositRatio, setDepositRatio] = useState("");
+    const [depositAmount, setDepositAmount] = useState(0);
+    const [discountPercent, setDiscountPercent] = useState("");
+
+    // Section 3: Danh sách sản phẩm
+    const [rows, setRows] = useState([{ productId: "", qty: 1, unitPrice: 0, discount: 0, notes: "", uom: "" }]);
+
+    useEffect(() => {
+        Promise.all([
+            customerService.getAll(),
+            productService.getAll(),
+            quotationService.getAll({ status: "APPROVED", size: 100 })
+        ]).then(([cData, pData, qApp]) => {
+            setCustomers(cData);
+            setProducts(pData);
+            const appList = qApp?.content ?? qApp ?? [];
+            const combined = [...appList].sort((a, b) => b.id - a.id);
+            setQuotations(combined);
+        }).catch(err => {
+            console.error("Error loading create order data:", err);
+        }).finally(() => setLoading(false));
+    }, []);
+
+    // Logic xử lý khi chọn khách hàng
+    const handleCustomerChange = (id) => {
+        setCustId(id);
+        const c = customers.find(x => String(x.id) === String(id));
+        if (c) {
+            setCustomerInfo({
+                phone: c.phoneNumber || c.phone || "Chưa có",
+                email: c.email || "Chưa có",
+                creditLimit: c.creditLimit || 0,
+                currentDebt: c.currentDebt || 0
+            });
+            setAvailableCredit((c.creditLimit || 0) - (c.currentDebt || 0));
+            setAddress(c.address || "");
+        } else {
+            setCustomerInfo({ phone: "", email: "", creditLimit: 0, currentDebt: 0 });
+            setAvailableCredit(0);
+        }
     };
-    const rowTotal = r => (r.qty || 0) * (Number(r.unitPrice) || 0);
-    const total    = rows.reduce((s, r) => s + rowTotal(r), 0);
+
+    const handlePaymentTermsChange = (e) => {
+        const term = e.target.value;
+        setPaymentTerms(term);
+        if (term === "PREPAID") {
+            setDepositRatio(100);
+        }
+    };
+
+    const handleQuoteChange = async (quoteId) => {
+        setSelectedQuoteId(quoteId);
+        if (!quoteId) {
+            setCustId("");
+            setCustomerInfo({ phone: "", email: "", creditLimit: 0, currentDebt: 0 });
+            setAvailableCredit(0);
+            setAddress("");
+            setDiscountPercent("");
+            return;
+        }
+
+        try {
+            const quoteData = await quotationService.getById(quoteId);
+
+            // Auto fill
+            if (quoteData.customer) {
+                const c = customers.find(x => String(x.id) === String(quoteData.customer.id));
+                if (c) {
+                    setCustId(c.id);
+                    setCustomerInfo({
+                        phone: c.phoneNumber || c.phone || "Chưa có",
+                        email: c.email || "Chưa có",
+                        creditLimit: c.creditLimit || 0,
+                        currentDebt: c.currentDebt || 0
+                    });
+                    setAvailableCredit((c.creditLimit || 0) - (c.currentDebt || 0));
+                    setAddress(c.address || "");
+                } else {
+                    setCustId(quoteData.customer.id);
+                    setCustomerInfo({
+                        phone: quoteData.customer.phoneNumber || "Chưa có",
+                        email: quoteData.customer.email || "Chưa có",
+                        creditLimit: 0,
+                        currentDebt: 0
+                    });
+                    setAddress(quoteData.customer.address || "");
+                }
+            }
+
+            if (quoteData.details && quoteData.details.length > 0) {
+                const newRows = quoteData.details.map(d => {
+                    const product = products.find(p => String(p.id) === String(d.productId));
+                    return {
+                        productId: d.productId,
+                        qty: d.quantity,
+                        unitPrice: d.unitPrice,
+                        discount: d.discount || 0,
+                        notes: "",
+                        uom: product?.unit || "Bộ"
+                    };
+                });
+                setRows(newRows);
+            }
+            if (quoteData.note) {
+                setOrderNote("Báo giá " + quoteData.quotationNumber + ": " + quoteData.note);
+            }
+            if (quoteData.discountPercent) setDiscountPercent(quoteData.discountPercent);
+            else setDiscountPercent("");
+
+        } catch (err) {
+            console.error("Lỗi khi tải báo giá:", err);
+            alert("Lỗi khi tải dữ liệu báo giá");
+        }
+    };
+
+    // Logic xử lý hàng hàng
+    const setRow = (i, f, v) => setRows(p => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r));
+    const addRow = () => setRows(p => [...p, { productId: "", qty: 1, unitPrice: 0, discount: 0, notes: "", uom: "" }]);
+    const removeRow = (i) => setRows(p => p.filter((_, idx) => idx !== i));
+
+    const pickProduct = (i, pid) => {
+        const pr = products.find(p => String(p.id) === String(pid));
+        setRows(p => p.map((r, idx) => idx === i ? {
+            ...r,
+            productId: pid,
+            unitPrice: pr?.sellingPrice ?? pr?.price ?? 0,
+            uom: pr?.unit || "Bộ"
+        } : r));
+    };
+
+    // Tính toán tài chính
+    const rowGross = r => (Number(r.qty) || 0) * (Number(r.unitPrice) || 0);
+    const rowNet = r => rowGross(r) - (Number(r.discount) || 0);
+
+    const grossTotal = rows.reduce((s, r) => s + rowGross(r), 0);
+    const rowDiscountTotal = rows.reduce((s, r) => s + (Number(r.discount) || 0), 0);
+    const percentDiscountAmount = Math.round((grossTotal - rowDiscountTotal) * (Number(discountPercent) || 0) / 100);
+    const totalDiscountAmount = rowDiscountTotal + percentDiscountAmount;
+    const grandTotal = grossTotal - totalDiscountAmount;
+
+    // Cập nhật tiền cọc khi grandTotal hoặc ratio thay đổi
+    useEffect(() => {
+        const r = Number(depositRatio) || 0;
+        const calculatedDeposit = Math.round(grandTotal * (r / 100));
+        setDepositAmount(calculatedDeposit);
+    }, [grandTotal, depositRatio]);
+
+    const handleCreate = async () => {
+        if (!custId) return alert("Vui lòng chọn khách hàng!");
+        if (rows.length === 0 || rows.some(r => !r.productId)) return alert("Vui lòng chọn sản phẩm cho tất cả các dòng!");
+
+        const payload = {
+            quotationId: selectedQuoteId ? Number(selectedQuoteId) : null,
+            customerId: Number(custId),
+            deliveryAddress: address,
+            notes: orderNote,
+            paymentTerms,
+            paymentMethod,
+            depositRatio: Number(depositRatio) || 0,
+            depositAmount: Number(depositAmount) || 0,
+            details: rows.map(r => {
+                const lineGross = (Number(r.qty) || 0) * (Number(r.unitPrice) || 0);
+                const lineNet = lineGross - (Number(r.discount) || 0);
+                const extraDiscount = lineNet * (Number(discountPercent) || 0) / 100;
+                return {
+                    productId: Number(r.productId),
+                    quantity: Number(r.qty),
+                    unitPrice: Number(r.unitPrice),
+                    discount: Number(r.discount || 0) + extraDiscount,
+                    notes: r.notes
+                };
+            })
+        };
+
+        try {
+            await salesOrderService.create(payload);
+            alert("Tạo đơn hàng thành công!");
+            onBack(true);
+        } catch (err) {
+            alert("Lỗi: " + (err.response?.data?.message || "Không thể tạo đơn hàng"));
+        }
+    };
+
+    if (loading) return (
+        <div className="sq-modal-overlay">
+            <div className="sq-modal-box sq-modal-box--large" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 500 }}>
+                <div className="sp-spinner"></div>
+            </div>
+        </div>
+    );
+
+    const isOverLimit = (customerInfo.currentDebt + grandTotal) > customerInfo.creditLimit && customerInfo.creditLimit > 0;
 
     return (
-        <div className="cf-modal-overlay" onClick={onBack}>
-            <div className="cf-modal-container" onClick={e => e.stopPropagation()}>
+        <div className="sq-modal-overlay" onClick={onBack}>
+            <div className="sq-modal-box sq-modal-box--large" onClick={e => e.stopPropagation()}>
                 {/* Header */}
-                <div className="cf-modal-header">
-                    <h2 className="cf-modal-title">Tạo đơn hàng</h2>
-                    <button className="cf-modal-close" onClick={onBack}>✕</button>
+                <div className="sq-modal-header">
+                    <div>
+                        <h2 className="sq-modal-title">Tạo đơn hàng mới</h2>
+                        <div style={{ fontSize: '0.85em', color: '#6b7280', marginTop: 4 }}>Nhập thông tin chi tiết để khởi tạo đơn hàng bán chính thức</div>
+                    </div>
+                    <button className="sq-modal-close" onClick={onBack}>✕</button>
                 </div>
 
                 {/* Body */}
-                <div className="cf-modal-body">
-                    {/* Order info */}
-                    <div className="cf-card">
-                        <div className="cf-section-label">Thông tin đơn hàng</div>
-                        <div className="cf-grid-2">
-                            <div className="cf-field">
-                                <label className="cf-label">Khách hàng</label>
-                                <select className="cf-select" value={custId} onChange={e => setCustId(e.target.value)}>
-                                    <option value="">Chọn khách hàng</option>
-                                    {MOCK_CUSTOMERS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                            </div>
-                            <div className="cf-field">
-                                <label className="cf-label">Ngày giao hàng</label>
-                                <input className="cf-input cf-input--date" type="date" value={delivery} onChange={e => setDelivery(e.target.value)} />
-                            </div>
-                        </div>
-                        <div className="cf-field" style={{marginTop:16}}>
-                            <label className="cf-label">Địa chỉ giao hàng</label>
-                            <textarea className="cf-textarea cf-textarea--short" rows={2} value={address} onChange={e => setAddress(e.target.value)} />
-                        </div>
-                        <div className="cf-field" style={{marginTop:16}}>
-                            <label className="cf-label">Ghi chú</label>
-                            <textarea className="cf-textarea cf-textarea--short" rows={2} value={note} onChange={e => setNote(e.target.value)} />
-                        </div>
-                    </div>
+                <div className="sq-modal-body">
+                    <div className="sq-form-grid">
 
-                    {/* Products */}
-                    <div className="cf-card">
-                        <div className="cf-section-header">
-                            <span className="cf-section-label" style={{marginBottom:0}}>Sản phẩm</span>
-                            <button className="cf-add-row-btn" onClick={addRow}>+ Thêm</button>
-                        </div>
-                        <table className="cf-table">
-                            <thead>
-                            <tr>
-                                <th style={{width:"45%"}}>SẢN PHẨM</th>
-                                <th>SỐ LƯỢNG</th>
-                                <th>ĐƠN GIÁ</th>
-                                <th>THÀNH TIỀN</th>
-                                <th></th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {rows.map((row, i) => (
-                                <tr key={i}>
-                                    <td>
-                                        <select className="cf-table-select" value={row.productId} onChange={e => pickProduct(i, e.target.value)}>
-                                            <option value="">Chọn SP</option>
-                                            {MOCK_PRODUCTS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        {/* MAIN COLUMN: Info, Payment & Products */}
+                        <div className="sq-form-main">
+
+                            {/* SECTION 1: THÔNG TIN CHUNG */}
+                            <div className="sq-form-card">
+                                <div className="sq-form-section-header">
+                                    <div className="sq-form-section-title">Thông tin chung</div>
+                                </div>
+                                <div className="sq-form-row">
+                                    <div className="sq-form-field" style={{ flex: 1.5 }}>
+                                        <label className="sq-form-label">Mã báo giá</label>
+                                        <QuotationSearchSelect 
+                                            quotations={quotations} 
+                                            value={selectedQuoteId} 
+                                            onChange={handleQuoteChange} 
+                                        />
+                                    </div>
+                                    <div className="sq-form-field">
+                                        <label className="sq-form-label">Khách hàng <span className="sq-required-star">*</span></label>
+                                        <select className="sq-form-select" value={custId} onChange={e => handleCustomerChange(e.target.value)} disabled={!!selectedQuoteId} style={{ background: !!selectedQuoteId ? '#f9fafb' : '#fff' }}>
+                                            <option value="">Chọn khách hàng...</option>
+                                            {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                         </select>
-                                    </td>
-                                    <td><input className="cf-table-input cf-table-input--sm" type="number" min="1" value={row.qty} onChange={e => setRow(i,"qty",Number(e.target.value))} /></td>
-                                    <td><input className="cf-table-input cf-table-input--sm" type="number" min="0" value={row.unitPrice} placeholder="" onChange={e => setRow(i,"unitPrice",e.target.value)} /></td>
-                                    <td className="cf-td--amount">{fmt(rowTotal(row))}</td>
-                                    <td><button className="cf-remove-btn" onClick={() => removeRow(i)} disabled={rows.length===1}>✕</button></td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </table>
-                        <div className="cf-order-total">Tổng: <strong>{fmt(total)}</strong></div>
+                                    </div>
+                                </div>
+
+                                <div className="sq-form-row">
+                                    <div className="sq-form-field">
+                                        <label className="sq-form-label">SĐT / Liên hệ</label>
+                                        <input className="sq-form-input sq-form-input--readonly" readOnly value={customerInfo.phone} />
+                                    </div>
+                                    <div className="sq-form-field">
+                                        <label className="sq-form-label">Email</label>
+                                        <input className="sq-form-input sq-form-input--readonly" readOnly value={customerInfo.email} />
+                                    </div>
+                                    <div className="sq-form-field" style={{ flex: 1.5 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <label className="sq-form-label" style={{ marginBottom: 0 }}>Địa chỉ giao hàng</label>
+                                            {custId && (
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const c = customers.find(x => String(x.id) === String(custId));
+                                                        if (c) setAddress(c.address || "");
+                                                    }}
+                                                    style={{ fontSize: '11px', color: '#2563eb', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
+                                                >
+                                                    Lấy địa chỉ mặc định
+                                                </button>
+                                            )}
+                                        </div>
+                                        <input className="sq-form-input" value={address} onChange={e => setAddress(e.target.value)} placeholder="Nhập địa chỉ nhận hàng chi tiết..." />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* SECTION 2: THANH TOÁN */}
+                            <div className="sq-form-card">
+                                <div className="sq-form-section-header">
+                                    <div className="sq-form-section-title">Thanh toán & Tín dụng</div>
+                                </div>
+                                <div className="sq-form-row">
+                                    <div className="sq-form-field">
+                                        <label className="sq-form-label">Điều khoản thanh toán</label>
+                                        <select className="sq-form-select" value={paymentTerms} onChange={handlePaymentTermsChange}>
+                                            <option value="CASH_ON_DELIVERY">Thanh toán khi giao hàng (COD)</option>
+                                            <option value="NET_15">Thanh toán trong 15 ngày (Net 15)</option>
+                                            <option value="NET_30">Thanh toán trong 30 ngày (Net 30)</option>
+                                            <option value="PREPAID">Thanh toán trước 100%</option>
+                                        </select>
+                                    </div>
+                                    <div className="sq-form-field">
+                                        <label className="sq-form-label">Phương thức</label>
+                                        <select className="sq-form-select" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+                                            <option value="CASH">Tiền mặt</option>
+                                            <option value="BANK_TRANSFER">Chuyển khoản</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="sq-form-row">
+                                    <div className="sq-form-field">
+                                        <label className="sq-form-label">Tỷ lệ đặt cọc (%)</label>
+                                        <input 
+                                            className={`sq-form-input ${paymentTerms === 'PREPAID' ? 'sq-form-input--readonly' : ''}`} 
+                                            type="number" 
+                                            min="0" 
+                                            max="100" 
+                                            value={depositRatio} 
+                                            readOnly={paymentTerms === 'PREPAID'}
+                                            onChange={e => {
+                                                const v = e.target.value;
+                                                if (v === "") setDepositRatio("");
+                                                else setDepositRatio(Math.min(100, Math.max(0, Number(v))));
+                                            }} 
+                                        />
+                                    </div>
+                                    <div className="sq-form-field">
+                                        <label className="sq-form-label">Chiết khấu tổng (%)</label>
+                                        <input 
+                                            className={`sq-form-input ${selectedQuoteId ? 'sq-form-input--readonly' : ''}`} 
+                                            type="number" 
+                                            min="0" 
+                                            max="30" 
+                                            value={discountPercent} 
+                                            readOnly={!!selectedQuoteId}
+                                            onChange={e => {
+                                                const v = e.target.value;
+                                                if (v === "") setDiscountPercent("");
+                                                else setDiscountPercent(Math.min(30, Math.max(0, Number(v))));
+                                            }} 
+                                        />
+                                    </div>
+                                    <div className="sq-form-field">
+                                        <label className="sq-form-label">Tiền cọc yêu cầu</label>
+                                        <input className="sq-form-input sq-form-input--readonly" readOnly value={fmt(depositAmount)} />
+                                    </div>
+                                </div>
+
+                                {custId && (
+                                    <div className="sq-form-row" style={{ marginTop: 12 }}>
+                                        <div style={{ display: 'flex', gap: 24, fontSize: 13, background: isOverLimit ? '#fef2f2' : '#f8fafc', padding: 12, borderRadius: 10, width: '100%', border: `1px solid ${isOverLimit ? '#fecaca' : '#f1f5f9'}` }}>
+                                            <div>Hạn mức LS: <strong style={{ color: '#1e293b' }}>{fmt(customerInfo.creditLimit)}</strong></div>
+                                            <div>Dư nợ hiện tại: <strong style={{ color: '#1e293b' }}>{fmt(customerInfo.currentDebt)}</strong></div>
+                                            {isOverLimit && <div style={{ color: '#dc2626', fontWeight: 600 }}>⚠️ Vượt hạn mức, đơn hàng cần GĐ duyệt!</div>}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* SECTION 3: SẢN PHẨM */}
+                            <div className="sq-form-card">
+                                <div className="sq-form-section-header">
+                                    <div className="sq-form-section-title">Chi tiết sản phẩm</div>
+                                    <button className="sq-add-row-btn" onClick={addRow}>+ Thêm dòng</button>
+                                </div>
+
+                                <div className="sq-items-scroll-wrap sq-items-scroll-wrap--scroll">
+                                    <table className="sq-form-table">
+                                        <thead>
+                                            <tr>
+                                                <th style={{ width: "35%" }}>SẢN PHẨM</th>
+                                                <th style={{ width: "12%", textAlign: 'center' }}>ĐVT</th>
+                                                <th style={{ width: "15%" }}>SL</th>
+                                                <th style={{ width: "20%" }}>ĐƠN GIÁ</th>
+                                                <th style={{ width: "18%", textAlign: 'right' }}>THÀNH TIỀN</th>
+                                                <th style={{ width: "40px" }}></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {rows.map((row, i) => (
+                                                <tr key={i}>
+                                                    <td>
+                                                        <select className="sq-form-select" style={{ padding: '8px 10px' }} value={row.productId} onChange={e => pickProduct(i, e.target.value)}>
+                                                            <option value="">Chọn SP...</option>
+                                                            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                                        </select>
+                                                    </td>
+                                                    <td style={{ textAlign: 'center' }}><span className="sq-table-readonly">{row.uom || '—'}</span></td>
+                                                    <td><input className="sq-table-input" type="number" min="1" value={row.qty} onChange={e => setRow(i, "qty", e.target.value)} /></td>
+                                                    <td><input className="sq-table-input" type="number" min="0" value={row.unitPrice} onChange={e => setRow(i, "unitPrice", e.target.value)} /></td>
+                                                    <td style={{ fontWeight: '700', textAlign: 'right', color: '#1e293b' }}>{fmt(rowNet(row))}</td>
+                                                    <td><button className="sq-remove-btn" onClick={() => removeRow(i)} title="Xóa dòng" disabled={rows.length === 1}>✕</button></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* SIDEBAR */}
+                        <div className="sq-form-sidebar">
+                            <div className="sq-form-summary">
+                                <div className="sq-form-summary-title">TỔNG KẾT ĐƠN HÀNG</div>
+
+                                <div className="sq-form-summary-row">
+                                    <span>Tạm tính:</span>
+                                    <span>{fmt(grossTotal)}</span>
+                                </div>
+                                <div className="sq-form-summary-row" style={{ color: '#fca5a5' }}>
+                                    <span>Tổng chiết khấu:</span>
+                                    <span>- {fmt(totalDiscountAmount)}</span>
+                                </div>
+                                <div className="sq-form-summary-divider"></div>
+                                <div className="sq-form-summary-row sq-form-summary-row--total">
+                                    <span>TỔNG TIỀN</span>
+                                    <span>{fmt(grandTotal)}</span>
+                                </div>
+                            </div>
+
+                            <div className="sq-form-field" style={{ marginTop: 10 }}>
+                                <label className="sq-form-label">Ghi chú vận hành / Bán hàng</label>
+                                <textarea
+                                    className="sq-form-textarea"
+                                    value={orderNote}
+                                    onChange={e => setOrderNote(e.target.value)}
+                                    placeholder="VD: Giao nhanh chiều nay, đóng gói cẩn thận..."
+                                    style={{ minHeight: 180 }}
+                                />
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
                 {/* Footer */}
-                <div className="cf-modal-footer">
-                    <button className="cf-submit-btn cf-submit-btn--dark">Tạo đơn hàng</button>
-                    <button className="cf-cancel-btn" onClick={onBack}>Hủy</button>
+                <div className="sq-modal-footer">
+                    <div className="sq-footer-left"></div>
+                    <div className="sq-footer-actions" style={{ display: 'flex', gap: 10 }}>
+                        <button className="sq-modal-btn sq-modal-btn--cancel" onClick={onBack}>Hủy bỏ</button>
+                        <button className="sq-modal-btn sq-modal-btn--submit" onClick={handleCreate}>Tạo đơn hàng</button>
+                    </div>
                 </div>
             </div>
+
         </div>
     );
 };

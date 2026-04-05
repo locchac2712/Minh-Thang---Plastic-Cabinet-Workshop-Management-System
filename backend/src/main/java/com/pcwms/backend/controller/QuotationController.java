@@ -8,9 +8,15 @@ import com.pcwms.backend.entity.Quotation;
 import com.pcwms.backend.services.QuotationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import static org.springframework.http.ResponseEntity.ok;
 
@@ -39,7 +45,7 @@ public class QuotationController {
 
     // Sửa updateQuotation endpoint
     @PutMapping("/{id}/update")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF') or hasRole('DIRECTOR')")
     public ResponseEntity<ResponseObject> updateQuotation(
             @PathVariable Long id,
             @RequestBody QuotationRequest request) {
@@ -55,17 +61,46 @@ public class QuotationController {
     }
 
     // Sửa updateStatus endpoint
-    @PostMapping("{id}/status")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('DIRECTOR') or hasRole('SALES_STAFF')")
-    public ResponseEntity<ResponseObject> updateStatus(@PathVariable Long id, @RequestParam String status) {
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'DIRECTOR', 'SALES_STAFF')")
+    public ResponseEntity<ResponseObject> updateQuotationStatus(
+            @PathVariable Long id,
+            @RequestParam String status,
+            @RequestParam(required = false) String reason,
+            @RequestParam(required = false) String note) {
         try {
-            Quotation updatedQuotation = quotationService.updateQuotationStatus(id, status);
-            // ✅ Wrap bằng DTO
-            return ResponseEntity.ok(new ResponseObject("SUCCESS", "Cập nhật trạng thái báo giá thành công!",
-                    new QuotationDetailResponse(updatedQuotation)));
+            String newStatus = status.toUpperCase();
+
+            // 👉 1. LẤY THÔNG TIN NGƯỜI ĐANG BẤM NÚT TỪ TOKEN
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+            // 👉 2. BỨC TƯỜNG LỬA CHẶN ROLE
+            // Nếu hành động là DUYỆT (APPROVED) hoặc TỪ CHỐI (REJECTED)
+            if (newStatus.equals("APPROVED") || newStatus.equals("REJECTED")) {
+
+                // Soi xem trong list Role của user này có ROLE_DIRECTOR hoặc ROLE_ADMIN không
+                boolean isDirector = authentication.getAuthorities().stream()
+                        .anyMatch(role -> role.getAuthority().equals("ROLE_DIRECTOR") || role.getAuthority().equals("ROLE_ADMIN"));
+
+                // Nếu không phải Giám đốc -> Đá văng ra ngoài ngay lập tức (Lỗi 403)
+                if (!isDirector) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                            new ResponseObject("ERROR", "Access Denied: Vượt quyền! Chỉ Giám đốc (DIRECTOR) mới có quyền Duyệt hoặc Từ chối Báo giá.", null)
+                    );
+                }
+            }
+
+            // 👉 3. Nếu Pass qua bức tường lửa, gọi Service chạy Máy trạng thái (State Machine)
+            Quotation updatedQuotation = quotationService.updateQuotationStatus(id, newStatus, reason, note);
+
+            return ResponseEntity.ok(
+                    new ResponseObject("SUCCESS", "Cập nhật trạng thái thành công!", new QuotationDetailResponse(updatedQuotation))
+            );
+
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(
-                    new ResponseObject("ERROR", e.getMessage(), null));
+                    new ResponseObject("ERROR", e.getMessage(), null)
+            );
         }
     }
 
@@ -75,11 +110,17 @@ public class QuotationController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdDate") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir){
         try {
+            // Chuyển LocalDate sang LocalDateTime (Đầu ngày - Cuối ngày)
+            LocalDateTime startLDT = (startDate != null) ? startDate.atStartOfDay() : null;
+            LocalDateTime endLDT = (endDate != null) ? endDate.atTime(LocalTime.MAX) : null;
+
             // Setup phân trang và sắp xếp (Mặc định: Mới nhất nổi lên đầu)
             org.springframework.data.domain.Sort sort = sortDir.equalsIgnoreCase("asc") ?
                     org.springframework.data.domain.Sort.by(sortBy).ascending() :
@@ -87,7 +128,7 @@ public class QuotationController {
 
             org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
 
-            Page<QuotationListResponse> quotations = quotationService.getAllQuotations(keyword, status, customerId, pageable);
+            Page<QuotationListResponse> quotations = quotationService.getAllQuotations(keyword, status, customerId, startLDT, endLDT, pageable);
 
             return ResponseEntity.ok(
                     new ResponseObject("SUCCESS", "Lấy danh sách Báo giá thành công!", quotations)
@@ -100,7 +141,7 @@ public class QuotationController {
     }
     // 👉 API Xem chi tiết 1 Báo giá
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF') or hasRole('DIRECTOR')")
     public ResponseEntity<ResponseObject> getQuotationDetail(@PathVariable Long id) {
         try {
             QuotationDetailResponse detail = quotationService.getQuotationDetail(id);

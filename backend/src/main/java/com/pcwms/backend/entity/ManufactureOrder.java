@@ -1,8 +1,11 @@
 package com.pcwms.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -10,6 +13,8 @@ import java.util.List;
 @Entity
 @Table(name = "manufacture_orders")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ManufactureOrder {
 
     @Id
@@ -30,12 +35,18 @@ public class ManufactureOrder {
     @JoinColumn(name = "product_id", referencedColumnName = "id", nullable = false)
     private Product product;
 
+    // Kế hoạch sản xuất chứa lệnh này
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "production_plan_id")
+    @JsonIgnoreProperties("manufactureOrders")
+    private ProductionPlan productionPlan;
+
     @Column(name = "quantity", nullable = false)
     private Integer quantity; // Số lượng cần sản xuất
 
     // 👉 ĐÃ SỬA: Trạng thái lệnh sản xuất (PLANNED, IN_PROGRESS, COMPLETED, CANCELLED)
-    @Column(name = "status", nullable = false)
-    private String status = "PLANNED";
+    @Column(name = "wip_status", nullable = false)
+    private String wipStatus = "PLANNED";
 
     // 👉 ĐÃ THÊM: Ngày dự kiến bắt đầu làm
     @Column(name = "start_date")

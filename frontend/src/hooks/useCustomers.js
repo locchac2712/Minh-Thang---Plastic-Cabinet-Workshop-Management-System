@@ -1,45 +1,37 @@
-import { useState, useEffect, useCallback } from "react";
+import { useApi } from "./useApi";
 import customerService from "../services/customerService";
 
-export const useCustomers = () => {
-    const [customers, setCustomers] = useState([]);
-    const [loading,   setLoading]   = useState(false);
-    const [error,     setError]    = useState(null);
+/**
+ * useCustomers - Quản lý dữ liệu khách hàng.
+ */
+export const useCustomers = (params = {}) => {
+    const api = useApi(customerService, { 
+        initialParams: params,
+        cacheKey: "CUSTOMERS" 
+    });
 
-    const fetchAll = useCallback(async () => {
-        const token = localStorage.getItem("token");
-        if (!token) { setError("Bạn cần đăng nhập để xem dữ liệu"); return; }
-
-        setLoading(true); setError(null);
+    // Thêm các logic đặc thù nếu cần
+    const changeStatus = async (id, status) => {
         try {
-            const data = await customerService.getAll();
-            setCustomers(Array.isArray(data) ? data : []);
+            const updated = await customerService.changeStatus(id, status);
+            api.setData(prev => ({
+                ...prev,
+                content: prev.content.map(x => (x.id === id ? updated : x))
+            }));
+            return updated;
         } catch (err) {
-            const status = err.response?.status;
-            if (status === 401) setError("Bạn cần đăng nhập để xem dữ liệu");
-            else if (status === 403) setError("Bạn không có quyền truy cập");
-            else setError(err.response?.data?.message || "Không thể tải dữ liệu");
-        } finally { setLoading(false); }
-    }, []);
-
-    useEffect(() => {
-        fetchAll();
-        const handler = () => { if (localStorage.getItem("token")) fetchAll(); };
-        window.addEventListener("auth-change", handler);
-        return () => window.removeEventListener("auth-change", handler);
-    }, [fetchAll]);
-
-    const create = async (payload) => {
-        const item = await customerService.create(payload);
-        setCustomers((p) => [...p, item]);
-        return item;
+            api.setError(err.response?.data?.message || "Không thể đổi trạng thái");
+            throw err;
+        }
     };
 
-    const update = async (id, payload) => {
-        const item = await customerService.update(id, payload);
-        setCustomers((p) => p.map((x) => (x.id === id ? item : x)));
-        return item;
+    return { 
+        customers: api.items, 
+        loading: api.loading, 
+        error: api.error, 
+        refetch: api.refetch, 
+        create: api.create, 
+        update: api.update,
+        changeStatus 
     };
-
-    return { customers, loading, error, refetch: fetchAll, create, update };
 };

@@ -1,8 +1,11 @@
 package com.pcwms.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,6 +14,7 @@ import java.util.List;
 @Entity
 @Table(name = "customer")
 @Data
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Customer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,6 +22,7 @@ public class Customer {
 
     // 1. ĐÃ SỬA: Đổi từ companyName thành name cho khớp đúng chữ "Name" trên ERD mới
     @Column(name = "name", nullable = false)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private String name;
 
     // 👉 2. BƠM THÊM: Email (Để gửi báo giá/hóa đơn)

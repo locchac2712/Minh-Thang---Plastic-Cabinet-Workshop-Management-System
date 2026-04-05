@@ -14,10 +14,19 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-// KHÔNG auto-reload khi 401 — để component tự xử lý
+// Tự động logout khi 401
 api.interceptors.response.use(
     (res) => res,
-    (error) => Promise.reject(error)
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            if (!window.location.pathname.includes("/login")) {
+                window.location.href = "/login";
+            }
+        }
+        return Promise.reject(error);
+    }
 );
 
 export default api;

@@ -1,25 +1,79 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useMemo } from "react";
+import { useApi } from "./useApi";
 import quotationService from "../services/quotationService.js";
 
+/**
+ * useQuotations - Quản lý báo giá bản mở rộng với lọc phía Client (cho các trường Server chưa hỗ trợ).
+ */
 export const useQuotations = (params = {}) => {
-    const [data,    setData]    = useState({ content: [], totalElements: 0, totalPages: 0 });
-    const [loading, setLoading] = useState(false);
-    const [error,   setError]   = useState(null);
+    // Tạo một wrapper service để tích hợp logic lọc phía Client vào luồng chuẩn của useApi
+    const filteredService = useMemo(() => ({
+        ...quotationService,
+        getAll: async (p) => {
+            const {
+                keyword, status, customerId,
+                startDate, endDate, minAmount, maxAmount,
+                page = 0, size = 10, 
+                sortBy = 'createdDate', sortDir = 'desc',
+            } = p;
 
-    const fetchAll = useCallback(async () => {
-        if (!localStorage.getItem("token")) return;
-        setLoading(true); setError(null);
-        try {
-            const res = await quotationService.getAll(params);
-            // Response là Page object: { content, totalElements, totalPages, ... }
-            if (res?.content) setData(res);
-            else setData({ content: Array.isArray(res) ? res : [], totalElements: 0, totalPages: 0 });
-        } catch (e) {
-            setError(e.response?.data?.message || "Không thể tải dữ liệu");
-        } finally { setLoading(false); }
-    }, [JSON.stringify(params)]);
+            const hasClientPriceFilter = !!(minAmount !== undefined || maxAmount !== undefined);
 
-    useEffect(() => { fetchAll(); }, [fetchAll]);
+            // Params gửi lên server
+            const serverParams = { 
+                keyword, status, customerId, 
+                startDate, endDate, 
+                sortBy, sortDir 
+            };
 
-    return { data, loading, error, refetch: fetchAll };
+            if (hasClientPriceFilter) {
+                // Chỉ lọc giá ở client vì server chưa hỗ trợ (có thể nâng cấp sau)
+                serverParams.page = 0;
+                serverParams.size = 200;
+            } else {
+                serverParams.page = page;
+                serverParams.size = size;
+            }
+
+            const res = await quotationService.getAll(serverParams);
+            let items = res?.content ?? (Array.isArray(res) ? res : []);
+
+            if (hasClientPriceFilter) {
+                // Áp dụng filter giá phía client
+                items = items.filter(q => {
+                    const amt = Number(q.totalAmount) || 0;
+                    if (minAmount !== undefined && amt < minAmount) return false;
+                    if (maxAmount !== undefined && amt > maxAmount) return false;
+                    return true;
+                });
+
+                const totalElements = items.length;
+                const totalPages = Math.max(1, Math.ceil(totalElements / size));
+                const start = page * size;
+                return { 
+                    content: items.slice(start, start + size), 
+                    totalElements, 
+                    totalPages 
+                };
+            }
+
+            return res;
+        }
+    }), []);
+
+    const api = useApi(filteredService, { 
+        initialParams: params,
+        cacheKey: "QUOTATIONS" 
+    });
+
+    return { 
+        items: api.items,
+        data: api.data, 
+        loading: api.loading, 
+        error: api.error, 
+        refetch: api.refetch, 
+        create: api.create, 
+        update: api.update,
+        remove: api.remove 
+    };
 };

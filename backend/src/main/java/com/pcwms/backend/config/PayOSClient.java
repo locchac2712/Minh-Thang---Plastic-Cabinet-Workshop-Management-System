@@ -6,14 +6,15 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -35,7 +36,7 @@ public class PayOSClient {
     private static final String BASE_URL = "https://api-merchant.payos.vn";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final HttpClient   httpClient   = HttpClient.newHttpClient();
+    private final RestTemplate restTemplate = new RestTemplate();
 
     // ── 1. Tạo link thanh toán ───────────────────────────────
     public CreateLinkResponse createPaymentLink(CreateLinkRequest req) throws Exception {
@@ -123,36 +124,27 @@ public class PayOSClient {
 
     // ── HTTP helpers ─────────────────────────────────────────
 
-    private String post(String path, String body) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + path))
-                .header("Content-Type", "application/json")
-                .header("x-client-id", clientId)
-                .header("x-api-key", apiKey)
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-        return httpClient.send(req, HttpResponse.BodyHandlers.ofString()).body();
+    private HttpHeaders getHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("x-client-id", clientId);
+        headers.set("x-api-key", apiKey);
+        return headers;
     }
 
-    private String get(String path) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + path))
-                .header("x-client-id", clientId)
-                .header("x-api-key", apiKey)
-                .GET()
-                .build();
-        return httpClient.send(req, HttpResponse.BodyHandlers.ofString()).body();
+    private String post(String path, String body) {
+        HttpEntity<String> entity = new HttpEntity<>(body, getHeaders());
+        return restTemplate.exchange(BASE_URL + path, HttpMethod.POST, entity, String.class).getBody();
     }
 
-    private String put(String path, String body) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + path))
-                .header("Content-Type", "application/json")
-                .header("x-client-id", clientId)
-                .header("x-api-key", apiKey)
-                .PUT(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-        return httpClient.send(req, HttpResponse.BodyHandlers.ofString()).body();
+    private String get(String path) {
+        HttpEntity<Void> entity = new HttpEntity<>(getHeaders());
+        return restTemplate.exchange(BASE_URL + path, HttpMethod.GET, entity, String.class).getBody();
+    }
+
+    private String put(String path, String body) {
+        HttpEntity<String> entity = new HttpEntity<>(body, getHeaders());
+        return restTemplate.exchange(BASE_URL + path, HttpMethod.PUT, entity, String.class).getBody();
     }
 
     private String hmacSHA256(String data, String key) throws Exception {

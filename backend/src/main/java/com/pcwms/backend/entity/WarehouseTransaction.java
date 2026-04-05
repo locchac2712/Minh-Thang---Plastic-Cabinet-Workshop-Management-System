@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -34,6 +36,7 @@ public class WarehouseTransaction {
 
     // Dùng để lưu mã code (VD: "PNK-2026-001", "PXK-2026-002")
     @Column(name = "reference_id")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private String referenceId;
 
     @Column(name = "date")
