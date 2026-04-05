@@ -8,6 +8,7 @@ import { ApprovalModal } from "./ApprovalModal";
 import salesOrderService, { ORDER_STATUS_MAP, PAYMENT_STATUS_MAP } from "../../services/salesOrderService.js";
 import manufactureOrderService from "../../services/manufactureOrderService.js";
 import { CreateOrder } from "./CreateOrder.jsx";
+import { SingleDatePicker } from "./components/QuotationFormShared";
 
 const fmt = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "—";
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
@@ -32,6 +33,40 @@ const isInRange = (date, start, end) => {
     return d > s && d < e;
 };
 
+const CustomStatusSelect = ({ value, onChange, options, placeholder = "Chọn..." }) => {
+    const [isOpen, setIsOpen] = React.useState(false);
+    const wrapRef = React.useRef(null);
+    const selected = options.find(o => o.value === value);
+
+    React.useEffect(() => {
+        const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setIsOpen(false); };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
+    return (
+        <div className="sq-custom-select" ref={wrapRef}>
+            <div className={`sq-select-trigger${isOpen ? " sq-select-trigger--open" : ""}`} onClick={() => setIsOpen(!isOpen)}>
+                <span style={{ color: selected?.color }}>{selected ? selected.label : placeholder}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
+            </div>
+            {isOpen && (
+                <div className="sq-select-popup">
+                    {options.map(o => (
+                        <div key={o.value} className={`sq-select-item${value === o.value ? " sq-select-item--active" : ""}`} onClick={() => { onChange(o.value); setIsOpen(false); }}>
+                            <span style={{ color: o.color }}>{o.label}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const COLOR_MAP = {
+    "PENDING": "#f59e0b", "CONFIRMED": "#3b82f6", "PLANNING": "#6366f1", "PROCESSING": "#8b5cf6", "IN_PROGRESS": "#8b5cf6", "COMPLETED": "#10b981", "DELIVERED": "#10b981", "CANCELLED": "#ef4444", "PENDING_APPROVAL": "#d946ef", "WAITING_FOR_DEPOSIT": "#f59e0b", "UNPAID": "#ef4444", "PARTIAL": "#f59e0b", "PAID": "#10b981"
+};
+
 export const SalesOrders = () => {
     const { user } = useAuth();
     const [keyword, setKeyword] = useState("");
@@ -43,6 +78,7 @@ export const SalesOrders = () => {
     const [selectedForApproval, setSelectedForApproval] = useState(null);
     const [statusFilter, setStatusFilter] = useState("");
     const [quickScheduleOrderId, setQuickScheduleOrderId] = useState(null);
+    const [dueDateOrder, setDueDateOrder] = useState(null);
 
     const isSalesStaff = user?.role === "ROLE_SALES_STAFF";
     const isSalesManager = user?.role === "ROLE_SALES_MANAGER";
@@ -81,13 +117,16 @@ export const SalesOrders = () => {
         />
     );
 
+    const statusOptions = Object.entries(ORDER_STATUS_MAP).map(([k, v]) => ({ value: k, label: v.text, color: COLOR_MAP[k] || "#64748b" }));
+    const payOptions = Object.entries(PAYMENT_STATUS_MAP).map(([k, v]) => ({ value: k, label: v.text, color: COLOR_MAP[k] || "#64748b" }));
+
     return (
         <div className="sp-page">
             <div className="sp-page-header">
                 <div><h1 className="sp-title">Danh sách Đơn hàng</h1></div>
             </div>
 
-            <div className="so-toolbar-wrap">
+            <div className="sq-toolbar-wrap">
                 <div className="sp-search">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                     <input
@@ -108,24 +147,22 @@ export const SalesOrders = () => {
             </div>
 
             {showFilters && (
-                <div className="sq-filter-panel">
+                <div className="sq-filter-panel" style={{ gridTemplateColumns: "1fr 1fr 50px" }}>
                     <div className="sq-f-group">
                         <label className="sq-f-label">Trạng thái</label>
-                        <select className="sq-f-input" style={{ width: '100%' }} value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }}>
-                            <option value="">Tất cả trạng thái</option>
-                            <option value="PENDING">Chờ xử lý</option>
-                            <option value="PROCESSING">Đang sản xuất</option>
-                            <option value="DELIVERED">Đã giao</option>
-                            <option value="CANCELLED">Hủy</option>
-                            <option value="PENDING_APPROVAL">Chờ duyệt</option>
-                        </select>
+                        <CustomStatusSelect 
+                            value={statusFilter} 
+                            options={[{ value: "", label: "Tất cả trạng thái" }, ...statusOptions]} 
+                            onChange={val => { setStatusFilter(val); setPage(0); }} 
+                        />
                     </div>
                     <div className="sq-f-group">
                         <label className="sq-f-label">Thanh toán</label>
-                        <select className="sq-f-input" style={{ width: '100%' }} value={payFilter} onChange={e => { setPayFilter(e.target.value); setPage(0); }}>
-                            <option value="">Tất cả thanh toán</option>
-                            {Object.entries(PAYMENT_STATUS_MAP).map(([k, v]) => <option key={k} value={k}>{v.text}</option>)}
-                        </select>
+                        <CustomStatusSelect 
+                            value={payFilter} 
+                            options={[{ value: "", label: "Tất cả thanh toán" }, ...payOptions]} 
+                            onChange={val => { setPayFilter(val); setPage(0); }} 
+                        />
                     </div>
                     <div className="sq-f-group sq-f-group--btns">
                         <label className="sq-f-label">&nbsp;</label>
@@ -171,6 +208,11 @@ export const SalesOrders = () => {
                                         <button className="sp-action-btn" onClick={() => setViewId(o.id)} title="Xem chi tiết">
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
                                         </button>
+                                        {!isDirector && (
+                                            <button className="sp-action-btn" onClick={() => setDueDateOrder(o)} title="Chọn ngày giao dự kiến">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                                            </button>
+                                        )}
                                         {canSchedule && !isDirector && (
                                             <button className="sp-action-btn" onClick={() => setQuickScheduleOrderId(o.id)} title={isSalesStaff ? "Lập lịch giao hàng" : "Lập lịch sản xuất"}>
                                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
@@ -230,8 +272,25 @@ export const SalesOrders = () => {
                     }}
                 />
             )}
+            {showCreate && <CreateOrder 
+                onBack={(shouldRefetch) => { 
+                    setShowCreate(false);
+                    if (shouldRefetch === true) refetch();
+                }} 
+            />}
+            {dueDateOrder && (
+                <UpdateDueDateModal 
+                    orderId={dueDateOrder.id} 
+                    orderNumber={dueDateOrder.orderNumber}
+                    onClose={() => setDueDateOrder(null)} 
+                    onSaved={() => { setDueDateOrder(null); refetch(); }} 
+                />
+            )}
 
-            {showCreate && <CreateOrder onBack={() => setShowCreate(false)} />}
+            <style>{`
+                .sq-toolbar-wrap { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+                .sq-toolbar-wrap .sp-search { flex: 1; }
+            `}</style>
         </div>
     );
 };
@@ -501,6 +560,50 @@ export const QuickScheduleModal = ({ orderId, onClose }) => {
                     <button className="btn-cancel" onClick={onClose}>Hủy bỏ</button>
                     <button className="btn-submit" onClick={handleSubmit} disabled={loading}>
                         {loading ? "Đang lưu..." : "Xác nhận lập lịch"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const UpdateDueDateModal = ({ orderId, orderNumber, onClose, onSaved }) => {
+    const [dueDate, setDueDate] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleSubmit = async () => {
+        if (!dueDate) return alert("Vui lòng chọn ngày giao hàng!");
+        setSubmitting(true);
+        try {
+            await salesOrderService.updateDueDate(orderId, dueDate);
+            alert("Cập nhật ngày giao hàng dự kiến thành công!");
+            onSaved();
+        } catch (err) {
+            alert("Lỗi: " + (err.response?.data?.message || err.message));
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="sp-modal-overlay" onClick={onClose}>
+            <div className="sp-modal-content sp-modal--light" style={{ width: "400px" }} onClick={e => e.stopPropagation()}>
+                <div className="sp-modal-header">
+                    <span className="sp-modal-title">Chọn Ngày Giao Dự Kiến</span>
+                    <button className="sp-modal-close" onClick={onClose}>&times;</button>
+                </div>
+                <div className="sp-modal-body" style={{ padding: "20px" }}>
+                    <div style={{ marginBottom: "15px", fontSize: "14px", color: "#64748b" }}>
+                        Cập nhật ngày giao hàng dự kiến cho đơn hàng <strong style={{ color: '#1e293b' }}>{orderNumber}</strong>.
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                        <SingleDatePicker value={dueDate} onChange={setDueDate} />
+                    </div>
+                </div>
+                <div className="sp-modal-footer">
+                    <button className="btn-cancel" onClick={onClose}>Hủy</button>
+                    <button className="btn-submit" onClick={handleSubmit} disabled={submitting}>
+                        {submitting ? "Đang lưu..." : "Xác nhận"}
                     </button>
                 </div>
             </div>

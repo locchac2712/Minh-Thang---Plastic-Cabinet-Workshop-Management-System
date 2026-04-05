@@ -506,7 +506,7 @@ export const SingleDatePicker = ({ value, onChange, isReadOnly = false }) => {
                         const isPast = d < today, isSel = d === value, isT = d === today;
                         return (
                             <div key={d} className={`sq-cal-day${isSel ? " sq-cal-day--start" : ""}${isPast ? " sq-cal-day--disabled" : ""}${isT ? " sq-cal-day--today" : ""}`}
-                                 onClick={() => { if (!isPast) { onChange(d); setIsOpen(false); } }}>
+                                 onClick={() => { if(!isPast) { onChange(d); setIsOpen(false); } }}>
                                 {new Date(d).getDate()}
                             </div>
                         );

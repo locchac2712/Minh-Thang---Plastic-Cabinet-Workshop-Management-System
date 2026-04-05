@@ -42,8 +42,12 @@ const salesOrderService = {
             .then(res => res.data.data);
     },
     updatePriority: (id, data) => {
-
         return api.patch(`${BASE}/${id}/priority`, data)
+            .then(res => res.data?.data ?? res.data);
+    },
+
+    updateDueDate: (id, dueDate) => {
+        return api.patch(`${BASE}/${id}/due-date`, { dueDate })
             .then(res => res.data?.data ?? res.data);
     },
 

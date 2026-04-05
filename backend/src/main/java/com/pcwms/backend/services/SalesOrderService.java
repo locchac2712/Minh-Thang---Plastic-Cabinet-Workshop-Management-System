@@ -142,6 +142,13 @@ public class SalesOrderService {
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Khách hàng ID: " + request.getCustomerId()));
 
         SalesOrder order = new SalesOrder();
+        
+        if (request.getQuotationId() != null) {
+            Quotation quotation = quotationRepository.findById(request.getQuotationId())
+                    .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Báo giá ID: " + request.getQuotationId()));
+            order.setQuotation(quotation);
+        }
+
         order.setCustomer(customer);
         order.setDueDate(request.getDueDate());
         order.setDeliveryAddress(request.getDeliveryAddress());

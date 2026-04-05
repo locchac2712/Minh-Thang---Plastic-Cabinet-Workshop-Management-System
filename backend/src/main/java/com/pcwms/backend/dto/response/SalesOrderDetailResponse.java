@@ -35,6 +35,8 @@ public class SalesOrderDetailResponse {
     private BigDecimal depositRatio;
     private BigDecimal depositAmount;
 
+    private BigDecimal discountPercent;
+
     public SalesOrderDetailResponse(SalesOrder order) {
         this.id = order.getId();
         this.orderNumber = order.getOrderNumber();

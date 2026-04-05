@@ -246,4 +246,35 @@ public class SalesOrderController {
         }
     }
 
+    // API: Cập nhật riêng Ngày giao dự kiến
+    @PatchMapping("/{id}/due-date")
+    @PreAuthorize("hasAnyRole('SALES_STAFF', 'SALES_MANAGER', 'ADMIN', 'DIRECTOR')")
+    public ResponseEntity<ResponseObject> updateDueDate(
+            @PathVariable Long id,
+            @RequestBody PriorityRequest request
+    ) {
+        try {
+            SalesOrder order = salesOrderRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy Đơn hàng: " + id));
+
+            if (request.getDueDate() != null) {
+                order.setDueDate(request.getDueDate());
+            }
+
+            salesOrderRepository.save(order);
+
+            return ResponseEntity.ok(
+                    new ResponseObject(
+                            "SUCCESS",
+                            "Đã cập nhật Ngày giao dự kiến thành công!",
+                            new SalesOrderDetailResponse(order)
+                    )
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ResponseObject("ERROR", e.getMessage(), null)
+            );
+        }
+    }
+
 }

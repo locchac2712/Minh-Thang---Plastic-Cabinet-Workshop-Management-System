@@ -8,6 +8,7 @@ import java.util.List;
 @Data
 public class SalesOrderRequest {
     private Long customerId;
+    private Long quotationId;
     private LocalDate dueDate;
     private String deliveryAddress;
     private String notes;
