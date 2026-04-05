@@ -24,6 +24,7 @@ export const useProducts = (params = {}) => {
     };
 
     return { 
+        items: api.items,
         products: api.items, 
         loading: api.loading, 
         error: api.error, 

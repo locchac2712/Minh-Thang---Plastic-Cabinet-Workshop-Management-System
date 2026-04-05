@@ -1,80 +1,114 @@
-import { useState, useCallback, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
 /**
- * useApi - Nâng cấp sử dụng React Query để lấy dữ liệu tức thì và quản lý Cache chuyên nghiệp.
- * 
- * @param {Object} service - Đối tượng service chứa các phương thức getAll, create, update, delete.
- * @param {Object} options - Các tùy chọn (initialParams, cacheKey, v.v.).
+ * useApi - Hook dùng chung để quản lý việc gọi API, trạng thái loading, lỗi và dữ liệu.
  */
 export const useApi = (service, options = {}) => {
-    const queryClient = useQueryClient();
     const { 
         initialParams = {}, 
         onFetchSuccess, 
-        autoFetch = true,
-        cacheKey = null 
+        autoFetch = true 
     } = options;
 
-    // 1. Fetch dữ liệu với useQuery
-    // QueryKey bao gồm cả cacheKey và params để đảm bảo dữ liệu đúng context
-    const query = useQuery({
-        queryKey: cacheKey ? [cacheKey, initialParams] : null,
-        queryFn: async () => {
-            const res = await service.getAll(initialParams);
-            // Chuẩn hóa dữ liệu tương tự logic cũ
-            return res?.content 
+    const [data, setData]       = useState({ content: [], totalElements: 0, totalPages: 0 });
+    const [loading, setLoading] = useState(false);
+    const [error, setError]     = useState(null);
+
+    // Chuỗi hóa params để so sánh giá trị thay vì so sánh tham chiếu (tránh vòng lặp)
+    const paramsString = useMemo(() => JSON.stringify(initialParams), [initialParams]);
+
+    // Hàm lấy dữ liệu chính
+    const fetchData = useCallback(async (paramsOverride) => {
+        if (!localStorage.getItem("token")) return;
+        
+        setLoading(true);
+        setError(null);
+        try {
+            const fetchParams = paramsOverride || JSON.parse(paramsString);
+            const res = await service.getAll(fetchParams);
+            
+            const normalized = res?.content 
                 ? res 
                 : { 
                     content: Array.isArray(res) ? res : [], 
                     totalElements: res?.totalElements ?? (Array.isArray(res) ? res.length : 0), 
                     totalPages: res?.totalPages ?? 1 
                   };
-        },
-        enabled: autoFetch && !!cacheKey && !!localStorage.getItem("token"),
-        onSuccess: (data) => onFetchSuccess?.(data),
-    });
-
-    // 2. Các Mutation cho CRUD
-    const createMutation = useMutation({
-        mutationFn: (payload) => service.create(payload),
-        onSuccess: () => {
-            if (cacheKey) queryClient.invalidateQueries({ queryKey: [cacheKey] });
+            
+            setData(normalized);
+            onFetchSuccess?.(normalized);
+            return normalized;
+        } catch (err) {
+            console.error("API Fetch Error:", err);
+            const msg = err.response?.data?.message || err.message || "Lỗi tải dữ liệu";
+            setError(msg);
+            return null;
+        } finally {
+            setLoading(false);
         }
-    });
+    }, [service, paramsString, onFetchSuccess]);
 
-    const updateMutation = useMutation({
-        mutationFn: ({ id, payload }) => service.update(id, payload),
-        onSuccess: () => {
-            if (cacheKey) queryClient.invalidateQueries({ queryKey: [cacheKey] });
+    useEffect(() => {
+        if (autoFetch) {
+            fetchData();
         }
-    });
+    }, [autoFetch, fetchData]);
 
-    const removeMutation = useMutation({
-        mutationFn: (id) => {
+    // Các hàm CRUD tự động refetch
+    const create = async (payload) => {
+        setLoading(true);
+        try {
+            const res = await service.create(payload);
+            await fetchData();
+            return res;
+        } catch (err) {
+            setError(err.response?.data?.message || "Lỗi khi tạo mới");
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const update = async (id, payload) => {
+        setLoading(true);
+        try {
+            const res = await service.update(id, payload);
+            await fetchData();
+            return res;
+        } catch (err) {
+            setError(err.response?.data?.message || "Lỗi khi cập nhật");
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const remove = async (id) => {
+        setLoading(true);
+        try {
             const deleteFn = service.delete || service.remove;
-            return deleteFn(id);
-        },
-        onSuccess: () => {
-            if (cacheKey) queryClient.invalidateQueries({ queryKey: [cacheKey] });
+            const res = await deleteFn(id);
+            await fetchData();
+            return res;
+        } catch (err) {
+            setError(err.response?.data?.message || "Lỗi khi xóa");
+            throw err;
+        } finally {
+            setLoading(false);
         }
-    });
+    };
 
-    // 3. Mapping dữ liệu trả về để tương thích với các component cũ
-    const data = useMemo(() => query.data || { content: [], totalElements: 0, totalPages: 0 }, [query.data]);
-
-    return { 
-        data, 
-        items: data.content, 
-        loading: query.isLoading || query.isFetching, 
-        error: query.error ? (query.error.response?.data?.message || "Lỗi tải dữ liệu") : null,
-        setError: () => {}, // Giữ cho tương thích interface cũ
-        setData: (newData) => {
-            if (cacheKey) queryClient.setQueryData([cacheKey, initialParams], newData);
-        },
-        refetch: query.refetch, 
-        create: createMutation.mutateAsync, 
-        update: (id, payload) => updateMutation.mutateAsync({ id, payload }), 
-        remove: removeMutation.mutateAsync 
+    return {
+        data,
+        items: data?.content || [],
+        loading,
+        error,
+        fetchData,
+        refetch: fetchData,
+        create,
+        update,
+        remove,
+        setData,
+        setError
     };
 };

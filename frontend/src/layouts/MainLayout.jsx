@@ -28,6 +28,7 @@ import { MyProfile } from "../pages/common/MyProfile";
 
 // TanStack Query & Services for Prefetching
 import { useQueryClient, useQuery } from "@tanstack/react-query";
+// Services
 import productService from "../services/productService";
 import customerService from "../services/customerService";
 import quotationService from "../services/quotationService";
@@ -124,7 +125,6 @@ const PAGE_TITLES = {
 
 export const MainLayout = () => {
     const { user, logout, hasRole } = useAuth();
-    const queryClient = useQueryClient();
     
     // Fetch Notifications
     const { data: notifData } = useQuery({
@@ -181,44 +181,6 @@ export const MainLayout = () => {
         window.scrollTo(0, 0);
     };
 
-    // Prefetching logic to make app feel "Instant"
-    const handlePrefetch = (id) => {
-        const defaultParams = {};
-        switch (id) {
-            case "products":
-                queryClient.prefetchQuery({
-                    queryKey: ["PRODUCTS", defaultParams],
-                    queryFn: () => productService.getAll(defaultParams)
-                });
-                break;
-            case "customers":
-                queryClient.prefetchQuery({
-                    queryKey: ["CUSTOMERS", defaultParams],
-                    queryFn: () => customerService.getAll(defaultParams)
-                });
-                break;
-            case "quotes":
-                queryClient.prefetchQuery({
-                    queryKey: ["QUOTATIONS", defaultParams],
-                    queryFn: () => quotationService.getAll(defaultParams)
-                });
-                break;
-            case "orders":
-                queryClient.prefetchQuery({
-                    queryKey: ["SALES_ORDERS", defaultParams],
-                    queryFn: () => salesOrderService.getAll(defaultParams)
-                });
-                break;
-            case "material":
-                queryClient.prefetchQuery({
-                    queryKey: ["MATERIALS", defaultParams],
-                    queryFn: () => materialService.getAll(defaultParams)
-                });
-                break;
-            default: break;
-        }
-    };
-
     const renderPage = () => {
         switch (page) {
             // General
@@ -273,7 +235,6 @@ export const MainLayout = () => {
                                 key={n.id}
                                 className={`ml-nav-item ${page === n.id ? "ml-nav-item--active" : ""}`}
                                 onClick={() => setPage(n.id)}
-                                onMouseEnter={() => handlePrefetch(n.id)}
                                 title={!isSidebarOpen ? n.label : ""}
                             >
                                 <span className="ml-nav-item__icon">{n.icon}</span>

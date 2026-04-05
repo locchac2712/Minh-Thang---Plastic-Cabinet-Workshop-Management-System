@@ -11,6 +11,7 @@ export const useBoms = (params = {}) => {
     });
 
     return { 
+        items: api.items,
         boms: api.items, 
         loading: api.loading, 
         error: api.error, 

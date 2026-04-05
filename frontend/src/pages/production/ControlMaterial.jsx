@@ -209,7 +209,7 @@ export const ControlMaterial = ({ onSelectMaterial }) => {
         } finally { setSaving(false); }
     };
 
-    const filtered = materials.filter((m) =>
+    const filtered = (materials || []).filter((m) =>
         m.materialName?.toLowerCase().includes(search.toLowerCase()) ||
         m.sku?.toLowerCase().includes(search.toLowerCase()) ||
         m.name?.toLowerCase().includes(search.toLowerCase())
@@ -255,16 +255,30 @@ export const ControlMaterial = ({ onSelectMaterial }) => {
                 </div>
             </div>
 
-            {(loading && materials.length === 0) && <div className="sp-state"><div className="sp-spinner"/><span>Đang thu thập dữ liệu vật tư...</span></div>}
+            {/* Trạng thái Loading ban đầu */}
+            {(loading && materials.length === 0) && (
+                <div className="sp-state">
+                    <div className="sp-spinner" />
+                    <span>Đang tải dữ liệu vật tư...</span>
+                </div>
+            )}
 
-            {error && !loading && (
+            {/* Trạng thái Lỗi */}
+            {error && materials.length === 0 && (
                 <div className="sp-state sp-state--error">
                     <span style={{ fontWeight: 600 }}>{error}</span>
                 </div>
             )}
 
-            {!loading && !error && (
-                <div className="sp-card">
+            {/* Bảng dữ liệu */}
+            {(materials.length > 0 || (!loading && !error)) && (
+                <div className={`sp-card ${loading ? "sp-card--loading" : ""}`}>
+                    {loading && materials.length > 0 && (
+                        <div className="sp-refresh-overlay">
+                            <div className="sp-spinner-sm" />
+                            <span>Đang làm mới...</span>
+                        </div>
+                    )}
                     <table className="sp-table">
                         <thead className="sq-table-head">
                         <tr>

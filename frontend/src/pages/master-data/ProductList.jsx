@@ -11,7 +11,7 @@ export const ProductList = () => {
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [isCreating, setIsCreating] = useState(false);
 
-    const filtered = products.filter((p) =>
+    const filtered = (products || []).filter((p) =>
         (p.name || "").toLowerCase().includes(search.toLowerCase()) ||
         (p.sku || "").toLowerCase().includes(search.toLowerCase())
     );

@@ -69,6 +69,7 @@ export const useQuotations = (params = {}) => {
     });
 
     return { 
+        items: api.items,
         data: api.data, 
         loading: api.loading, 
         error: api.error, 

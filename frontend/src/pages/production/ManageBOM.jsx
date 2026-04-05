@@ -407,7 +407,7 @@ export const ManageBOM = () => {
     setTimeout(() => setToast(null), 3500);
   };
 
-  const filtered = boms.filter((b) =>
+  const filtered = (boms || []).filter((b) =>
       (b.productName || "").toLowerCase().includes(search.toLowerCase()) ||
       (b.version || "").toLowerCase().includes(search.toLowerCase())
   );
@@ -463,17 +463,31 @@ export const ManageBOM = () => {
           </div>
         </div>
 
-        {(loading && boms.length === 0) && <div className="sp-state"><div className="sp-spinner"/><span>Đang thu thập dữ liệu định mức...</span></div>}
+        {/* Trạng thái Loading ban đầu */}
+        {(loading && boms.length === 0) && (
+            <div className="sp-state">
+                <div className="sp-spinner" />
+                <span>Đang tải dữ liệu định mức...</span>
+            </div>
+        )}
         
-        {error && !loading && (
+        {/* Trạng thái Lỗi */}
+        {error && boms.length === 0 && (
             <div className="sp-state sp-state--error">
               <span style={{ fontSize: 32 }}>⚠️</span>
               <span style={{ fontWeight: 600 }}>{error}</span>
             </div>
         )}
 
-        {!loading && !error && (
-            <div className="sp-card">
+        {/* Bảng dữ liệu */}
+        {(boms.length > 0 || (!loading && !error)) && (
+            <div className={`sp-card ${loading ? "sp-card--loading" : ""}`}>
+              {loading && boms.length > 0 && (
+                  <div className="sp-refresh-overlay">
+                      <div className="sp-spinner-sm" />
+                      <span>Đang cập nhật...</span>
+                  </div>
+              )}
               <table className="sp-table">
                 <thead className="sq-table-head">
                   <tr>

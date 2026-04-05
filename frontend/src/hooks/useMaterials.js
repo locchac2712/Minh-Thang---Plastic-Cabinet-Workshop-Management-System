@@ -11,6 +11,7 @@ export const useMaterials = (autoFetch = true) => {
     });
 
     return { 
+        items: api.items,
         materials: api.items, 
         loading: api.loading, 
         error: api.error, 

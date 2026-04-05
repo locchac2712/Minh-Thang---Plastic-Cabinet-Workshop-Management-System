@@ -51,7 +51,7 @@ export const UserManagement = () => {
 
     useEffect(() => { fetchData(); }, []);
 
-    const filteredUsers = users.filter((u) => {
+    const filteredUsers = (users || []).filter((u) => {
         const matchSearch =
             u.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             u.email?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -143,17 +143,16 @@ export const UserManagement = () => {
         setConfirmModal({ show: false, type: "", user: null });
     };
 
-    if (loading) {
-        return (
-            <div className="um-loading">
-                <div className="um-spinner"></div>
-                <p>Đang tải dữ liệu...</p>
-            </div>
-        );
-    }
 
     return (
         <div className="um-container">
+            {/* Trạng thái Loading ban đầu */}
+            {loading && users.length === 0 && (
+                <div className="um-loading">
+                    <div className="um-spinner"></div>
+                    <p>Đang tải dữ liệu...</p>
+                </div>
+            )}
             {/* Header */}
             <div className="um-header">
                 <div>
@@ -208,7 +207,14 @@ export const UserManagement = () => {
             </div>
 
             {/* Table */}
-            <div className="um-table-wrap">
+            {(users.length > 0 || (!loading)) && (
+                <div className={`um-table-wrap ${loading ? "sp-card--loading" : ""}`}>
+                    {loading && users.length > 0 && (
+                        <div className="sp-refresh-overlay">
+                            <div className="sp-spinner-sm" />
+                            <span>Đang làm mới...</span>
+                        </div>
+                    )}
                 <table className="um-table">
                     <thead>
                         <tr>
@@ -272,7 +278,8 @@ export const UserManagement = () => {
                         )}
                     </tbody>
                 </table>
-            </div>
+                </div>
+            )}
 
             {/* Create/Edit Modal */}
             {showModal && (

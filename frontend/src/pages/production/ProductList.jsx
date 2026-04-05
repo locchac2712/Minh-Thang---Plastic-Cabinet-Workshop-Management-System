@@ -72,7 +72,7 @@ const AddForm = ({ onSave, onClose, loading }) => {
 
 // ── Main List ──────────────────────────────────────────────────
 export const ProductList = ({ onSelectProduct }) => {
-    const { products, loading, error, refetch, create } = useProducts();
+    const { items, loading, error, refetch, create } = useProducts();
     const { user } = useAuth();
     const [search,     setSearch]     = useState("");
     const [showAdd,    setShowAdd]    = useState(false);
@@ -89,7 +89,7 @@ export const ProductList = ({ onSelectProduct }) => {
         setTimeout(() => setToast(null), 3000);
     };
 
-    const filtered = products.filter((p) =>
+    const filtered = (items || []).filter((p) =>
         p.name?.toLowerCase().includes(search.toLowerCase()) ||
         p.sku?.toLowerCase().includes(search.toLowerCase())
     );
@@ -145,16 +145,30 @@ export const ProductList = ({ onSelectProduct }) => {
                 </div>
             </div>
 
-            {(loading && products.length === 0) && <div className="sp-state"><div className="sp-spinner"/><span>Đang thu thập dữ liệu sản phẩm...</span></div>}
+            {/* Chỉ hiện spinner ở giữa màn hình nếu chưa có dữ liệu và đang load */}
+            {(loading && (items || []).length === 0) && (
+                <div className="sp-state">
+                    <div className="sp-spinner"/>
+                    <span>Đang thu thập dữ liệu sản phẩm...</span>
+                </div>
+            )}
 
-            {error && !loading && (
+            {/* Hiện lỗi nếu có và không có dữ liệu */}
+            {error && (items || []).length === 0 && (
                 <div className="sp-state sp-state--error">
                     <span style={{ fontWeight: 600 }}>{error}</span>
                 </div>
             )}
 
-            {!loading && !error && (
-                <div className="sp-card">
+            {/* Luôn hiện card nếu có dữ liệu hoặc khi đã load xong không lỗi */}
+            {((items || []).length > 0 || (!loading && !error)) && (
+                <div className={`sp-card ${loading ? "sp-card--loading" : ""}`}>
+                    {loading && (items || []).length > 0 && (
+                        <div className="sp-refresh-overlay">
+                            <div className="sp-spinner-sm" />
+                            <span>Đang cập nhật...</span>
+                        </div>
+                    )}
                     <table className="sp-table">
                         <thead className="sq-table-head">
                         <tr>
