@@ -17,6 +17,7 @@ public class QuotationDetailResponse {
     private CustomerDto customer;
     private StaffDto staff;
     private BigDecimal totalAmount;
+    private BigDecimal discountPercent;
     private String status;
     private String note;
     private String rejectionReason;
@@ -30,6 +31,7 @@ public class QuotationDetailResponse {
         this.id = q.getId();
         this.quotationNumber = q.getQuotationNumber();
         this.totalAmount = q.getTotalAmount();
+        this.discountPercent = q.getDiscountPercent();
         this.status = q.getStatus();
         this.note = q.getNote();
         this.rejectionReason = q.getRejectionReason();

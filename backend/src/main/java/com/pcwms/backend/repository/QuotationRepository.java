@@ -20,8 +20,8 @@ public interface QuotationRepository extends JpaRepository<Quotation, Long> {
             "OR LOWER(CAST(c.name AS text)) LIKE LOWER(CONCAT('%', CAST(:keyword AS text), '%'))) " +
             "AND (CAST(:status AS String) IS NULL OR q.status = :status) " +
             "AND (CAST(:customerId AS Long) IS NULL OR c.id = :customerId) " +
-            "AND (CAST(:startDate AS LocalDateTime) IS NULL OR q.createdDate >= :startDate) " +
-            "AND (CAST(:endDate AS LocalDateTime) IS NULL OR q.createdDate <= :endDate)")
+            "AND (CAST(:startDate AS timestamp) IS NULL OR q.createdDate >= :startDate) " +
+            "AND (CAST(:endDate AS timestamp) IS NULL OR q.createdDate <= :endDate)")
     Page<Quotation> searchQuotations(
             @Param("keyword") String keyword,
             @Param("status")  String status,

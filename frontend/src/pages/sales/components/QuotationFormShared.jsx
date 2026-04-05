@@ -60,9 +60,9 @@ const CustomStatusSelect = ({ value, onChange, options, disabled = false }) => {
         </div>
     );
 };
-
 // ── Product Line Table ──────────────────────────────────────
 export const QuotationItemsTable = ({ rows, products, getAvailableProducts, onUpdate, onAdd, onRemove, isReadOnly = false, errors = {} }) => {
+
     return (
         <div className="sq-form-card">
             <div className="sq-form-section-header">
@@ -74,9 +74,10 @@ export const QuotationItemsTable = ({ rows, products, getAvailableProducts, onUp
                 <table className="sq-form-table">
                     <thead>
                         <tr>
-                            <th style={{ width: "40%" }}>Sản phẩm <span className="sq-required-star">*</span></th>
-                            <th style={{ width: "120px" }}>Số lượng</th>
-                            <th style={{ width: "160px" }}>Đơn giá</th>
+                            <th style={{ width: "35%" }}>Sản phẩm <span className="sq-required-star">*</span></th>
+                            <th style={{ width: "100px" }}>ĐVT</th>
+                            <th style={{ width: "100px" }}>Số lượng</th>
+                            <th style={{ width: "140px" }}>Đơn giá</th>
                             <th style={{ textAlign: "right" }}>Thành tiền</th>
                             {!isReadOnly && <th style={{ width: "50px" }}></th>}
                         </tr>
@@ -84,6 +85,7 @@ export const QuotationItemsTable = ({ rows, products, getAvailableProducts, onUp
                     <tbody>
                         {rows.map((row, i) => {
                             const lineTotal = (row.qty || 0) * (row.unitPrice || 0);
+                            const selectedProduct = products.find(p => String(p.id) === String(row.productId));
                             
                             return (
                                 <tr key={i}>
@@ -94,6 +96,9 @@ export const QuotationItemsTable = ({ rows, products, getAvailableProducts, onUp
                                             onChange={(val) => onUpdate(i, "productId", val)}
                                             disabled={isReadOnly}
                                         />
+                                    </td>
+                                    <td>
+                                        <span className="sq-table-readonly">{selectedProduct?.unit || "-"}</span>
                                     </td>
                                     <td>
                                         {isReadOnly ? (
@@ -153,6 +158,7 @@ export const QuotationItemsTable = ({ rows, products, getAvailableProducts, onUp
         </div>
     );
 };
+
 
 // ── Summary Panel ───────────────────────────────────────────
 export const QuotationSummary = ({ totals, discountPercent, onDiscountChange, note, onNoteChange, status, onStatusChange, isReadOnly = false, isEdit = false }) => {
@@ -232,14 +238,21 @@ export const QuotationSummary = ({ totals, discountPercent, onDiscountChange, no
                 </div>
             </div>
 
-            {isEdit && (
+            {isReadOnly && status && (
                 <div className="sq-form-card" style={{ marginTop: "16px" }}>
                     <label className="sq-form-label">Trạng thái báo giá</label>
-                    <CustomStatusSelect
-                        value={status}
-                        onChange={onStatusChange}
-                        options={statusOptions}
-                    />
+                    <div style={{
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        fontWeight: 700,
+                        fontSize: '13.5px',
+                        textAlign: 'center',
+                        color: statusOptions.find(s => s.value === status)?.color || '#64748b',
+                        background: (statusOptions.find(s => s.value === status)?.color || '#64748b') + '15',
+                        border: '1.5px solid ' + (statusOptions.find(s => s.value === status)?.color || '#64748b') + '30'
+                    }}>
+                        {statusOptions.find(s => s.value === status)?.label || status}
+                    </div>
                 </div>
             )}
 

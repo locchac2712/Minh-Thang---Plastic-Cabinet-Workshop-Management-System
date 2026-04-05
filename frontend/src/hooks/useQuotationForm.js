@@ -62,13 +62,14 @@ export const useQuotationForm = (initialData = null) => {
     };
 
     const updateRow = (index, field, value) => {
+        console.log("updateRow called:", { index, field, value });
         setRows(prev => prev.map((row, i) => {
             if (i === index) {
                 const updatedRow = { ...row, [field]: value };
+                console.log("Row updated:", updatedRow);
                 if (field === "productId" && value) {
                     const pr = products.find(p => String(p.id) === String(value));
                     updatedRow.unitPrice = pr?.sellingPrice ?? pr?.price ?? 0;
-                    // Nếu đang là 0, tự động chuyển thành 1 khi chọn SP
                     if (updatedRow.qty === 0) updatedRow.qty = 1;
                 }
                 return updatedRow;
