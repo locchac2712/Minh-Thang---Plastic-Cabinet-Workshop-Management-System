@@ -273,18 +273,35 @@ public class QuotationService {
         
         quotation.setTotalAmount(grandTotal);
 
+        // 6. Tự động chuyển sang WAITING_APPROVAL sau khi sửa (nêu đang là DRAFT hoặc REJECTED)
+        quotation.setStatus("WAITING_APPROVAL");
+        quotation.setRejectionReason(null); // Xóa lý do cũ nếu có
+
         Quotation saved = quotationRepository.save(quotation);
+
+        // 7. Gửi thông báo cho Giám đốc
+        List<User> directors = userRepository.findActiveUsersByRoleNames(List.of("DIRECTOR", "ROLE_DIRECTOR"));
+        for (User d : directors) {
+            Notification n = new Notification();
+            n.setUser(d);
+            n.setTitle("Báo giá đã được cập nhật/gửi lại");
+            n.setMessage("Báo giá " + saved.getQuotationNumber() + " đã được nhân viên chỉnh sửa và gửi lại.");
+            n.setReferenceId(saved.getId());
+            n.setType("APPROVAL_REQUEST");
+            notificationRepository.save(n);
+        }
+
         return quotationRepository.findById(saved.getId())
                 .orElseThrow(() -> new RuntimeException("Lỗi khi tải lại báo giá"));
     }
 
     //API LẤY DANH SÁCH BÁO GIÁ
-    public Page<QuotationListResponse> getAllQuotations(String keyword, String status, Long customerId, Pageable pageable) {
+    public Page<QuotationListResponse> getAllQuotations(String keyword, String status, Long customerId, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
         // Nếu user truyền chuỗi rỗng "", chuyển thành null để DB bỏ qua điều kiện lọc
         String validKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
         String validStatus = (status != null && !status.trim().isEmpty()) ? status.trim().toUpperCase() : null;
 
-        Page<Quotation> quotationPage = quotationRepository.searchQuotations(validKeyword, validStatus, customerId, pageable);
+        Page<Quotation> quotationPage = quotationRepository.searchQuotations(validKeyword, validStatus, customerId, startDate, endDate, pageable);
 
         // Map nguyên mảng Entity sang DTO siêu nhẹ
         return quotationPage.map(QuotationListResponse::new);

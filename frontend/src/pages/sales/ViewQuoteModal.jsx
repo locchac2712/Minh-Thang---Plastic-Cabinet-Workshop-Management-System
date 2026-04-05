@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import quotationService from "../../services/quotationService.js";
+import quotationService, { getQuoteStatus } from "../../services/quotationService.js";
 import "./CreateForms.css";
 import { useAuth } from "../../context/AuthContext";
 import { useQuotationForm } from "../../hooks/useQuotationForm";
@@ -22,6 +22,8 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
     const [loadingInit, setLoadingInit] = useState(true);
     const [mode, setMode] = useState("view"); // "view" | "edit"
 
+    const s = getQuoteStatus(quote?.status);
+    
     const loadQuote = async () => {
         try {
             setLoadingInit(true);
@@ -128,13 +130,8 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                             </h2>
                             <span className="sq-modal-sub" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                 {quote?.quotationNumber || "..."} · {quote?.customer?.name}
-                                <span className={`sq-badge sq-badge--${quote?.status?.toLowerCase().replace('_', '-')}`}>
-                                    {quote?.status === "DRAFT" ? "Bản nháp" :
-                                     quote?.status === "WAITING_APPROVAL" ? "Đang chờ duyệt" :
-                                     quote?.status === "APPROVED" ? "Đã phê duyệt" :
-                                     quote?.status === "REJECTED" ? "Bị từ chối" :
-                                     quote?.status === "ACCEPTED" ? "Đã chốt" : 
-                                     quote?.status === "CANCELLED" ? "Đã hủy" : "Hết hạn"}
+                                <span className={`sq-badge`} style={{ backgroundColor: s.color, color: "#fff" }}>
+                                    {s.text}
                                 </span>
                             </span>
                         </div>
@@ -168,12 +165,6 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                                                 <div className="sq-form-input sq-form-input--readonly">
                                                     <span style={{color: "#94a3b8", marginRight: 8}}>👤</span>
                                                     {quote?.customer?.name || "..."}
-                                                </div>
-                                            </div>
-                                            <div className="sq-form-field">
-                                                <label className="sq-form-label">Thời hạn báo giá</label>
-                                                <div className="sq-form-input sq-form-input--readonly" style={{ background: "#f9fafb", color: "#6b7280", fontWeight: "600" }}>
-                                                    Giá trị đến: {fmtDate(quote?.validUntil)} (15 ngày)
                                                 </div>
                                             </div>
                                         </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
 /**
  * useApi - Hook dùng chung để quản lý việc gọi API, trạng thái loading, lỗi và dữ liệu.
@@ -14,6 +14,12 @@ export const useApi = (service, options = {}) => {
     const [loading, setLoading] = useState(false);
     const [error, setError]     = useState(null);
 
+    // Dùng Ref để giữ reference ổn định của service (tránh vòng lặp nểu service ko được memoize)
+    const serviceRef = useRef(service);
+    useEffect(() => {
+        serviceRef.current = service;
+    }, [service]);
+
     // Chuỗi hóa params để so sánh giá trị thay vì so sánh tham chiếu (tránh vòng lặp)
     const paramsString = useMemo(() => JSON.stringify(initialParams), [initialParams]);
 
@@ -25,7 +31,7 @@ export const useApi = (service, options = {}) => {
         setError(null);
         try {
             const fetchParams = paramsOverride || JSON.parse(paramsString);
-            const res = await service.getAll(fetchParams);
+            const res = await serviceRef.current.getAll(fetchParams);
             
             const normalized = res?.content 
                 ? res 
@@ -46,7 +52,7 @@ export const useApi = (service, options = {}) => {
         } finally {
             setLoading(false);
         }
-    }, [service, paramsString, onFetchSuccess]);
+    }, [paramsString, onFetchSuccess]);
 
     useEffect(() => {
         if (autoFetch) {

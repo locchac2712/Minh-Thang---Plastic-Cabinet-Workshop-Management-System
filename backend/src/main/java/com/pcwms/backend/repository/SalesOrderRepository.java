@@ -20,8 +20,8 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
     // 1. Cập nhật searchSalesOrders để tránh lỗi bytea khi keyword null/rỗng
     @Query("SELECT s FROM SalesOrder s " +
             "JOIN FETCH s.customer c " +
-            "WHERE (LOWER(s.orderNumber) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "   OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "WHERE (LOWER(CAST(s.orderNumber AS text)) LIKE LOWER(CONCAT('%', CAST(:keyword AS text), '%')) " +
+            "   OR LOWER(CAST(c.name AS text)) LIKE LOWER(CONCAT('%', CAST(:keyword AS text), '%')) " +
             ") " +
             "AND (COALESCE(:statuses, NULL) IS NULL OR s.status IN :statuses) " +
             "AND (:paymentStatus IS NULL OR s.paymentStatus = :paymentStatus) " +
@@ -44,8 +44,8 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
             "s.status = 'CONFIRMED' " +
             "AND (" +
             "   :keyword IS NULL OR :keyword = '' " +
-            "   OR LOWER(s.orderNumber) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "   OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "   OR LOWER(CAST(s.orderNumber AS text)) LIKE LOWER(CONCAT('%', CAST(:keyword AS text), '%')) " +
+            "   OR LOWER(CAST(c.name AS text)) LIKE LOWER(CONCAT('%', CAST(:keyword AS text), '%')) " +
             ")")
     Page<SalesOrder> findOrdersForProduction(
             @Param("keyword") String keyword,

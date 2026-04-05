@@ -91,12 +91,6 @@ export const CreateQuoteModal = ({ onClose, onCreated }) => {
                                             />
                                             {errors.custId && <span className="sq-field-error">{errors.custId}</span>}
                                         </div>
-                                        <div className="sq-form-field">
-                                            <label className="sq-form-label">Thời hạn báo giá</label>
-                                            <div className="sq-form-input sq-form-input--readonly" style={{ background: "#f9fafb", color: "#6b7280", fontWeight: "600" }}>
-                                                Mặc định 15 ngày kể từ khi tạo
-                                            </div>
-                                        </div>
                                     </div>
                                     
                                     <div className="sq-form-row">

@@ -1322,4 +1322,16 @@
 
 .so-badge--approval { background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; }
 .so-badge--deposit { background: #f0fdf4; color: #166534; border: 1px solid #dcfce7; }
+
+/* ── Utility: Hide Number Arrows ────────────────────────── */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance: textfield; /* Firefox */
+}
 

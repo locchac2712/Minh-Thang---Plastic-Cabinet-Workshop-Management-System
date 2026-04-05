@@ -3,6 +3,8 @@ package com.pcwms.backend.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.List;
 
@@ -21,6 +23,7 @@ public class Staff {
     private User user;
 
     @Column(name= "fullname", nullable = false)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private String fullName; // Đổi từ 'fullname' -> 'fullName' để đồng bộ CamelCase nhưng giữ nguyên mapping DB
 
     @Column(name= "department")

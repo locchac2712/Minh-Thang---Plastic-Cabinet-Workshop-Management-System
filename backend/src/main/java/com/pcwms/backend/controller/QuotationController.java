@@ -14,6 +14,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import static org.springframework.http.ResponseEntity.ok;
 
@@ -107,11 +110,17 @@ public class QuotationController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdDate") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir){
         try {
+            // Chuyển LocalDate sang LocalDateTime (Đầu ngày - Cuối ngày)
+            LocalDateTime startLDT = (startDate != null) ? startDate.atStartOfDay() : null;
+            LocalDateTime endLDT = (endDate != null) ? endDate.atTime(LocalTime.MAX) : null;
+
             // Setup phân trang và sắp xếp (Mặc định: Mới nhất nổi lên đầu)
             org.springframework.data.domain.Sort sort = sortDir.equalsIgnoreCase("asc") ?
                     org.springframework.data.domain.Sort.by(sortBy).ascending() :
@@ -119,7 +128,7 @@ public class QuotationController {
 
             org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
 
-            Page<QuotationListResponse> quotations = quotationService.getAllQuotations(keyword, status, customerId, pageable);
+            Page<QuotationListResponse> quotations = quotationService.getAllQuotations(keyword, status, customerId, startLDT, endLDT, pageable);
 
             return ResponseEntity.ok(
                     new ResponseObject("SUCCESS", "Lấy danh sách Báo giá thành công!", quotations)

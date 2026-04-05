@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { useApi } from "./useApi";
 import quotationService from "../services/quotationService.js";
 
@@ -6,24 +7,29 @@ import quotationService from "../services/quotationService.js";
  */
 export const useQuotations = (params = {}) => {
     // Tạo một wrapper service để tích hợp logic lọc phía Client vào luồng chuẩn của useApi
-    const filteredService = {
+    const filteredService = useMemo(() => ({
         ...quotationService,
         getAll: async (p) => {
             const {
-                keyword, status,
+                keyword, status, customerId,
                 startDate, endDate, minAmount, maxAmount,
-                page = 0, size = 10, sortBy, sortDir,
+                page = 0, size = 10, 
+                sortBy = 'createdDate', sortDir = 'desc',
             } = p;
 
-            const hasClientFilter = !!(startDate || endDate || minAmount !== undefined || maxAmount !== undefined);
+            const hasClientPriceFilter = !!(minAmount !== undefined || maxAmount !== undefined);
 
-            // Params gửi lên server (chỉ những gì backend hỗ trợ)
-            const serverParams = { keyword, status, sortBy, sortDir };
+            // Params gửi lên server
+            const serverParams = { 
+                keyword, status, customerId, 
+                startDate, endDate, 
+                sortBy, sortDir 
+            };
 
-            if (hasClientFilter) {
-                // Khi cần lọc phía client, tải lượng lớn dữ liệu để lọc chính xác
+            if (hasClientPriceFilter) {
+                // Chỉ lọc giá ở client vì server chưa hỗ trợ (có thể nâng cấp sau)
                 serverParams.page = 0;
-                serverParams.size = 1000;
+                serverParams.size = 200;
             } else {
                 serverParams.page = page;
                 serverParams.size = size;
@@ -32,17 +38,9 @@ export const useQuotations = (params = {}) => {
             const res = await quotationService.getAll(serverParams);
             let items = res?.content ?? (Array.isArray(res) ? res : []);
 
-            if (hasClientFilter) {
-                // Áp dụng filter phía client
+            if (hasClientPriceFilter) {
+                // Áp dụng filter giá phía client
                 items = items.filter(q => {
-                    if (startDate) {
-                        const qDate = q.validUntil ? q.validUntil.split("T")[0] : null;
-                        if (!qDate || qDate < startDate) return false;
-                    }
-                    if (endDate) {
-                        const qDate = q.validUntil ? q.validUntil.split("T")[0] : null;
-                        if (!qDate || qDate > endDate) return false;
-                    }
                     const amt = Number(q.totalAmount) || 0;
                     if (minAmount !== undefined && amt < minAmount) return false;
                     if (maxAmount !== undefined && amt > maxAmount) return false;
@@ -61,7 +59,7 @@ export const useQuotations = (params = {}) => {
 
             return res;
         }
-    };
+    }), []);
 
     const api = useApi(filteredService, { 
         initialParams: params,

@@ -7,13 +7,13 @@ const BASE = "/quotations";
 // QuotationDetailResponse: { id, quotationNumber, customer{}, staff{}, totalAmount, status, note, createdDate, validUntil, details[] }
 
 const STATUS_LABEL = {
-    DRAFT:    { text: "Bản nháp (Draft)", cls: "sq-badge--draft"    },
-    WAITING_APPROVAL: { text: "Chờ duyệt (Pending)", cls: "sq-badge--waiting" },
-    APPROVED: { text: "Đã phê duyệt (Approved)", cls: "sq-badge--approved" },
-    REJECTED: { text: "Bị từ chối (Rejected)", cls: "sq-badge--rejected" },
-    ACCEPTED: { text: "Đã chốt (Accepted)", cls: "sq-badge--accepted" },
-    CANCELLED: { text: "Đã hủy (Cancelled)", cls: "sq-badge--cancelled" },
-    EXPIRED:  { text: "Hết hạn (Expired)", cls: "sq-badge--expired"  },
+    DRAFT:    { text: "Bản nháp", color: "#64748b" },
+    WAITING_APPROVAL: { text: "Chờ duyệt", color: "#f59e0b" },
+    APPROVED: { text: "Đã duyệt", color: "#10b981" },
+    REJECTED: { text: "Từ chối duyệt", color: "#ef4444" },
+    ACCEPTED: { text: "Chấp thuận", color: "#8b5cf6" },
+    CANCELLED: { text: "Hủy", color: "#94a3b8" },
+    EXPIRED:  { text: "Hết hạn", color: "#4b5563" },
 };
 
 export const getQuoteStatus = (status) =>

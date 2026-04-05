@@ -12,13 +12,13 @@ import { fmt, fmtDate } from "../../utils/formatUtils";
 
 
 const STATUS_OPTIONS = [
-    { value: "DRAFT", label: "Bản nháp" },
-    { value: "WAITING_APPROVAL", label: "Chờ duyệt" },
-    { value: "APPROVED", label: "Đã duyệt nội bộ" },
-    { value: "REJECTED", label: "Từ chối duyệt" },
-    { value: "ACCEPTED", label: "Khách chốt" },
-    { value: "CANCELLED", label: "Đã hủy" },
-    { value: "EXPIRED", label: "Hết hạn" },
+    { value: "DRAFT", label: "Bản nháp", color: "#64748b" },
+    { value: "WAITING_APPROVAL", label: "Chờ duyệt", color: "#f59e0b" },
+    { value: "APPROVED", label: "Đã duyệt", color: "#10b981" },
+    { value: "REJECTED", label: "Từ chối duyệt", color: "#ef4444" },
+    { value: "ACCEPTED", label: "Chấp thuận", color: "#8b5cf6" },
+    { value: "CANCELLED", label: "Hủy", color: "#94a3b8" },
+    { value: "EXPIRED", label: "Hết hạn", color: "#4b5563" },
 ];
 
 const PRICE_RANGE_OPTIONS = [
@@ -298,7 +298,8 @@ export const SalesQuotes = () => {
                                 {isDirector && <th>Nhân viên</th>}
                                 <th>Tổng tiền</th>
                                 <th>Trạng thái</th>
-                                <th>Hiệu lực</th>
+                                <th>Ngày tạo</th>
+                                <th>Còn lại</th>
                                 <th style={{ textAlign: "center" }}>Thao tác</th>
                             </tr>
                         </thead>
@@ -321,13 +322,26 @@ export const SalesQuotes = () => {
                                         <td>
                                             {q.status === "REJECTED" && q.rejectionReason ? (
                                                 <TooltipWrapper text={`Lý do: ${q.rejectionReason}`}>
-                                                    <span className={`sq-badge ${s.cls}`}>{label}</span>
+                                                    <span className={`sq-badge`} style={{ backgroundColor: s.color, color: "#fff" }}>{label}</span>
                                                 </TooltipWrapper>
                                             ) : (
-                                                <span className={`sq-badge ${s.cls}`}>{label}</span>
+                                                <span className={`sq-badge`} style={{ backgroundColor: s.color, color: "#fff" }}>{label}</span>
                                             )}
                                         </td>
-                                        <td className="sp-td--muted">{fmtDate(q.validUntil)}</td>
+                                        <td className="sp-td--muted">{fmtDate(q.createdDate)}</td>
+                                        <td className="sp-td--muted">
+                                            {(() => {
+                                                if (q.status === "EXPIRED") return <span style={{color: "#ef4444", fontWeight: 700}}>Hết hạn</span>;
+                                                const created = new Date(q.createdDate);
+                                                const now = new Date();
+                                                const diffTime = now - created;
+                                                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                                const remaining = 15 - diffDays;
+                                                return remaining > 0 ? (
+                                                    <span style={{color: remaining <= 3 ? "#ef4444" : "#10b981", fontWeight: 600}}>{remaining} ngày</span>
+                                                ) : <span style={{color: "#ef4444", fontWeight: 700}}>Hết hạn</span>;
+                                            })()}
+                                        </td>
                                         <td>
                                             <div className="sp-td--actions" style={{justifyContent:"center"}}>
                                                 <TooltipWrapper text="Xem chi tiết">

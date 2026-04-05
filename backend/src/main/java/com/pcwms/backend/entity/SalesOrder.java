@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -27,6 +29,7 @@ public class SalesOrder {
 
     // 👉 ĐÃ THÊM: Mã đơn hàng (VD: SO-2026-1234)
     @Column(name = "order_number", nullable = false, unique = true)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private String orderNumber;
 
     // Khóa ngoại 1: Nối với Customer

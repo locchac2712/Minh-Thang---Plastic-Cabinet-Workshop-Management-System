@@ -46,6 +46,14 @@ public class DatabaseSeeder implements CommandLineRunner {
     @Transactional
     public void run(String... args) throws Exception {
         System.out.println("=== BẮT ĐẦU KIỂM TRA & TẠO DỮ LIỆU MẪU ===");
+        
+        // 0. CLEANUP (Dọn dẹp báo giá rác)
+        try {
+            quotationRepository.deleteByStatusOrStatusIsNull("SENT");
+            System.out.println("-> Đã dọn dẹp các báo giá trạng thái 'SENT' hoặc NULL.");
+        } catch (Exception e) {
+            System.err.println("Lỗi khi dọn dẹp báo giá: " + e.getMessage());
+        }
 
         // 1. ROLES
         List<String> roles = List.of("ROLE_ADMIN", "ROLE_DIRECTOR", "ROLE_SALES_MANAGER", "ROLE_SALES_STAFF", "ROLE_WAREHOUSE_MANAGER", "ROLE_PRODUCTION_MANAGER", "ROLE_ACCOUNTANT");
@@ -123,7 +131,7 @@ public class DatabaseSeeder implements CommandLineRunner {
                     q.setCustomer(customers.get(rnd.nextInt(customers.size())));
                     q.setStaff(staff);
                     q.setValidUntil(java.time.LocalDateTime.now().plusDays(rnd.nextInt(30)));
-                    q.setStatus(i % 5 == 0 ? "ACCEPTED" : (i % 4 == 0 ? "REJECTED" : "SENT"));
+                    q.setStatus(i % 5 == 0 ? "ACCEPTED" : (i % 4 == 0 ? "REJECTED" : "APPROVED"));
                     q.setNote("Dữ liệu mẫu số " + i);
                     
                     q.setQuotationNumber("TEMP-" + UUID.randomUUID().toString().substring(0,8));

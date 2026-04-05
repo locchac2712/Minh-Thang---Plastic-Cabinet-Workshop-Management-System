@@ -11,7 +11,7 @@ export const useQuotationForm = (initialData = null) => {
     const [note, setNote] = useState("");
     const [status, setStatus] = useState("DRAFT");
     const [discountPercent, setDiscountPercent] = useState(0);
-    const [rows, setRows] = useState([{ productId: "", qty: 1, unitPrice: 0 }]);
+    const [rows, setRows] = useState([{ productId: "", qty: 0, unitPrice: 0 }]);
 
     // Load initial data (Customers & Products)
     useEffect(() => {
@@ -53,7 +53,7 @@ export const useQuotationForm = (initialData = null) => {
     }, [initialData]);
 
     // Handlers
-    const addRow = () => setRows(prev => [...prev, { productId: "", qty: 1, unitPrice: 0 }]);
+    const addRow = () => setRows(prev => [...prev, { productId: "", qty: 0, unitPrice: 0 }]);
     
     const removeRow = (index) => {
         if (rows.length > 1) {
@@ -65,9 +65,11 @@ export const useQuotationForm = (initialData = null) => {
         setRows(prev => prev.map((row, i) => {
             if (i === index) {
                 const updatedRow = { ...row, [field]: value };
-                if (field === "productId") {
+                if (field === "productId" && value) {
                     const pr = products.find(p => String(p.id) === String(value));
                     updatedRow.unitPrice = pr?.sellingPrice ?? pr?.price ?? 0;
+                    // Nếu đang là 0, tự động chuyển thành 1 khi chọn SP
+                    if (updatedRow.qty === 0) updatedRow.qty = 1;
                 }
                 return updatedRow;
             }

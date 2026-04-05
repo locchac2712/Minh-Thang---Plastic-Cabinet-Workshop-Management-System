@@ -26,8 +26,9 @@ import { ProductDetail }   from "../pages/production/ProductDetail";
 // Common
 import { MyProfile } from "../pages/common/MyProfile";
 
-// TanStack Query & Services for Prefetching
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+// Hooks
+import { useNotifications } from "../hooks/useNotifications";
+
 // Services
 import productService from "../services/productService";
 import customerService from "../services/customerService";
@@ -126,16 +127,7 @@ const PAGE_TITLES = {
 export const MainLayout = () => {
     const { user, logout, hasRole } = useAuth();
     
-    // Fetch Notifications
-    const { data: notifData } = useQuery({
-        queryKey: ["NOTIFICATIONS"],
-        queryFn: () => notificationService.getNotifications(),
-        refetchInterval: 15000,
-        enabled: !!user
-    });
-    
-    const notifications = notifData?.data?.notifications || [];
-    const unreadCount = notifData?.data?.unreadCount || 0;
+    const { notifications, unreadCount, refetch: fetchNotifications, markAsRead, markAllAsRead } = useNotifications();
     
     // Auth Role-based landing page
     const getDefaultPage = () => {
@@ -157,8 +149,7 @@ export const MainLayout = () => {
 
     const handleNotificationClick = async (notif) => {
         if (!notif.read) {
-            await notificationService.markAsRead(notif.id);
-            queryClient.invalidateQueries(["NOTIFICATIONS"]);
+            await markAsRead(notif.id);
         }
         setIsNotifOpen(false);
         if (notif.referenceId) {
@@ -259,7 +250,10 @@ export const MainLayout = () => {
 
                     <div className="ml-header__right">
                         <div className="ml-notif-container" style={{ position: 'relative' }}>
-                            <button className="ml-notif-btn" onClick={() => setIsNotifOpen(!isNotifOpen)}>
+                            <button className="ml-notif-btn" onClick={() => {
+                                if (!isNotifOpen) fetchNotifications();
+                                setIsNotifOpen(!isNotifOpen);
+                            }}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                                     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -276,7 +270,7 @@ export const MainLayout = () => {
                                     <div style={{ padding: '0 16px 12px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <span>Thông báo</span>
                                         {unreadCount > 0 && (
-                                            <button onClick={async () => { await notificationService.markAllAsRead(); queryClient.invalidateQueries(["NOTIFICATIONS"]); }} style={{ fontSize: '12px', color: '#0066ff', background: 'none', border: 'none', cursor: 'pointer' }}>Đọc tất cả</button>
+                                            <button onClick={markAllAsRead} style={{ fontSize: '12px', color: '#0066ff', background: 'none', border: 'none', cursor: 'pointer' }}>Đọc tất cả</button>
                                         )}
                                     </div>
                                     {notifications.length === 0 ? (
@@ -333,8 +327,7 @@ export const MainLayout = () => {
                         quoteId={approvalQuoteId}
                         onClose={() => setApprovalQuoteId(null)}
                         onSaved={() => {
-                            queryClient.invalidateQueries(["NOTIFICATIONS"]);
-                            queryClient.invalidateQueries(["QUOTATIONS"]);
+                            fetchNotifications();
                         }}
                     />
                 )}

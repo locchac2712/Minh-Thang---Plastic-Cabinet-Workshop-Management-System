@@ -104,7 +104,19 @@ export const QuotationItemsTable = ({ rows, products, getAvailableProducts, onUp
                                                 type="number"
                                                 min="1"
                                                 value={row.qty}
-                                                onChange={(e) => onUpdate(i, "qty", Math.max(1, Number(e.target.value)))}
+                                                onFocus={(e) => {
+                                                    const target = e.target;
+                                                    setTimeout(() => target.select(), 0);
+                                                }}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    if (val === "") {
+                                                        onUpdate(i, "qty", "");
+                                                        return;
+                                                    }
+                                                    const num = Number(val);
+                                                    onUpdate(i, "qty", num > 0 ? num : 1);
+                                                }}
                                             />
                                         )}
                                     </td>
@@ -146,6 +158,16 @@ export const QuotationItemsTable = ({ rows, products, getAvailableProducts, onUp
 export const QuotationSummary = ({ totals, discountPercent, onDiscountChange, note, onNoteChange, status, onStatusChange, isReadOnly = false, isEdit = false }) => {
     const isDiscountWarning = discountPercent > 30;
 
+    const statusOptions = [
+        { value: "DRAFT", label: "Bản nháp", color: "#64748b" },
+        { value: "WAITING_APPROVAL", label: "Chờ duyệt", color: "#f59e0b" },
+        { value: "APPROVED", label: "Đã duyệt", color: "#10b981" },
+        { value: "REJECTED", label: "Từ chối duyệt", color: "#ef4444" },
+        { value: "ACCEPTED", label: "Chấp thuận", color: "#8b5cf6" },
+        { value: "CANCELLED", label: "Hủy", color: "#94a3b8" },
+        { value: "EXPIRED", label: "Hết hạn", color: "#4b5563" }
+    ];
+
     return (
         <div className="sq-form-sidebar">
 
@@ -170,7 +192,19 @@ export const QuotationSummary = ({ totals, discountPercent, onDiscountChange, no
                                         max="100"
                                         step="0.1"
                                         value={discountPercent}
-                                        onChange={(e) => onDiscountChange(Math.min(100, Math.max(0, Number(e.target.value))))}
+                                        onFocus={(e) => {
+                                            const target = e.target;
+                                            setTimeout(() => target.select(), 0);
+                                        }}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === "") {
+                                                onDiscountChange(0);
+                                                return;
+                                            }
+                                            const num = Math.min(100, Math.max(0, Number(val)));
+                                            onDiscountChange(num);
+                                        }}
                                         style={{ width: "60px", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "6px", color: "#fff", padding: "4px 8px", textAlign: "right", fontSize: "14px" }}
                                     />
                                     <span style={{ fontSize: "13px", opacity: 0.7 }}>%</span>
@@ -197,6 +231,17 @@ export const QuotationSummary = ({ totals, discountPercent, onDiscountChange, no
                     <span>{fmt(totals.grandTotal)}</span>
                 </div>
             </div>
+
+            {isEdit && (
+                <div className="sq-form-card" style={{ marginTop: "16px" }}>
+                    <label className="sq-form-label">Trạng thái báo giá</label>
+                    <CustomStatusSelect
+                        value={status}
+                        onChange={onStatusChange}
+                        options={statusOptions}
+                    />
+                </div>
+            )}
 
             <div className="sq-form-card">
                 <label className="sq-form-label">Ghi chú báo giá</label>
@@ -267,13 +312,28 @@ export const CustomerSearchSelect = ({ customers, value, onChange, onCustomerCre
 
     const handleCreateCustomer = async () => {
         const errors = {};
-        if (!newCust.name.trim()) errors.name = "Tên khách hàng là bắt buộc";
-        if (!newCust.phoneNumber.trim()) errors.phoneNumber = "Số điện thoại là bắt buộc";
-        if (!newCust.email.trim()) errors.email = "Email là bắt buộc để gửi báo giá";
-        
-        if (newCust.email.trim()) {
+        const trimmedName = newCust.name.trim();
+        const trimmedPhone = newCust.phoneNumber.trim();
+        const trimmedEmail = newCust.email.trim();
+
+        // Name Validation
+        if (!trimmedName) {
+            errors.name = "Tên khách hàng là bắt buộc";
+        } else if (!/^[a-zA-ZÀ-ỹ\s]{2,100}$/u.test(trimmedName)) {
+            errors.name = "Tên từ 2-100 ký tự và không chứa ký tự đặc biệt";
+        }
+
+        // Phone Validation
+        if (!trimmedPhone) {
+            errors.phoneNumber = "Số điện thoại là bắt buộc";
+        } else if (!/^0\d{9}$/.test(trimmedPhone)) {
+            errors.phoneNumber = "SĐT phải bắt đầu bằng 0 và có đúng 10 chữ số";
+        }
+
+        // Email Validation (Không bắt buộc, chỉ check định dạng nếu có nhập)
+        if (trimmedEmail) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(newCust.email.trim())) {
+            if (!emailRegex.test(trimmedEmail)) {
                 errors.email = "Email không đúng định dạng";
             }
         }
