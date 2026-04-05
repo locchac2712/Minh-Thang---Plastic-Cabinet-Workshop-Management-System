@@ -34,7 +34,7 @@ Write-Host "------------------------------------"
 
 # Start Backend
 Write-Host "Starting Backend (Spring Boot)..."
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd backend; mvn spring-boot:run" -WindowStyle Normal
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd backend; mvn clean spring-boot:run" -WindowStyle Normal
 
 # Start Frontend
 Write-Host "Starting Frontend (React/Vite)..."

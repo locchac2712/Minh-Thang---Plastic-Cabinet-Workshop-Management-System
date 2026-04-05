@@ -606,3 +606,82 @@ const ProductSearchSelect = ({ products, value, onChange, disabled = false }) =>
         </div>
     );
 };
+
+// ── Quotation Search Select ──────────────────────────────────
+export const QuotationSearchSelect = ({ quotations, value, onChange, disabled = false }) => {
+    const [search, setSearch] = useState("");
+    const [isOpen, setIsOpen] = useState(false);
+    const wrapRef = useRef(null);
+
+    const selectedQuote = quotations.find(q => String(q.id) === String(value));
+
+    useEffect(() => {
+        if (selectedQuote && !isOpen) setSearch(selectedQuote.quotationNumber);
+        else if (!value && !isOpen) setSearch("");
+    }, [selectedQuote, isOpen, value]);
+
+    useEffect(() => {
+        const handler = (e) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+                setIsOpen(false);
+                if (selectedQuote) setSearch(selectedQuote.quotationNumber);
+                else setSearch("");
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, [selectedQuote]);
+
+    const filtered = quotations.filter(q => {
+        const query = search.trim().toLowerCase();
+        if (!query) return true;
+        return q.quotationNumber.toLowerCase().includes(query);
+    });
+
+    // Chỉ hiển thị 3 báo giá gần đây nhất khi không có từ khóa tìm kiếm
+    const displayList = search.trim() ? filtered : quotations.slice(0, 3);
+
+    if (disabled) {
+        return (
+            <div className="sq-table-readonly" style={{ background: '#f9fafb', borderRadius: '8px', padding: '10px 14px', border: '1.5px solid #e5e7eb' }}>
+                {selectedQuote ? selectedQuote.quotationNumber : "Không chọn báo giá"}
+            </div>
+        );
+    }
+
+    return (
+        <div className="cq-prod-wrap" ref={wrapRef}>
+            <div className="cq-cust-input-wrap">
+                <svg className="cq-cust-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                <input
+                    className="sq-form-input cq-cust-input"
+                    placeholder="Tìm theo mã báo giá..."
+                    value={search}
+                    onChange={(e) => { setSearch(e.target.value); setIsOpen(true); if(!e.target.value.trim()) onChange("") }}
+                    onFocus={() => setIsOpen(true)}
+                    autoComplete="off"
+                    style={{ background: value ? '#f0fdf4' : '#fff', borderColor: value ? '#bbf7d0' : '#e2e8f0' }}
+                />
+                {value && (
+                    <button className="cq-cust-clear" onClick={() => { onChange(""); setSearch(""); setIsOpen(false); }} title="Xóa chọn" type="button">✕</button>
+                )}
+            </div>
+            {isOpen && (
+                <div className="cq-prod-dropdown">
+                    {!search.trim() && displayList.length > 0 && <div className="cq-cust-list-label">Báo giá gần đây</div>}
+                    {displayList.length > 0 ? displayList.map(q => (
+                        <div key={q.id}
+                            className={`cq-prod-item${String(q.id) === String(value) ? " cq-prod-item--active" : ""}`}
+                            onClick={() => { onChange(String(q.id)); setIsOpen(false); }}
+                            style={{ padding: '10px 14px' }}
+                        >
+                            <span className="cq-prod-item-name" style={{ fontWeight: '700' }}>{q.quotationNumber}</span>
+                        </div>
+                    )) : (
+                        <div className="cq-prod-empty">Không tìm thấy báo giá</div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};

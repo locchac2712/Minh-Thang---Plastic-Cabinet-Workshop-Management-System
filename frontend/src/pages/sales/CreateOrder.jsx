@@ -4,7 +4,7 @@ import customerService from "../../services/customerService";
 import productService from "../../services/productService";
 import salesOrderService from "../../services/salesOrderService";
 import quotationService from "../../services/quotationService";
-import { SingleDatePicker } from "./components/QuotationFormShared";
+import { SingleDatePicker, QuotationSearchSelect } from "./components/QuotationFormShared";
 const fmt = (v) => v != null ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : "0 đ";
 
 export const CreateOrder = ({ onBack }) => {
@@ -38,14 +38,12 @@ export const CreateOrder = ({ onBack }) => {
         Promise.all([
             customerService.getAll(),
             productService.getAll(),
-            quotationService.getAll({ status: "ACCEPTED", size: 100 }),
             quotationService.getAll({ status: "APPROVED", size: 100 })
-        ]).then(([cData, pData, qAcc, qApp]) => {
+        ]).then(([cData, pData, qApp]) => {
             setCustomers(cData);
             setProducts(pData);
-            const accList = qAcc?.content ?? qAcc ?? [];
             const appList = qApp?.content ?? qApp ?? [];
-            const combined = [...accList, ...appList].sort((a, b) => b.id - a.id);
+            const combined = [...appList].sort((a, b) => b.id - a.id);
             setQuotations(combined);
         }).catch(err => {
             console.error("Error loading create order data:", err);
@@ -89,10 +87,10 @@ export const CreateOrder = ({ onBack }) => {
             setDiscountPercent("");
             return;
         }
-        
+
         try {
             const quoteData = await quotationService.getById(quoteId);
-            
+
             // Auto fill
             if (quoteData.customer) {
                 const c = customers.find(x => String(x.id) === String(quoteData.customer.id));
@@ -117,7 +115,7 @@ export const CreateOrder = ({ onBack }) => {
                     setAddress(quoteData.customer.address || "");
                 }
             }
-            
+
             if (quoteData.details && quoteData.details.length > 0) {
                 const newRows = quoteData.details.map(d => {
                     const product = products.find(p => String(p.id) === String(d.productId));
@@ -137,7 +135,7 @@ export const CreateOrder = ({ onBack }) => {
             }
             if (quoteData.discountPercent) setDiscountPercent(quoteData.discountPercent);
             else setDiscountPercent("");
-            
+
         } catch (err) {
             console.error("Lỗi khi tải báo giá:", err);
             alert("Lỗi khi tải dữ liệu báo giá");
@@ -237,10 +235,10 @@ export const CreateOrder = ({ onBack }) => {
                 {/* Body */}
                 <div className="sq-modal-body">
                     <div className="sq-form-grid">
-                        
+
                         {/* MAIN COLUMN: Info, Payment & Products */}
                         <div className="sq-form-main">
-                            
+
                             {/* SECTION 1: THÔNG TIN CHUNG */}
                             <div className="sq-form-card">
                                 <div className="sq-form-section-header">
@@ -248,21 +246,22 @@ export const CreateOrder = ({ onBack }) => {
                                 </div>
                                 <div className="sq-form-row">
                                     <div className="sq-form-field" style={{ flex: 1.5 }}>
-                                        <label className="sq-form-label">Tạo từ báo giá đã duyệt (Tùy chọn)</label>
-                                        <select className="sq-form-select" value={selectedQuoteId} onChange={e => handleQuoteChange(e.target.value)} style={{background: selectedQuoteId ? '#f0fdf4' : '#fff', borderColor: selectedQuoteId ? '#bbf7d0' : '#e5e7eb'}}>
-                                            <option value="">-- Không có báo giá (Tạo đơn tự do) --</option>
-                                            {quotations.map(q => <option key={q.id} value={q.id}>{q.quotationNumber} - {q.customerName}</option>)}
-                                        </select>
+                                        <label className="sq-form-label">Mã báo giá</label>
+                                        <QuotationSearchSelect 
+                                            quotations={quotations} 
+                                            value={selectedQuoteId} 
+                                            onChange={handleQuoteChange} 
+                                        />
                                     </div>
                                     <div className="sq-form-field">
                                         <label className="sq-form-label">Khách hàng <span className="sq-required-star">*</span></label>
-                                        <select className="sq-form-select" value={custId} onChange={e => handleCustomerChange(e.target.value)} disabled={!!selectedQuoteId}>
+                                        <select className="sq-form-select" value={custId} onChange={e => handleCustomerChange(e.target.value)} disabled={!!selectedQuoteId} style={{ background: !!selectedQuoteId ? '#f9fafb' : '#fff' }}>
                                             <option value="">Chọn khách hàng...</option>
                                             {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                         </select>
                                     </div>
                                 </div>
-                                
+
                                 <div className="sq-form-row">
                                     <div className="sq-form-field">
                                         <label className="sq-form-label">SĐT / Liên hệ</label>
@@ -273,12 +272,26 @@ export const CreateOrder = ({ onBack }) => {
                                         <input className="sq-form-input sq-form-input--readonly" readOnly value={customerInfo.email} />
                                     </div>
                                     <div className="sq-form-field" style={{ flex: 1.5 }}>
-                                        <label className="sq-form-label">Địa chỉ giao hàng</label>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <label className="sq-form-label" style={{ marginBottom: 0 }}>Địa chỉ giao hàng</label>
+                                            {custId && (
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const c = customers.find(x => String(x.id) === String(custId));
+                                                        if (c) setAddress(c.address || "");
+                                                    }}
+                                                    style={{ fontSize: '11px', color: '#2563eb', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
+                                                >
+                                                    Lấy địa chỉ mặc định
+                                                </button>
+                                            )}
+                                        </div>
                                         <input className="sq-form-input" value={address} onChange={e => setAddress(e.target.value)} placeholder="Nhập địa chỉ nhận hàng chi tiết..." />
                                     </div>
                                 </div>
                             </div>
-                            
+
                             {/* SECTION 2: THANH TOÁN */}
                             <div className="sq-form-card">
                                 <div className="sq-form-section-header">
@@ -305,44 +318,60 @@ export const CreateOrder = ({ onBack }) => {
                                 <div className="sq-form-row">
                                     <div className="sq-form-field">
                                         <label className="sq-form-label">Tỷ lệ đặt cọc (%)</label>
-                                        <input className="sq-form-input" type="number" min="0" max="100" value={depositRatio} onChange={e => {
-                                            const v = e.target.value;
-                                            if (v === "") setDepositRatio("");
-                                            else setDepositRatio(Math.min(100, Math.max(0, Number(v))));
-                                        }} />
+                                        <input 
+                                            className={`sq-form-input ${paymentTerms === 'PREPAID' ? 'sq-form-input--readonly' : ''}`} 
+                                            type="number" 
+                                            min="0" 
+                                            max="100" 
+                                            value={depositRatio} 
+                                            readOnly={paymentTerms === 'PREPAID'}
+                                            onChange={e => {
+                                                const v = e.target.value;
+                                                if (v === "") setDepositRatio("");
+                                                else setDepositRatio(Math.min(100, Math.max(0, Number(v))));
+                                            }} 
+                                        />
                                     </div>
                                     <div className="sq-form-field">
                                         <label className="sq-form-label">Chiết khấu tổng (%)</label>
-                                        <input className="sq-form-input" type="number" min="0" max="30" value={discountPercent} onChange={e => {
-                                            const v = e.target.value;
-                                            if (v === "") setDiscountPercent("");
-                                            else setDiscountPercent(Math.min(30, Math.max(0, Number(v))));
-                                        }} />
+                                        <input 
+                                            className={`sq-form-input ${selectedQuoteId ? 'sq-form-input--readonly' : ''}`} 
+                                            type="number" 
+                                            min="0" 
+                                            max="30" 
+                                            value={discountPercent} 
+                                            readOnly={!!selectedQuoteId}
+                                            onChange={e => {
+                                                const v = e.target.value;
+                                                if (v === "") setDiscountPercent("");
+                                                else setDiscountPercent(Math.min(30, Math.max(0, Number(v))));
+                                            }} 
+                                        />
                                     </div>
                                     <div className="sq-form-field">
                                         <label className="sq-form-label">Tiền cọc yêu cầu</label>
                                         <input className="sq-form-input sq-form-input--readonly" readOnly value={fmt(depositAmount)} />
                                     </div>
                                 </div>
-                                
+
                                 {custId && (
                                     <div className="sq-form-row" style={{ marginTop: 12 }}>
                                         <div style={{ display: 'flex', gap: 24, fontSize: 13, background: isOverLimit ? '#fef2f2' : '#f8fafc', padding: 12, borderRadius: 10, width: '100%', border: `1px solid ${isOverLimit ? '#fecaca' : '#f1f5f9'}` }}>
-                                            <div>Hạn mức LS: <strong style={{color: '#1e293b'}}>{fmt(customerInfo.creditLimit)}</strong></div>
-                                            <div>Dư nợ hiện tại: <strong style={{color: '#1e293b'}}>{fmt(customerInfo.currentDebt)}</strong></div>
+                                            <div>Hạn mức LS: <strong style={{ color: '#1e293b' }}>{fmt(customerInfo.creditLimit)}</strong></div>
+                                            <div>Dư nợ hiện tại: <strong style={{ color: '#1e293b' }}>{fmt(customerInfo.currentDebt)}</strong></div>
                                             {isOverLimit && <div style={{ color: '#dc2626', fontWeight: 600 }}>⚠️ Vượt hạn mức, đơn hàng cần GĐ duyệt!</div>}
                                         </div>
                                     </div>
                                 )}
                             </div>
-                            
+
                             {/* SECTION 3: SẢN PHẨM */}
                             <div className="sq-form-card">
                                 <div className="sq-form-section-header">
                                     <div className="sq-form-section-title">Chi tiết sản phẩm</div>
                                     <button className="sq-add-row-btn" onClick={addRow}>+ Thêm dòng</button>
                                 </div>
-                                
+
                                 <div className="sq-items-scroll-wrap sq-items-scroll-wrap--scroll">
                                     <table className="sq-form-table">
                                         <thead>
@@ -359,7 +388,7 @@ export const CreateOrder = ({ onBack }) => {
                                             {rows.map((row, i) => (
                                                 <tr key={i}>
                                                     <td>
-                                                        <select className="sq-form-select" style={{padding: '8px 10px'}} value={row.productId} onChange={e => pickProduct(i, e.target.value)}>
+                                                        <select className="sq-form-select" style={{ padding: '8px 10px' }} value={row.productId} onChange={e => pickProduct(i, e.target.value)}>
                                                             <option value="">Chọn SP...</option>
                                                             {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                                         </select>
@@ -381,7 +410,7 @@ export const CreateOrder = ({ onBack }) => {
                         <div className="sq-form-sidebar">
                             <div className="sq-form-summary">
                                 <div className="sq-form-summary-title">TỔNG KẾT ĐƠN HÀNG</div>
-                                
+
                                 <div className="sq-form-summary-row">
                                     <span>Tạm tính:</span>
                                     <span>{fmt(grossTotal)}</span>
@@ -396,15 +425,15 @@ export const CreateOrder = ({ onBack }) => {
                                     <span>{fmt(grandTotal)}</span>
                                 </div>
                             </div>
-                            
+
                             <div className="sq-form-field" style={{ marginTop: 10 }}>
                                 <label className="sq-form-label">Ghi chú vận hành / Bán hàng</label>
-                                <textarea 
-                                    className="sq-form-textarea" 
-                                    value={orderNote} 
-                                    onChange={e => setOrderNote(e.target.value)} 
-                                    placeholder="VD: Giao nhanh chiều nay, đóng gói cẩn thận..." 
-                                    style={{minHeight: 180}}
+                                <textarea
+                                    className="sq-form-textarea"
+                                    value={orderNote}
+                                    onChange={e => setOrderNote(e.target.value)}
+                                    placeholder="VD: Giao nhanh chiều nay, đóng gói cẩn thận..."
+                                    style={{ minHeight: 180 }}
                                 />
                             </div>
                         </div>
@@ -415,7 +444,7 @@ export const CreateOrder = ({ onBack }) => {
                 {/* Footer */}
                 <div className="sq-modal-footer">
                     <div className="sq-footer-left"></div>
-                    <div className="sq-footer-actions" style={{display: 'flex', gap: 10}}>
+                    <div className="sq-footer-actions" style={{ display: 'flex', gap: 10 }}>
                         <button className="sq-modal-btn sq-modal-btn--cancel" onClick={onBack}>Hủy bỏ</button>
                         <button className="sq-modal-btn sq-modal-btn--submit" onClick={handleCreate}>Tạo đơn hàng</button>
                     </div>
