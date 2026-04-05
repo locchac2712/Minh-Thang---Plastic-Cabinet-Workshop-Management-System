@@ -47,10 +47,10 @@ public class DatabaseSeeder implements CommandLineRunner {
     public void run(String... args) throws Exception {
         System.out.println("=== BẮT ĐẦU KIỂM TRA & TẠO DỮ LIỆU MẪU ===");
         
-        // 0. CLEANUP (Dọn dẹp báo giá rác)
+        // 0. CLEANUP (Dọn dẹp báo giá cũ)
         try {
-            quotationRepository.deleteByStatusOrStatusIsNull("SENT");
-            System.out.println("-> Đã dọn dẹp các báo giá trạng thái 'SENT' hoặc NULL.");
+            quotationRepository.cleanupOldStatuses();
+            System.out.println("-> Đã dọn dẹp các báo giá trạng thái cũ (SENT/ACCEPTED/CANCELLED) hoặc NULL.");
         } catch (Exception e) {
             System.err.println("Lỗi khi dọn dẹp báo giá: " + e.getMessage());
         }
@@ -131,7 +131,7 @@ public class DatabaseSeeder implements CommandLineRunner {
                     q.setCustomer(customers.get(rnd.nextInt(customers.size())));
                     q.setStaff(staff);
                     q.setValidUntil(java.time.LocalDateTime.now().plusDays(rnd.nextInt(30)));
-                    q.setStatus(i % 5 == 0 ? "ACCEPTED" : (i % 4 == 0 ? "REJECTED" : "APPROVED"));
+                    q.setStatus(i % 5 == 0 ? "APPROVED" : (i % 4 == 0 ? "REJECTED" : "DRAFT"));
                     q.setNote("Dữ liệu mẫu số " + i);
                     
                     q.setQuotationNumber("TEMP-" + UUID.randomUUID().toString().substring(0,8));

@@ -118,7 +118,7 @@ public class QuotationService {
         // 1. Tập hợp các trạng thái hợp lệ trong luồng mới
         List<String> validStatuses = List.of(
                 "DRAFT", "WAITING_APPROVAL", "APPROVED", "REJECTED",
-                "ACCEPTED", "CANCELLED", "EXPIRED"
+                "EXPIRED"
         );
 
         if (!validStatuses.contains(newStatus)) {
@@ -126,8 +126,8 @@ public class QuotationService {
         }
 
         // 2. CHẶN "QUAY XE" NẾU ĐÃ ĐÓNG BĂNG
-        if (List.of("ACCEPTED", "CANCELLED", "EXPIRED").contains(currentStatus)) {
-            throw new RuntimeException("Lỗi: Báo giá đã đóng (ACCEPTED/CANCELLED/EXPIRED), không thể thay đổi trạng thái!");
+        if (List.of("EXPIRED").contains(currentStatus)) {
+            throw new RuntimeException("Lỗi: Báo giá đã đóng (EXPIRED), không thể thay đổi trạng thái!");
         }
 
         // 3. MÁY TRẠNG THÁI (STATE MACHINE) - Kiểm soát chặt luồng đi
@@ -152,13 +152,6 @@ public class QuotationService {
                 }
                 if(note != null && !note.trim().isEmpty()) {
                     quotation.setApprovalNote(note.trim());
-                }
-                break;
-            case "ACCEPTED":
-            case "CANCELLED":
-                // Chỉ khi đã được duyệt mới được chốt/hủy với khách
-                if (!"APPROVED".equals(currentStatus)) {
-                    throw new RuntimeException("Báo giá phải ở trạng thái APPROVED mới được chuyển sang ACCEPTED/CANCELLED!");
                 }
                 break;
             case "DRAFT":

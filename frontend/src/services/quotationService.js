@@ -11,8 +11,6 @@ const STATUS_LABEL = {
     WAITING_APPROVAL: { text: "Chờ duyệt", color: "#f59e0b" },
     APPROVED: { text: "Đã duyệt", color: "#10b981" },
     REJECTED: { text: "Từ chối duyệt", color: "#ef4444" },
-    ACCEPTED: { text: "Chấp thuận", color: "#8b5cf6" },
-    CANCELLED: { text: "Hủy", color: "#94a3b8" },
     EXPIRED:  { text: "Hết hạn", color: "#4b5563" },
 };
 

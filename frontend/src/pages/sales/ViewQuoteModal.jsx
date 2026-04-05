@@ -116,7 +116,7 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
         printQuotation(quote);
     };
 
-    const isLocked = quote?.status === "APPROVED" || quote?.status === "ACCEPTED" || quote?.status === "EXPIRED";
+    const isLocked = quote?.status === "APPROVED" || quote?.status === "EXPIRED";
     const canEdit = quote?.status === "DRAFT" || quote?.status === "REJECTED";
 
     return (
@@ -260,10 +260,8 @@ export const ViewQuoteModal = ({ quoteId, onClose, onSaved }) => {
                                             </button>
                                         </>
                                     )}
-                                    {quote?.status === "APPROVED" && (
-                                        <button className="sq-modal-btn sq-modal-btn--submit" onClick={() => handleUpdateStatus("ACCEPTED")} style={{backgroundColor:"#3b82f6", color: "#fff"}}>Chốt đơn hàng</button>
-                                    )}
-                                    {(quote?.status === "APPROVED" || quote?.status === "ACCEPTED") && (
+                                    {/* Loại bỏ nút Chốt đơn hàng */}
+                                    {(quote?.status === "APPROVED") && (
                                         <button className="sq-modal-btn sq-modal-btn--submit" onClick={handlePrintAndSend} style={{backgroundColor:"#1e293b", color:"#fff"}}>
                                             In báo giá
                                         </button>

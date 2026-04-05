@@ -16,8 +16,6 @@ const STATUS_OPTIONS = [
     { value: "WAITING_APPROVAL", label: "Chờ duyệt", color: "#f59e0b" },
     { value: "APPROVED", label: "Đã duyệt", color: "#10b981" },
     { value: "REJECTED", label: "Từ chối duyệt", color: "#ef4444" },
-    { value: "ACCEPTED", label: "Chấp thuận", color: "#8b5cf6" },
-    { value: "CANCELLED", label: "Hủy", color: "#94a3b8" },
     { value: "EXPIRED", label: "Hết hạn", color: "#4b5563" },
 ];
 
@@ -387,7 +385,7 @@ export const SalesQuotes = () => {
                                                     </>
                                                 )}
 
-                                                {(isApproved || q.status === "ACCEPTED") && (
+                                                {isApproved && (
                                                     <TooltipWrapper text="In báo giá">
                                                         <button 
                                                             className={`sp-action-btn ${printingId === q.id ? "sq-spinning" : ""}`} 

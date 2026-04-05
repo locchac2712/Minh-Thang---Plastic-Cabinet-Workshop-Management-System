@@ -33,6 +33,6 @@ public interface QuotationRepository extends JpaRepository<Quotation, Long> {
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM Quotation q WHERE q.status = :status OR q.status IS NULL")
-    void deleteByStatusOrStatusIsNull(@Param("status") String status);
+    @Query("DELETE FROM Quotation q WHERE q.status IN ('ACCEPTED', 'CANCELLED', 'SENT') OR q.status IS NULL")
+    void cleanupOldStatuses();
 }

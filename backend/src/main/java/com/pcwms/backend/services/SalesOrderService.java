@@ -71,8 +71,8 @@ public class SalesOrderService {
         Quotation quotation = quotationRepository.findById(quotationId)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Báo giá ID: " + quotationId));
 
-        if (!"ACCEPTED".equals(quotation.getStatus())) {
-            throw new RuntimeException("Lỗi: Báo giá chưa được khách chốt (Trạng thái phải là ACCEPTED)!");
+        if (!"APPROVED".equals(quotation.getStatus())) {
+            throw new RuntimeException("Lỗi: Báo giá chưa được Giám đốc phê duyệt (Trạng thái phải là APPROVED)!");
         }
 
         if (salesOrderRepository.existsByQuotationId(quotationId)) {
