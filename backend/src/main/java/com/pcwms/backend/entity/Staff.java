@@ -1,6 +1,7 @@
 package com.pcwms.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -11,6 +12,7 @@ import java.util.List;
 @Entity
 @Table(name = "staff")
 @Data
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Staff {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,6 +44,7 @@ public class Staff {
     private String address;
 
     @OneToMany(mappedBy = "staff")
+    @JsonIgnore
     private List<WarehouseTransaction> warehouseTransactions;
 
 

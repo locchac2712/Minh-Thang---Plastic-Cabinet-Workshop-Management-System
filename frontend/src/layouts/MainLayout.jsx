@@ -192,8 +192,8 @@ export const MainLayout = () => {
             case "crm-stats":    return <CrmDashboard />;
             case "customers":    return <SalesCustomers onNavigate={handleNavigate} />;
             case "add-customer": return <AddCustomer onBack={() => setPage("customers")} onSaved={() => setPage("customers")} />;
-            case "edit-customer": return <EditCustomer customerId={selectedId} onBack={() => setPage("customers")} onSaved={() => setPage("customers")} />;
-            case "customer-detail": return <CustomerDetail customerId={selectedId} onBack={() => setPage("customers")} />;
+            case "edit-customer": return <EditCustomer customerId={selectedId} onBack={() => setPage("customers")} onSaved={() => setPage("customer-detail")} />;
+            case "customer-detail": return <CustomerDetail customerId={selectedId} onBack={() => setPage("customers")} onNavigate={handleNavigate} />;
             case "quotes":       return <SalesQuotes />;
             case "orders":       return <SalesOrders />;
             case "crm-debt":     return <DebtManagement />;

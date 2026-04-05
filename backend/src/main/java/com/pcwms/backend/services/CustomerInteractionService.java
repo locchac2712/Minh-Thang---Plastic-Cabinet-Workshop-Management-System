@@ -82,6 +82,13 @@ public class CustomerInteractionService {
         interactionRepository.save(interaction);
     }
 
+    public List<CustomerInteractionResponse> getRecentNotes() {
+        return interactionRepository.findTop10ByOrderByInteractionDateDesc()
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     private CustomerInteractionResponse mapToResponse(CustomerInteraction entity) {
         return CustomerInteractionResponse.builder()
                 .id(entity.getId())

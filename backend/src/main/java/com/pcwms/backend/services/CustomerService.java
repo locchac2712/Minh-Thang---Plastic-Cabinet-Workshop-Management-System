@@ -14,11 +14,11 @@ public class CustomerService {
     private CustomerRepository customerRepository;
 
     public List<Customer> getAllCustomer() {
-        return customerRepository.findAll();
+        return customerRepository.findAllWithAssignedTo();
     }
 
     public Customer getCustomerById(Long id) {
-        return customerRepository.findById(id)
+        return customerRepository.findByIdWithAssignedTo(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng với ID: " + id));
     }
 
@@ -78,10 +78,10 @@ public class CustomerService {
     }
 
     public List<Customer> getAllActiveCustomers() {
-        return customerRepository.findByActiveTrue();
+        return customerRepository.findByActiveTrueWithAssignedTo();
     }
 
     public List<Customer> getAllInactiveCustomers() {
-        return customerRepository.findByActiveFalse();
+        return customerRepository.findByActiveFalseWithAssignedTo();
     }
 }

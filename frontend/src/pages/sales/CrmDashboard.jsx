@@ -10,11 +10,13 @@ export const CrmDashboard = () => {
     const [year,  setYear]  = useState(today.getFullYear());
     const [stats, setStats] = useState(null);
     const [reminders, setReminders] = useState([]);
+    const [notedCustomers, setNotedCustomers] = useState([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         loadStats();
         loadReminders();
+        loadNotedCustomers();
     }, [month, year]);
 
     const loadStats = async () => {
@@ -35,6 +37,15 @@ export const CrmDashboard = () => {
             setReminders(data);
         } catch (e) {
             console.error("Lỗi khi tải nhắc hẹn", e);
+        }
+    };
+
+    const loadNotedCustomers = async () => {
+        try {
+            const data = await crmService.getRecentNotes();
+            setNotedCustomers(data);
+        } catch (e) {
+            console.error("Lỗi khi tải khách hàng có ghi chú", e);
         }
     };
 
@@ -128,26 +139,50 @@ export const CrmDashboard = () => {
                     </div>
                 </div>
 
-                {/* Widget Nhắc hẹn xử lý */}
-                <div className="sp-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                        <h3 style={{ fontSize: 16, fontWeight: 700 }}>🔔 Nhắc hẹn của bạn</h3>
-                        <span style={{ fontSize: 12, background: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>{reminders.length} việc cần làm</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                    {/* Widget Nhắc hẹn xử lý */}
+                    <div className="sp-card" style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <h3 style={{ fontSize: 16, fontWeight: 700 }}>🔔 Nhắc hẹn của bạn</h3>
+                            <span style={{ fontSize: 12, background: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>{reminders.length} việc cần làm</span>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 250, overflowY: 'auto' }}>
+                            {reminders.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: 30, color: '#94a3b8', fontSize: 13 }}>Tất cả công việc đã hoàn thành! ✨</div>
+                            ) : reminders.map(r => (
+                                <div key={r.id} style={{ padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed' }}>{r.customerName}</span>
+                                        <span style={{ fontSize: 11, color: '#e11d48', fontWeight: 600 }}>⏰ {new Date(r.reminderDate).toLocaleDateString()}</span>
+                                    </div>
+                                    <div style={{ fontSize: 13, color: '#475569', marginBottom: 8 }}>{r.content}</div>
+                                    <button onClick={() => handleResolve(r.id)} style={{ width: '100%', padding: '6px', fontSize: 11, background: '#f1f5f9', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}>Đánh dấu hoàn thành</button>
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 300, overflowY: 'auto' }}>
-                        {reminders.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: 30, color: '#94a3b8', fontSize: 13 }}>Tất cả công việc đã hoàn thành! ✨</div>
-                        ) : reminders.map(r => (
-                            <div key={r.id} style={{ padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed' }}>{r.customerName}</span>
-                                    <span style={{ fontSize: 11, color: '#e11d48', fontWeight: 600 }}>⏰ {new Date(r.reminderDate).toLocaleDateString()}</span>
+                    {/* Widget Ghi chú Khách hàng mới nhất */}
+                    <div className="sp-card" style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <h3 style={{ fontSize: 16, fontWeight: 700 }}>📝 Ghi chú khách hàng</h3>
+                            <span style={{ fontSize: 12, background: '#fef3c7', color: '#b45309', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>{notedCustomers.length} gần đây</span>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 250, overflowY: 'auto' }}>
+                            {notedCustomers.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: 30, color: '#94a3b8', fontSize: 13 }}>Chưa có ghi chú nào.</div>
+                            ) : notedCustomers.map(n => (
+                                <div key={n.id} style={{ padding: 12, borderRadius: 8, border: '1px solid #fde68a', background: '#fffbeb' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 13, fontWeight: 700, color: '#92400e' }}>{n.customerName}</span>
+                                        <span style={{ fontSize: 11, color: '#b45309', fontWeight: 600 }}>🕰️ {new Date(n.interactionDate).toLocaleDateString()}</span>
+                                    </div>
+                                    <div style={{ fontSize: 13, color: '#78350f', fontWeight: 500 }}>{n.content}</div>
                                 </div>
-                                <div style={{ fontSize: 13, color: '#475569', marginBottom: 8 }}>{r.content}</div>
-                                <button onClick={() => handleResolve(r.id)} style={{ width: '100%', padding: '6px', fontSize: 11, background: '#f1f5f9', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}>Đánh dấu hoàn thành</button>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
