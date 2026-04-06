@@ -156,11 +156,11 @@ public class QuotationService {
         quotation.setStatus(newStatus);
         Quotation savedQuotation = quotationRepository.save(quotation);
 
-//        // 5. KÍCH HOẠT LUỒNG TẠO ĐƠN HÀNG KHI KHÁCH CHỐT
-//        if ("ACCEPTED".equals(savedQuotation.getStatus())) {
-//            System.out.println("KHÁCH ĐÃ CHỐT DEAL: Chuẩn bị kích hoạt luồng tự động tạo Sales Order!");
-//            // TODO: Gọi hàm createSalesOrderFromQuotation(savedQuotation)
-//        }
+        // 5. KHÔNG TẠO TỰ ĐỘNG NỮA, CHỈ ĐỢI FE GỌI API AUTO-FILL
+        if ("ACCEPTED".equals(savedQuotation.getStatus())) {
+            System.out.println("ACCEPTED: Đã chốt báo giá, chờ FE gọi API auto-fill để tạo đơn hàng!");
+        }
+
         return savedQuotation;
     }
 
