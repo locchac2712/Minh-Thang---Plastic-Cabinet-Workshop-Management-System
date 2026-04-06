@@ -19,7 +19,7 @@ public class StaffController {
     private final StaffRepository staffRepository;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> getAllStaff() {
         return ResponseEntity.ok(new ResponseObject("SUCCESS", "Lấy danh sách nhân viên thành công", 
                 staffRepository.findAll()));

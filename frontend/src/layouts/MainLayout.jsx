@@ -14,10 +14,11 @@ import { SalesOrders } from "../pages/sales/SalesOrders";
 import { DebtManagement } from "../pages/sales/DebtManagement";
 
 // Page Imports - Admin & Others
-import { UserManagement } from "../pages/admin/UserManagement";
-import { ProductList } from "../pages/production/ProductList";
-import { ProductDetail } from "../pages/production/ProductDetail";
-import { MyProfile } from "../pages/common/MyProfile";
+import { UserManagement }         from "../pages/admin/UserManagement";
+import { CustomerTypeManagement } from "../pages/admin/CustomerTypeManagement";
+import { ProductList }            from "../pages/production/ProductList";
+import { ProductDetail }          from "../pages/production/ProductDetail";
+import { MyProfile }              from "../pages/common/MyProfile";
 
 // Hooks
 import { useNotifications } from "../hooks/useNotifications";
@@ -49,41 +50,41 @@ const GLOBAL_NAV = [
     },
 
     // SALES & DIRECTOR SIDEBAR
-    { type: "header", label: "KINH DOANH & CRM", roles: ["SALES_STAFF", "DIRECTOR", "SALES_MANAGER"] },
-    {
-        id: "dashboard",
-        label: "Tổng quan",
-        roles: ["SALES_STAFF", "DIRECTOR", "SALES_MANAGER"],
-        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+    { type: "header", label: "KINH DOANH & CRM", roles: ["SALES_STAFF", "DIRECTOR"] },
+    { 
+        id: "dashboard", 
+        label: "Tổng quan", 
+        roles: ["SALES_STAFF", "DIRECTOR"],
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> 
     },
-    {
-        id: "customers",
-        label: "Khách hàng",
-        roles: ["SALES_STAFF", "DIRECTOR", "SALES_MANAGER"],
-        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+    { 
+        id: "customers", 
+        label: "Khách hàng", 
+        roles: ["SALES_STAFF", "DIRECTOR"],
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> 
     },
-    {
-        id: "products",
-        label: "Sản phẩm",
-        roles: ["SALES_STAFF", "DIRECTOR", "SALES_MANAGER"],
-        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+    { 
+        id: "products", 
+        label: "Sản phẩm", 
+        roles: ["SALES_STAFF", "DIRECTOR"],
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
     },
-    {
-        id: "quotes",
-        label: "Báo giá",
-        roles: ["SALES_STAFF", "DIRECTOR", "SALES_MANAGER"],
-        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    { 
+        id: "quotes", 
+        label: "Báo giá", 
+        roles: ["SALES_STAFF", "DIRECTOR"],
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> 
     },
-    {
-        id: "orders",
-        label: "Đơn hàng",
-        roles: ["SALES_STAFF", "DIRECTOR", "SALES_MANAGER"],
-        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>
+    { 
+        id: "orders", 
+        label: "Đơn hàng", 
+        roles: ["SALES_STAFF", "DIRECTOR"],
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg> 
     },
-    {
-        id: "delivery",
-        label: "Giao hàng",
-        roles: ["SALES_STAFF", "DIRECTOR", "SALES_MANAGER"],
+    { 
+        id: "delivery", 
+        label: "Giao hàng", 
+        roles: ["SALES_STAFF", "DIRECTOR"],
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
     },
     {
@@ -92,11 +93,11 @@ const GLOBAL_NAV = [
         roles: ["SALES_STAFF"],
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
     },
-    {
-        id: "crm-debt",
-        label: "Công nợ",
-        roles: ["SALES_STAFF", "DIRECTOR", "SALES_MANAGER"],
-        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+    { 
+        id: "crm-debt", 
+        label: "Công nợ", 
+        roles: ["SALES_STAFF", "DIRECTOR"],
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> 
     },
     {
         id: "reporting",
@@ -146,7 +147,7 @@ export const MainLayout = () => {
     // Auth Role-based landing page
     const getDefaultPage = () => {
         if (hasRole('ADMIN')) return "users";
-        if (hasRole('SALES_STAFF', 'SALES_MANAGER', 'DIRECTOR')) return "dashboard";
+        if (hasRole('SALES_STAFF', 'DIRECTOR')) return "dashboard";
         return "profile";
     };
 
@@ -192,10 +193,10 @@ export const MainLayout = () => {
             case "profile": return <MyProfile />;
 
             // Admin
-            case "users": return <UserManagement />;
-            case "auth": return <PlaceholderPage title="Phân quyền hệ thống" />;
-            case "customer-types": return <PlaceholderPage title="Quản lý loại khách hàng" />;
-
+            case "users":          return <UserManagement />;
+            case "auth":           return <PlaceholderPage title="Phân quyền hệ thống" />;
+            case "customer-types": return <CustomerTypeManagement />;
+            
             // Sales & CRM
             case "crm-stats": return <CrmDashboard />;
             case "customers": return <SalesCustomers onNavigate={handleNavigate} />;

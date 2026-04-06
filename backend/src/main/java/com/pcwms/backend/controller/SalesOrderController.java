@@ -44,7 +44,7 @@ public class SalesOrderController {
 
     // 👉 API: LẤY DANH SÁCH ĐƠN HÀNG
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF') or hasRole('DIRECTOR') or hasRole('PRODUCTION_MANAGER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_STAFF') or hasRole('DIRECTOR') or hasRole('PRODUCTION_MANAGER')")
     public ResponseEntity<ResponseObject> getAllSalesOrders(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
@@ -75,7 +75,7 @@ public class SalesOrderController {
 
     // 👉 API: Xem chi tiết 1 Đơn hàng
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF') or hasRole('ACCOUNTANT') or hasRole('PRODUCTION_MANAGER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_STAFF') or hasRole('ACCOUNTANT') or hasRole('PRODUCTION_MANAGER')")
     public ResponseEntity<ResponseObject> getSalesOrderDetail(@PathVariable Long id) {
         try {
             SalesOrderDetailResponse detail = salesOrderService.getSalesOrderDetail(id);
@@ -90,7 +90,7 @@ public class SalesOrderController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> createSalesOrder(@RequestBody SalesOrderRequest request) {
         try {
             SalesOrder newOrder = salesOrderService.createSalesOrder(request);
@@ -105,7 +105,7 @@ public class SalesOrderController {
     }
 
     @PostMapping("/from-quotation/{quotationId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> createOrderFromQuotation(@PathVariable Long quotationId) {
         try {
             // Gọi hàm check tín dụng và đúc đơn hàng từ Service
@@ -145,7 +145,7 @@ public class SalesOrderController {
 
     // API: LẤY LỊCH SỬ THANH TOÁN CỦA 1 ĐƠN HÀNG CỤ THỂ
     @GetMapping("/{id}/payments")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR', 'SALES_MANAGER', 'SALES_STAFF', 'PRODUCTION_MANAGER')") // Thêm role Kế toán vào đây nếu có
+    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR', 'SALES_STAFF', 'PRODUCTION_MANAGER')") // Thêm role Kế toán vào đây nếu có
     public ResponseEntity<ResponseObject> getOrderPaymentHistory(@PathVariable("id") Long orderId) {
         try {
             // 1. Kiểm tra xem đơn hàng có tồn tại không
@@ -197,7 +197,7 @@ public class SalesOrderController {
 
     //API: Sales staff cập nhật mức độ ưu tiên cho đơn hàng
     @PatchMapping("/{id}/priority")
-    @PreAuthorize("hasAnyRole('SALES_STAFF', 'SALES_MANAGER', 'ADMIN', 'DIRECTOR')")
+    @PreAuthorize("hasAnyRole('SALES_STAFF', 'ADMIN', 'DIRECTOR')")
     public ResponseEntity<ResponseObject> updateOrderPriority(
             @PathVariable Long id,
             @RequestBody PriorityRequest request
@@ -248,7 +248,7 @@ public class SalesOrderController {
 
     // API: Cập nhật riêng Ngày giao dự kiến
     @PatchMapping("/{id}/due-date")
-    @PreAuthorize("hasAnyRole('SALES_STAFF', 'SALES_MANAGER', 'ADMIN', 'DIRECTOR')")
+    @PreAuthorize("hasAnyRole('SALES_STAFF', 'ADMIN', 'DIRECTOR')")
     public ResponseEntity<ResponseObject> updateDueDate(
             @PathVariable Long id,
             @RequestBody PriorityRequest request

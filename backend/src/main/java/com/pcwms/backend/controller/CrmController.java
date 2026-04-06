@@ -16,7 +16,7 @@ public class CrmController {
     private CrmService crmService;
 
     @GetMapping("/dashboard/stats")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> getDashboardStats(
             @RequestParam int month,
             @RequestParam int year) {

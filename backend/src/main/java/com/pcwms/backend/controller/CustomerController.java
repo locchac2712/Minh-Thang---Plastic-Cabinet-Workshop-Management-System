@@ -54,7 +54,7 @@ public class CustomerController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
+    @PreAuthorize("hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> createCustomer(@RequestBody Customer customer) {
         return ResponseEntity.ok(
                 new ResponseObject("SUCCESS", "Thêm khách hàng thành công",
@@ -63,7 +63,7 @@ public class CustomerController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> updateCustomer(@PathVariable Long id, @RequestBody Customer customer) {
         return ResponseEntity.ok(
                 new ResponseObject("SUCCESS", "Cập nhật khách hàng thành công",
@@ -72,7 +72,7 @@ public class CustomerController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> toggleStatus(@PathVariable Long id, @RequestParam boolean status) {
         return ResponseEntity.ok(
                 new ResponseObject("SUCCESS", "Cập nhật trạng thái thành công",

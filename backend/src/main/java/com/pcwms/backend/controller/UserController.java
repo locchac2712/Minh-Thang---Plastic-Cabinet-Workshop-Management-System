@@ -97,7 +97,7 @@ public class UserController {
 
     // tao nguoi dung/staff
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createUser(@RequestBody User user) {
         try {
             return ResponseEntity.ok(
@@ -111,7 +111,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User user) {
         try {
             return ResponseEntity.ok(
@@ -126,7 +126,7 @@ public class UserController {
 
     // xoa nguoi dung/staff
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.ok(
@@ -136,14 +136,14 @@ public class UserController {
 
     // khoa tai khoan nguoi dung/staff
     @PutMapping("/{id}/lock")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponseDTO> lockUser(@PathVariable Long id) {
         return ResponseEntity.ok(userService.lockUser(id));
     }
 
     // mo khoa tai khoan nguoi dung/staff
     @PutMapping("/{id}/unlock")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponseDTO> unlockUser(@PathVariable Long id) {
         return ResponseEntity.ok(userService.unlockUser(id));
     }

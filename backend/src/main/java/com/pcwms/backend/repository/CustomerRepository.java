@@ -17,15 +17,15 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     List<Customer> findByActiveTrue();
     List<Customer> findByActiveFalse();
 
-    @Query("SELECT c FROM Customer c LEFT JOIN FETCH c.assignedTo")
+    @Query("SELECT c FROM Customer c LEFT JOIN FETCH c.assignedTo LEFT JOIN FETCH c.customerType")
     List<Customer> findAllWithAssignedTo();
 
-    @Query("SELECT c FROM Customer c LEFT JOIN FETCH c.assignedTo WHERE c.active = true")
+    @Query("SELECT c FROM Customer c LEFT JOIN FETCH c.assignedTo LEFT JOIN FETCH c.customerType WHERE c.active = true")
     List<Customer> findByActiveTrueWithAssignedTo();
 
-    @Query("SELECT c FROM Customer c LEFT JOIN FETCH c.assignedTo WHERE c.active = false")
+    @Query("SELECT c FROM Customer c LEFT JOIN FETCH c.assignedTo LEFT JOIN FETCH c.customerType WHERE c.active = false")
     List<Customer> findByActiveFalseWithAssignedTo();
 
-    @Query("SELECT c FROM Customer c LEFT JOIN FETCH c.assignedTo WHERE c.id = :id")
+    @Query("SELECT c FROM Customer c LEFT JOIN FETCH c.assignedTo LEFT JOIN FETCH c.customerType WHERE c.id = :id")
     Optional<Customer> findByIdWithAssignedTo(Long id);
 }

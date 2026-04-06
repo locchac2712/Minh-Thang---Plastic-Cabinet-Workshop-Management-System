@@ -30,7 +30,7 @@ public class QuotationController {
 
     // Sửa createQuotation endpoint
     @PostMapping("/create")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('DIRECTOR') or hasRole('SALES_STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> createQuotation(@RequestBody QuotationRequest request) {
         try {
             Quotation savedQuotation = quotationService.createQuotation(request);
@@ -45,7 +45,7 @@ public class QuotationController {
 
     // Sửa updateQuotation endpoint
     @PutMapping("/{id}/update")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF') or hasRole('DIRECTOR')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_STAFF') or hasRole('DIRECTOR')")
     public ResponseEntity<ResponseObject> updateQuotation(
             @PathVariable Long id,
             @RequestBody QuotationRequest request) {
@@ -62,7 +62,7 @@ public class QuotationController {
 
     // Sửa updateStatus endpoint
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'DIRECTOR', 'SALES_STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR', 'SALES_STAFF')")
     public ResponseEntity<ResponseObject> updateQuotationStatus(
             @PathVariable Long id,
             @RequestParam String status,
@@ -105,7 +105,7 @@ public class QuotationController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('DIRECTOR') or hasRole('SALES_STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTOR') or hasRole('SALES_STAFF')")
     public ResponseEntity<ResponseObject> getAllQuotation(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
@@ -141,7 +141,7 @@ public class QuotationController {
     }
     // 👉 API Xem chi tiết 1 Báo giá
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_MANAGER') or hasRole('SALES_STAFF') or hasRole('DIRECTOR')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SALES_STAFF') or hasRole('DIRECTOR')")
     public ResponseEntity<ResponseObject> getQuotationDetail(@PathVariable Long id) {
         try {
             QuotationDetailResponse detail = quotationService.getQuotationDetail(id);

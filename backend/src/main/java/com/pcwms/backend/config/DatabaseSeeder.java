@@ -2,6 +2,7 @@ package com.pcwms.backend.config;
 
 import com.pcwms.backend.entity.*;
 import com.pcwms.backend.repository.*;
+import com.pcwms.backend.entity.CustomerType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,6 +28,9 @@ public class DatabaseSeeder implements CommandLineRunner {
     private CustomerRepository customerRepository;
     @Autowired
     private ProductRepository productRepository;
+    @Autowired
+    private CustomerTypeRepository customerTypeRepository;
+    
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
@@ -56,7 +60,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         }
 
         // 1. ROLES
-        List<String> roles = List.of("ROLE_ADMIN", "ROLE_DIRECTOR", "ROLE_SALES_MANAGER", "ROLE_SALES_STAFF", "ROLE_WAREHOUSE_MANAGER", "ROLE_PRODUCTION_MANAGER", "ROLE_ACCOUNTANT");
+        List<String> roles = List.of("ROLE_ADMIN", "ROLE_DIRECTOR", "ROLE_SALES_STAFF", "ROLE_WAREHOUSE_MANAGER", "ROLE_PRODUCTION_MANAGER", "ROLE_ACCOUNTANT");
         for (String roleName : roles) {
             if (!roleRepository.existsByRoleName(roleName)) {
                 Role role = new Role(); role.setRoleName(roleName); roleRepository.save(role);
@@ -68,16 +72,28 @@ public class DatabaseSeeder implements CommandLineRunner {
             String pass = passwordEncoder.encode("123456");
             createStaffUser("admin", pass, "ROLE_ADMIN", "Nguyễn Quản Trị", "Ban Giám Đốc", "EMP-001", "admin@gmail.com", "0988000001");
             createStaffUser("director", pass, "ROLE_DIRECTOR", "Trần Giám Đốc", "Ban Giám Đốc", "EMP-002", "director@gmail.com", "0988000002");
-            createStaffUser("sales_manager", pass, "ROLE_SALES_MANAGER", "Lê Trưởng Phòng Sale", "Kinh Doanh", "EMP-003", "sales@gmail.com", "0988000003");
             createStaffUser("sale_staff_1", pass, "ROLE_SALES_STAFF", "Phạm Nhân Viên Sale", "Kinh Doanh", "EMP-004", "staff@gmail.com", "0988000004");
             createStaffUser("production_manager", pass, "ROLE_PRODUCTION_MANAGER", "Vũ Quản Lý Sản Xuất", "Sản Xuất", "EMP-005", "production@gmail.com", "0988000005");
         }
 
-        // 3. CUSTOMERS
+        // 3. CUSTOMER TYPES
+        CustomerType retail = null, distributor = null, project = null;
+        if (customerTypeRepository.count() == 0) {
+            retail = customerTypeRepository.save(new CustomerType(null, "Khách lẻ", "RETAIL", "Khách hàng mua lẻ, thanh toán ngay"));
+            distributor = customerTypeRepository.save(new CustomerType(null, "Đại lý / Nhà phân phối", "DISTRIBUTOR", "Hệ thống đại lý cấp 1, cấp 2"));
+            project = customerTypeRepository.save(new CustomerType(null, "Dự án / Công trình", "PROJECT", "Khách hàng dự án số lượng lớn"));
+            System.out.println("-> Đã tạo 3 loại khách hàng mặc định.");
+        } else {
+            retail = customerTypeRepository.findByCode("RETAIL");
+            distributor = customerTypeRepository.findByCode("DISTRIBUTOR");
+            project = customerTypeRepository.findByCode("PROJECT");
+        }
+
+        // 4. CUSTOMERS
         if (customerRepository.count() == 0) {
-            createCustomer("Công ty TNHH Khách Hàng VIP", "vip@gmail.com", "0911222333", "Hà Nội", "0101234567", new BigDecimal("50000000"));
-            createCustomer("Anh Tuấn Mua Lẻ", "tuan@gmail.com", "0988777666", "HCM", null, BigDecimal.ZERO);
-            createCustomer("Khách Nợ Xấu (Over Credit)", "bad@gmail.com", "0900000666", "Hải Phòng", "0109998887", new BigDecimal("10000000"));
+            createCustomer("Công ty TNHH Khách Hàng VIP", "vip@gmail.com", "0911222333", "Hà Nội", "0101234567", new BigDecimal("50000000"), distributor);
+            createCustomer("Anh Tuấn Mua Lẻ", "tuan@gmail.com", "0988777666", "HCM", null, BigDecimal.ZERO, retail);
+            createCustomer("Khách Nợ Xấu (Over Credit)", "bad@gmail.com", "0900000666", "Hải Phòng", "0109998887", new BigDecimal("10000000"), project);
             
             Customer badPayer = customerRepository.findAll().stream().filter(c -> c.getName().contains("Nợ Xấu")).findFirst().orElse(null);
             if (badPayer != null) {
@@ -170,8 +186,17 @@ public class DatabaseSeeder implements CommandLineRunner {
         staffRepository.save(staff);
     }
 
-    private void createCustomer(String name, String email, String phone, String address, String taxCode, BigDecimal creditLimit) {
-        Customer customer = new Customer(); customer.setName(name); customer.setEmail(email); customer.setPhoneNumber(phone); customer.setAddress(address); customer.setTaxCode(taxCode); customer.setCreditLimit(creditLimit); customer.setCurrentDebt(BigDecimal.ZERO); customer.setActive(true);
+    private void createCustomer(String name, String email, String phone, String address, String taxCode, BigDecimal creditLimit, CustomerType type) {
+        Customer customer = new Customer(); 
+        customer.setName(name); 
+        customer.setEmail(email); 
+        customer.setPhoneNumber(phone); 
+        customer.setAddress(address); 
+        customer.setTaxCode(taxCode); 
+        customer.setCreditLimit(creditLimit); 
+        customer.setCurrentDebt(BigDecimal.ZERO); 
+        customer.setActive(true);
+        customer.setCustomerType(type);
         customerRepository.save(customer);
     }
 

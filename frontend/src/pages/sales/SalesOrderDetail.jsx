@@ -179,7 +179,7 @@ const PopField = ({ label, value }) => (
 /* ─────────────────────────────────────────────────────────────
    MAIN COMPONENT
 ───────────────────────────────────────────────────────────── */
-export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff, isSalesManager, isDirector }) => {
+export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff, isDirector }) => {
     const [order,         setOrder]         = useState(null);
     const [payments,      setPayments]      = useState([]);
     const [loading,       setLoading]       = useState(true);
@@ -358,15 +358,7 @@ export const SalesOrderDetail = ({ orderId, onBack, isSalesStaff, isSalesManager
                                 </button>
                             )}
 
-                            {order.status === "PENDING_APPROVAL" && isSalesManager && (
-                                <button 
-                                    className="pm-trigger-btn" 
-                                    style={{ marginTop: 10, background: "#3b82f6" }} 
-                                    onClick={() => alert("Đã gửi thông báo yêu cầu phê duyệt tới Giám đốc!")}
-                                >
-                                    Gửi yêu cầu phê duyệt
-                                </button>
-                            )}
+
 
                             {order.status === "PENDING_APPROVAL" && isDirector && (
                                 <button 

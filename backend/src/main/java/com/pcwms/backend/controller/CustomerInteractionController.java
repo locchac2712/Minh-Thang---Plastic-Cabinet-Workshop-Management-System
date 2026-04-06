@@ -17,35 +17,35 @@ public class CustomerInteractionController {
     private final CustomerInteractionService interactionService;
 
     @PostMapping
-    @PreAuthorize("hasRole('SALES_STAFF') or hasRole('SALES_MANAGER') or hasRole('DIRECTOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SALES_STAFF') or hasRole('DIRECTOR') or hasRole('ADMIN')")
     public ResponseEntity<ResponseObject> addInteraction(@RequestBody CustomerInteractionRequest request) {
         return ResponseEntity.ok(new ResponseObject("SUCCESS", "Ghi nhận tương tác thành công", 
                 interactionService.addInteraction(request)));
     }
 
     @GetMapping("/customer/{customerId}")
-    @PreAuthorize("hasRole('SALES_STAFF') or hasRole('SALES_MANAGER') or hasRole('DIRECTOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SALES_STAFF') or hasRole('DIRECTOR') or hasRole('ADMIN')")
     public ResponseEntity<ResponseObject> getByCustomer(@PathVariable Long customerId) {
         return ResponseEntity.ok(new ResponseObject("SUCCESS", "Lấy lịch sử tương tác thành công", 
                 interactionService.getInteractionsByCustomer(customerId)));
     }
 
     @GetMapping("/reminders/my-pending")
-    @PreAuthorize("hasRole('SALES_STAFF') or hasRole('SALES_MANAGER') or hasRole('DIRECTOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SALES_STAFF') or hasRole('DIRECTOR') or hasRole('ADMIN')")
     public ResponseEntity<ResponseObject> getMyPendingReminders() {
         return ResponseEntity.ok(new ResponseObject("SUCCESS", "Lấy danh sách nhắc hẹn thành công", 
                 interactionService.getMyPendingReminders()));
     }
 
     @PatchMapping("/{id}/resolve")
-    @PreAuthorize("hasRole('SALES_STAFF') or hasRole('SALES_MANAGER') or hasRole('DIRECTOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SALES_STAFF') or hasRole('DIRECTOR') or hasRole('ADMIN')")
     public ResponseEntity<ResponseObject> resolveReminder(@PathVariable Long id) {
         interactionService.resolveReminder(id);
         return ResponseEntity.ok(new ResponseObject("SUCCESS", "Đã đánh dấu hoàn thành nhắc hẹn", null));
     }
 
     @GetMapping("/notes/recent")
-    @PreAuthorize("hasRole('SALES_STAFF') or hasRole('SALES_MANAGER') or hasRole('DIRECTOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SALES_STAFF') or hasRole('DIRECTOR') or hasRole('ADMIN')")
     public ResponseEntity<ResponseObject> getRecentNotes() {
         return ResponseEntity.ok(new ResponseObject("SUCCESS", "Lấy ghi chú gần đây thành công", 
                 interactionService.getRecentNotes()));

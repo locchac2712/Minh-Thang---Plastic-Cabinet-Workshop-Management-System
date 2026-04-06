@@ -61,8 +61,9 @@ public class Customer {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "customer_type")
-    private String customerType; // RETAIL, DISTRIBUTOR, PROJECT
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "customer_type_id")
+    private CustomerType customerType;
 
     @Column(name = "source")
     private String source; // FACEBOOK, ZALO, WEBSITE, REFERRAL
