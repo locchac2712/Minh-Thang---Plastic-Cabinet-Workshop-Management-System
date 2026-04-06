@@ -17,18 +17,18 @@ export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    
+
     // UI states
     const [showNoteModal, setShowNoteModal] = useState(false);
     const [newNote, setNewNote] = useState({ type: 'NOTE', content: '', reminderDate: '' });
     const [savingNote, setSavingNote] = useState(false);
-    
+
     // Stats calculation
     const [stats, setStats] = useState({ totalOrderValue: 0, completedOrders: 0 });
 
     useEffect(() => {
         if (!customerId) return;
-        
+
         setLoading(true);
         Promise.all([
             customerService.getById(customerId).then(setCustomer),
@@ -83,7 +83,7 @@ export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
             <button onClick={onBack} style={{ background: '#fff', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: 8, cursor: 'pointer' }}>Quay lại</button>
         </div>
     );
-    if (!customer && !loading) return <div className="cf-loading" style={{padding: 100}}><div className="cf-spinner"></div><span>Đang tải thông tin...</span></div>;
+    if (!customer && !loading) return <div className="cf-loading" style={{ padding: 100 }}><div className="cf-spinner"></div><span>Đang tải thông tin...</span></div>;
     if (!customer) return null;
 
     const remainingCredit = (customer.creditLimit || 0) - (customer.currentDebt || 0);
@@ -94,15 +94,15 @@ export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
                 <div style={{ display: 'flex', gap: 16 }}>
                     <div style={{ cursor: 'pointer', marginTop: 12, color: '#64748b' }} onClick={onBack}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
                     </div>
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                             <span style={{ fontSize: 13, fontWeight: 700, color: '#64748b', letterSpacing: 1 }}>{customer.taxCode || 'CHƯA CÓ MÃ'}</span>
-                            <span style={{ 
-                                background: customer.active ? '#e0f2fe' : '#fee2e2', 
-                                color: customer.active ? '#0369a1' : '#be123c', 
-                                padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, letterSpacing: 0.5 
+                            <span style={{
+                                background: customer.active ? '#e0f2fe' : '#fee2e2',
+                                color: customer.active ? '#0369a1' : '#be123c',
+                                padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, letterSpacing: 0.5
                             }}>
                                 {customer.active ? 'ĐANG HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}
                             </span>
@@ -113,29 +113,29 @@ export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
                         </p>
                     </div>
                 </div>
-                
-                <button 
+
+                <button
                     onClick={() => onNavigate && onNavigate('edit-customer', customer.id)}
                     style={{ background: '#fff', border: '1px solid #e2e8f0', padding: '10px 20px', borderRadius: 30, display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: '#475569', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                 >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
                     Chỉnh sửa
                 </button>
             </div>
 
             {/* MAIN DASHBOARD GRID */}
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 340px) 1fr', gap: 24, alignItems: 'flex-start' }}>
-                
+
                 {/* L CỘT TRÁI - SIDEBAR CARDS */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                    
+
                     {/* Card 1: Thông tin liên hệ */}
                     <div style={cardStyle}>
                         <h3 style={cardTitleStyle}>THÔNG TIN LIÊN HỆ</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 20 }}>
-                            <ContactRow icon="✉️" label="Email giao dịch" value={customer.email} />
-                            <ContactRow icon="📞" label="Số điện thoại" value={customer.phoneNumber} />
-                            <ContactRow icon="📍" label="Địa chỉ văn phòng" value={customer.address} />
+                            <ContactRow icon="" label="Email giao dịch" value={customer.email} />
+                            <ContactRow icon="" label="Số điện thoại" value={customer.phoneNumber} />
+                            <ContactRow icon="" label="Địa chỉ văn phòng" value={customer.address} />
                         </div>
                     </div>
 
@@ -143,9 +143,9 @@ export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
                     <div style={cardStyle}>
                         <h3 style={cardTitleStyle}>PHÂN LOẠI KHÁCH HÀNG</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
-                            <ClassBox active={customer.customerType === 'DISTRIBUTOR'} icon="🏢" name="Wholesale (Sỉ)" />
-                            <ClassBox active={customer.customerType === 'RETAIL'} icon="👤" name="Retail (Lẻ)" />
-                            <ClassBox active={customer.customerType === 'PROJECT'} icon="🏗️" name="Project (Dự án)" />
+                            <ClassBox active={customer.customerType === 'DISTRIBUTOR'} icon="" name="Wholesale (Sỉ)" />
+                            <ClassBox active={customer.customerType === 'RETAIL'} icon="" name="Retail (Lẻ)" />
+                            <ClassBox active={customer.customerType === 'PROJECT'} icon="" name="Project (Dự án)" />
                         </div>
                     </div>
 
@@ -153,7 +153,7 @@ export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
 
                 {/* R CỘT PHẢI - RIGHT MAIN */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                    
+
                     {/* STATS ROW */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
                         <div style={cardStyle}>
@@ -204,7 +204,7 @@ export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
                                             </div>
                                             {/* Progress Bar */}
                                             <div style={{ width: '100%', height: 6, background: '#e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-                                                <div style={{ height: '100%', background: '#3b82f6', width: `${customer.creditLimit ? Math.min((customer.currentDebt/customer.creditLimit)*100, 100) : 0}%` }} />
+                                                <div style={{ height: '100%', background: '#3b82f6', width: `${customer.creditLimit ? Math.min((customer.currentDebt / customer.creditLimit) * 100, 100) : 0}%` }} />
                                             </div>
                                         </div>
                                     </div>
@@ -216,7 +216,7 @@ export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
                                     <table className="sp-table" style={{ margin: 0 }}>
                                         <thead><tr><th>Mã đơn</th><th>Ngày tạo</th><th>Giá trị</th><th>Trạng thái</th></tr></thead>
                                         <tbody>
-                                            {(!orders.content || orders.content.length === 0) ? <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Chưa có đơn hàng nào</td></tr> : 
+                                            {(!orders.content || orders.content.length === 0) ? <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Chưa có đơn hàng nào</td></tr> :
                                                 orders.content.map(o => (
                                                     <tr key={o.id}>
                                                         <td style={{ fontWeight: 700, color: '#7c3aed' }}>{o.orderNumber}</td>
@@ -235,7 +235,7 @@ export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
                                     <table className="sp-table" style={{ margin: 0 }}>
                                         <thead><tr><th>Mã báo giá</th><th>Ngày tạo</th><th>Hết hạn</th><th>Tổng cộng</th><th>Trạng thái</th></tr></thead>
                                         <tbody>
-                                            {(!quotes.content || quotes.content.length === 0) ? <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Chưa có báo giá nào</td></tr> : 
+                                            {(!quotes.content || quotes.content.length === 0) ? <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Chưa có báo giá nào</td></tr> :
                                                 quotes.content.map(q => (
                                                     <tr key={q.id}>
                                                         <td style={{ fontWeight: 700, color: '#0ea5e9' }}>{q.quotationNumber}</td>
@@ -255,7 +255,7 @@ export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
                                     <table className="sp-table" style={{ margin: 0 }}>
                                         <thead><tr><th>Ngày</th><th>Số tiền</th><th>Phương thức</th><th>Nội dung</th><th>Trạng thái</th></tr></thead>
                                         <tbody>
-                                            {payments.length === 0 ? <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Chưa có giao dịch thanh toán nào</td></tr> : 
+                                            {payments.length === 0 ? <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Chưa có giao dịch thanh toán nào</td></tr> :
                                                 payments.map(p => (
                                                     <tr key={p.id}>
                                                         <td>{fmtDate(p.transactionDate || p.payosPaidAt)}</td>
@@ -277,15 +277,15 @@ export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
                             {activeTab === "notes" && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                                     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                        <button 
+                                        <button
                                             onClick={() => setShowNoteModal(true)}
                                             style={{ background: '#4f46e5', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
                                         >
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
                                             Thêm ghi chú
                                         </button>
                                     </div>
-                                    {interactions.length === 0 ? <div style={{ textAlign: 'center', color: '#94a3b8', padding: 40 }}>Chưa có lịch sử.</div> : 
+                                    {interactions.length === 0 ? <div style={{ textAlign: 'center', color: '#94a3b8', padding: 40 }}>Chưa có lịch sử.</div> :
                                         interactions.map(it => (
                                             <div key={it.id} style={{ padding: 16, border: '1px solid #f1f5f9', borderRadius: 12, background: '#fff' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -322,10 +322,10 @@ export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 8, textTransform: 'uppercase' }}>Loại tương tác</label>
-                                <select 
+                                <select
                                     style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none' }}
                                     value={newNote.type}
-                                    onChange={e => setNewNote({...newNote, type: e.target.value})}
+                                    onChange={e => setNewNote({ ...newNote, type: e.target.value })}
                                 >
                                     <option value="NOTE">Ghi chú nhanh</option>
                                     <option value="CALL">Cuộc gọi</option>
@@ -336,29 +336,29 @@ export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
 
                             <div>
                                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 8, textTransform: 'uppercase' }}>Nội dung chi tiết</label>
-                                <textarea 
+                                <textarea
                                     placeholder="Nhập nội dung tương tác hoặc ghi chú..."
                                     style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 14, minHeight: 120, resize: 'none', outline: 'none' }}
                                     value={newNote.content}
-                                    onChange={e => setNewNote({...newNote, content: e.target.value})}
+                                    onChange={e => setNewNote({ ...newNote, content: e.target.value })}
                                 />
                             </div>
 
                             <div>
                                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 8, textTransform: 'uppercase' }}>Hẹn ngày xử lý (Nếu có)</label>
-                                <input 
-                                    type="datetime-local" 
+                                <input
+                                    type="datetime-local"
                                     style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none' }}
                                     value={newNote.reminderDate}
-                                    onChange={e => setNewNote({...newNote, reminderDate: e.target.value})}
+                                    onChange={e => setNewNote({ ...newNote, reminderDate: e.target.value })}
                                 />
                             </div>
 
-                            <button 
+                            <button
                                 onClick={handleAddNote}
                                 disabled={savingNote}
-                                style={{ 
-                                    width: '100%', background: '#4f46e5', color: '#fff', border: 'none', padding: '14px', 
+                                style={{
+                                    width: '100%', background: '#4f46e5', color: '#fff', border: 'none', padding: '14px',
                                     borderRadius: 14, fontSize: 15, fontWeight: 700, cursor: 'pointer', marginTop: 8,
                                     opacity: savingNote ? 0.7 : 1
                                 }}
@@ -403,9 +403,9 @@ const ContactRow = ({ icon, label, value }) => (
 );
 
 const ClassBox = ({ active, icon, name }) => (
-    <div style={{ 
-        display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', 
-        borderRadius: 16, border: `2px solid ${active ? '#4f46e5' : '#f8fafc'}`, 
+    <div style={{
+        display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px',
+        borderRadius: 16, border: `2px solid ${active ? '#4f46e5' : '#f8fafc'}`,
         background: active ? '#fff' : '#f8fafc',
         boxShadow: active ? '0 8px 20px -4px rgba(79, 70, 229, 0.1)' : 'none',
         transition: 'all 0.2s', opacity: active ? 1 : 0.6
@@ -416,9 +416,9 @@ const ClassBox = ({ active, icon, name }) => (
 );
 
 const TabBtn = ({ active, children, onClick }) => (
-    <button 
+    <button
         onClick={onClick}
-        style={{ 
+        style={{
             padding: '20px 24px', border: 'none', background: 'none', cursor: 'pointer',
             fontSize: 14, fontWeight: active ? 700 : 500, color: active ? '#4f46e5' : '#64748b',
             borderBottom: active ? '3px solid #4f46e5' : '3px solid transparent',
@@ -432,10 +432,10 @@ const TabBtn = ({ active, children, onClick }) => (
 const DetailItem = ({ label, value, bold, large, valueColor }) => (
     <div>
         <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 4 }}>{label}</div>
-        <div style={{ 
-            fontSize: large ? 24 : 14, 
-            fontWeight: bold || large ? 700 : 500, 
-            color: valueColor || '#0f172a' 
+        <div style={{
+            fontSize: large ? 24 : 14,
+            fontWeight: bold || large ? 700 : 500,
+            color: valueColor || '#0f172a'
         }}>
             {value || '—'}
         </div>
