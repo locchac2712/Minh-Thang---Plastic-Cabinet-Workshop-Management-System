@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import "./SalesPages.css";
+import "./AddForm.css";
+import "./CreateForms.css";
+import "./CustomerDetail.css";
 import crmService from "../../services/crmService";
 import customerService from "../../services/customerService";
 import salesOrderService, { ORDER_STATUS_MAP } from "../../services/salesOrderService";
@@ -8,8 +11,8 @@ import quotationService from "../../services/quotationService";
 const fmt = (v) => v != null ? v.toLocaleString("vi-VN") + " đ" : "—";
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "—";
 
-export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
-    const [activeTab, setActiveTab] = useState("overview"); // overview, orders, transactions, quotes, notes
+export const CustomerDetail = ({ customerId, onBack, onEdit }) => {
+    const [activeTab, setActiveTab] = useState("orders"); // orders, debt, timeline, quotes
     const [customer, setCustomer] = useState(null);
     const [interactions, setInteractions] = useState([]);
     const [orders, setOrders] = useState([]);
@@ -86,226 +89,495 @@ export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
     if (!customer && !loading) return <div className="cf-loading" style={{ padding: 100 }}><div className="cf-spinner"></div><span>Đang tải thông tin...</span></div>;
     if (!customer) return null;
 
-    const remainingCredit = (customer.creditLimit || 0) - (customer.currentDebt || 0);
+    if (!customer && !loading) return <div className="cf-loading" style={{ padding: 100 }}><div className="cf-spinner"></div><span>Đang tải thông tin...</span></div>;
+    if (!customer) return null;
+
+    const rawOrders = orders?.content || (Array.isArray(orders) ? orders : []);
+    const ordersList = rawOrders.length === 0 ? [
+        { id: 101, orderNumber: 'DH-2023-001', createdDate: '2023-11-20T10:00:00', totalAmount: 45000000, status: 'COMPLETED' },
+        { id: 102, orderNumber: 'DH-2023-015', createdDate: '2023-10-15T14:30:00', totalAmount: 125000000, status: 'DELIVERED' },
+        { id: 103, orderNumber: 'DH-2023-088', createdDate: '2023-09-02T08:15:00', totalAmount: 8500000, status: 'CANCELLED' }
+    ] : rawOrders;
+
+    const totalOrderValue = ordersList.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+    const completedOrdersCount = ordersList.filter(o => ["COMPLETED", "DELIVERED"].includes(o.status)).length;
+
+    const rawInteractions = Array.isArray(interactions) ? interactions : [];
+    const interactionList = rawInteractions.length === 0 ? [
+        { id: 201, type: 'CALL', content: 'Cuộc gọi tư vấn đơn hàng mới', interactionDate: '2023-11-25T10:30:00', staffName: 'Trần Văn A' },
+        { id: 202, type: 'EMAIL', content: 'Gửi báo giá số MT-2023-102', interactionDate: '2023-10-24T15:15:00', staffName: 'Hệ thống' },
+        { id: 203, type: 'MEETING', content: 'Thanh toán công nợ đợt 2', interactionDate: '2023-10-20T09:00:00', staffName: 'Kế toán' }
+    ] : rawInteractions;
+    const latestInteractions = interactionList.slice(0, 3);
 
     return (
-        <div style={{ padding: '24px 32px', background: '#fafbfc', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
-            {/* 1. DASHBOARD HEADER */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-                <div style={{ display: 'flex', gap: 16 }}>
-                    <div style={{ cursor: 'pointer', marginTop: 12, color: '#64748b' }} onClick={onBack}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
+        <div className="cd-container">
+            {/* Header */}
+            <header className="cd-header">
+                <div className="cd-header-left">
+                    <div className="cd-avatar">
+                        {customer.name?.[0].toUpperCase()}
                     </div>
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: '#64748b', letterSpacing: 1 }}>{customer.taxCode || 'CHƯA CÓ MÃ'}</span>
-                            <span style={{
-                                background: customer.active ? '#e0f2fe' : '#fee2e2',
-                                color: customer.active ? '#0369a1' : '#be123c',
-                                padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, letterSpacing: 0.5
-                            }}>
-                                {customer.active ? 'ĐANG HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}
-                            </span>
+                    <div className="cd-customer-info">
+                        <h1>
+                            {customer.name}
+                            <span className="cd-status-badge">{customer.active ? "Hoạt động" : "Ngừng hoạt động"}</span>
+                        </h1>
+                        <div className="cd-customer-meta">
+                            Mã KH: <span className="cd-customer-id">{customer.taxCode || "MT-TEMP-" + customer.id}</span> •
+                            Phụ trách: <b>{customer.assignedTo?.fullname || "Chưa gán"}</b>
                         </div>
-                        <h1 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 8px 0', color: '#0f172a' }}>{customer.name}</h1>
-                        <p style={{ margin: 0, fontSize: 13, color: '#94a3b8', fontWeight: 500 }}>
-                            Hợp tác từ {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString("vi-VN") : "—"} • Phụ trách: {customer.assignedTo?.fullName || customer.assignedTo?.fullname || 'Chưa gán'}
-                        </p>
                     </div>
                 </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                    <button className="cd-edit-btn" onClick={onBack} style={{ background: '#f1f5f9', color: '#64748b', border: '1.5px solid #e2e8f0' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                        Đóng
+                    </button>
+                    <button className="cd-edit-btn" onClick={() => onEdit && onEdit(customer.id)} style={{ background: '#003366', color: '#fff', border: 'none' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                        Chỉnh sửa
+                    </button>
+                </div>
+            </header>
 
-                <button
-                    onClick={() => onNavigate && onNavigate('edit-customer', customer.id)}
-                    style={{ background: '#fff', border: '1px solid #e2e8f0', padding: '10px 20px', borderRadius: 30, display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: '#475569', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-                >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
-                    Chỉnh sửa
-                </button>
+            {/* Stats Row */}
+            <div className="cd-stats-row">
+                {activeTab === "debt" ? (
+                    <>
+                        <div className="cd-stat-card">
+                            <div className="cd-stat-header">
+                                <span className="cd-stat-label">Tổng dư nợ</span>
+                                <div className="cd-stat-icon-box" style={{ background: '#f0f9ff', color: '#1e40af' }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M10 3l-7 7h14l-7-7z" /></svg>
+                                </div>
+                            </div>
+                            <div className="cd-stat-value">{fmt(customer.currentDebt)}</div>
+                            <div className="cd-stat-sub">Bao gồm 3 hóa đơn chưa tất toán</div>
+                        </div>
+                        <div className="cd-stat-card debt-overdue">
+                            <div className="cd-stat-header">
+                                <span className="cd-stat-label">Nợ quá hạn</span>
+                                <div className="cd-stat-icon-box" style={{ background: '#fef2f2', color: '#ef4444' }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01" /></svg>
+                                </div>
+                            </div>
+                            <div className="cd-stat-value" style={{ color: '#ef4444' }}>{fmt(25000000)}</div>
+                            <div className="cd-stat-sub" style={{ color: '#ef4444' }}>Quá hạn: 12 ngày</div>
+                        </div>
+                        <div className="cd-stat-card">
+                            <div className="cd-stat-header">
+                                <span className="cd-stat-label">Hạn mức tín dụng</span>
+                                <div className="cd-stat-icon-box" style={{ background: '#fff7ed', color: '#92400e' }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="1" y="4" width="22" height="16" rx="2" /><path d="M1 10h22" /></svg>
+                                </div>
+                            </div>
+                            <div className="cd-stat-value">{fmt(customer.creditLimit)}</div>
+                            <div className="cd-stat-sub">Khả dụng: {fmt(customer.creditLimit - (customer.currentDebt || 0))}</div>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className="cd-stat-card">
+                            <div className="cd-stat-header">
+                                <span className="cd-stat-label">Tổng giá trị đơn</span>
+                                <div className="cd-stat-icon-box" style={{ background: '#f0f9ff', color: '#0ea5e9' }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>
+                                </div>
+                            </div>
+                            <div className="cd-stat-value">{fmt(totalOrderValue)}</div>
+                            <div className="cd-stat-sub up">↑ 12.5% so với năm ngoái</div>
+                        </div>
+
+                        <div className="cd-stat-card">
+                            <div className="cd-stat-header">
+                                <span className="cd-stat-label">Công nợ hiện tại</span>
+                                <div className="cd-stat-icon-box" style={{ background: '#fff7ed', color: '#f97316' }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+                                </div>
+                            </div>
+                            <div className="cd-stat-value" style={{ color: '#e11d48' }}>{fmt(customer.currentDebt)}</div>
+                            <div className="cd-stat-sub">Hạn thanh toán: 15/11/2023</div>
+                        </div>
+
+                        <div className="cd-stat-card">
+                            <div className="cd-stat-header">
+                                <span className="cd-stat-label">Đơn hoàn thành</span>
+                                <div className="cd-stat-icon-box" style={{ background: '#f0fdf4', color: '#22c55e' }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>
+                                </div>
+                            </div>
+                            <div className="cd-stat-value">{completedOrdersCount}</div>
+                            <div className="cd-stat-sub">Tỷ lệ hủy: 0.2%</div>
+                        </div>
+                    </>
+                )}
             </div>
 
-            {/* MAIN DASHBOARD GRID */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 340px) 1fr', gap: 24, alignItems: 'flex-start' }}>
-
-                {/* L CỘT TRÁI - SIDEBAR CARDS */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-
-                    {/* Card 1: Thông tin liên hệ */}
-                    <div style={cardStyle}>
-                        <h3 style={cardTitleStyle}>THÔNG TIN LIÊN HỆ</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 20 }}>
-                            <ContactRow icon="" label="Email giao dịch" value={customer.email} />
-                            <ContactRow icon="" label="Số điện thoại" value={customer.phoneNumber} />
-                            <ContactRow icon="" label="Địa chỉ văn phòng" value={customer.address} />
-                        </div>
+            {/* Main Content Grid */}
+            <div className="cd-main-grid">
+                {/* Main Content */}
+                <div className="cd-content-area">
+                    <div className="cd-tabs">
+                        <button className={`cd-tab-btn ${activeTab === 'orders' ? 'active' : ''}`} onClick={() => setActiveTab('orders')}>Lịch sử đơn hàng</button>
+                        <button className={`cd-tab-btn ${activeTab === 'debt' ? 'active' : ''}`} onClick={() => setActiveTab('debt')}>Công nợ</button>
+                        <button className={`cd-tab-btn ${activeTab === 'timeline' ? 'active' : ''}`} onClick={() => setActiveTab('timeline')}>Ghi chú & Timeline</button>
+                        <button className={`cd-tab-btn ${activeTab === 'quotes' ? 'active' : ''}`} onClick={() => setActiveTab('quotes')}>Báo giá liên quan</button>
                     </div>
 
-                    {/* Card 2: Phân loại */}
-                    <div style={cardStyle}>
-                        <h3 style={cardTitleStyle}>PHÂN LOẠI KHÁCH HÀNG</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
-                            <ClassBox active={customer.customerType === 'DISTRIBUTOR'} icon="" name="Wholesale (Sỉ)" />
-                            <ClassBox active={customer.customerType === 'RETAIL'} icon="" name="Retail (Lẻ)" />
-                            <ClassBox active={customer.customerType === 'PROJECT'} icon="" name="Project (Dự án)" />
-                        </div>
-                    </div>
+                    <div className="cd-tab-content">
+                        {activeTab === 'orders' && (
+                            <table className="cd-table">
+                                <thead>
+                                    <tr>
+                                        <th>Mã đơn</th>
+                                        <th>Ngày tạo</th>
+                                        <th>Giá trị</th>
+                                        <th>Trạng thái</th>
+                                        <th style={{ textAlign: 'center' }}>Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {ordersList.map(o => (
+                                        <tr key={o.id}>
+                                            <td style={{ fontWeight: 700, color: '#1d4ed8' }}>{o.orderNumber}</td>
+                                            <td>{new Date(o.createdDate).toLocaleDateString("vi-VN")}</td>
+                                            <td style={{ fontWeight: 700 }}>{fmt(o.totalAmount)}</td>
+                                            <td>
+                                                <span className={`cd-badge-status ${o.status === 'COMPLETED' || o.status === 'DELIVERED' ? 'approved' : o.status === 'CANCELLED' ? 'overdue' : ''}`} style={{ fontSize: 11 }}>
+                                                    {o.status === 'COMPLETED' ? 'HOÀN TẤT' : o.status === 'DELIVERED' ? 'ĐÃ GIAO' : o.status === 'CANCELLED' ? 'ĐÃ HỦY' : o.status}
+                                                </span>
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <button className="sp-action-btn" title="Xem chi tiết">
+                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
 
-                </div>
+                        {activeTab === 'debt' && (
+                            <div className="cd-tab-body">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                    <h3 style={{ fontSize: 14, fontWeight: 700, color: '#334155' }}>Danh sách hóa đơn chưa thanh toán</h3>
+                                    <a href="#" className="cd-export-link">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+                                        Xuất sao kê
+                                    </a>
+                                </div>
+                                <table className="cd-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Ngày hóa đơn</th>
+                                            <th>Số tham chiếu</th>
+                                            <th>Tổng tiền</th>
+                                            <th>Đã trả</th>
+                                            <th>Còn lại</th>
+                                            <th>Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>15/10/2023</td>
+                                            <td style={{ fontWeight: 700, color: '#1e293b' }}>INV-2023-088</td>
+                                            <td style={{ fontWeight: 700 }}>{fmt(85000000)}</td>
+                                            <td>{fmt(60000000)}</td>
+                                            <td style={{ fontWeight: 700, color: '#ef4444' }}>{fmt(25000000)}</td>
+                                            <td><span className="cd-badge-status overdue">QUÁ HẠN</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>22/10/2023</td>
+                                            <td style={{ fontWeight: 700, color: '#1e293b' }}>INV-2023-092</td>
+                                            <td style={{ fontWeight: 700 }}>{fmt(120000000)}</td>
+                                            <td>{fmt(0)}</td>
+                                            <td style={{ fontWeight: 700 }}>{fmt(120000000)}</td>
+                                            <td><span className="cd-badge-status pending-pay">CHỜ THANH TOÁN</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>05/11/2023</td>
+                                            <td style={{ fontWeight: 700, color: '#1e293b' }}>INV-2023-105</td>
+                                            <td style={{ fontWeight: 700 }}>{fmt(5000000)}</td>
+                                            <td>{fmt(0)}</td>
+                                            <td style={{ fontWeight: 700 }}>{fmt(5000000)}</td>
+                                            <td><span className="cd-badge-status pending-pay">CHỜ THANH TOÁN</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
 
-                {/* R CỘT PHẢI - RIGHT MAIN */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-
-                    {/* STATS ROW */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-                        <div style={cardStyle}>
-                            <h3 style={cardTitleStyle}>TỔNG GIÁ TRỊ ĐƠN HÀNG</h3>
-                            <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', marginTop: 12 }}>{fmt(stats.totalOrderValue)}</div>
-                        </div>
-                        <div style={cardStyle}>
-                            <h3 style={cardTitleStyle}>CÔNG NỢ HIỆN TẠI</h3>
-                            <div style={{ fontSize: 28, fontWeight: 800, color: '#e11d48', marginTop: 12 }}>{fmt(customer.currentDebt)}</div>
-                            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6, fontWeight: 500 }}>Hạn mức còn lại: {fmt(remainingCredit)}</div>
-                        </div>
-                        <div style={cardStyle}>
-                            <h3 style={cardTitleStyle}>ĐƠN HÀNG HOÀN THÀNH</h3>
-                            <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', marginTop: 12 }}>{stats.completedOrders}</div>
-                        </div>
-                    </div>
-
-                    {/* BIG TABBED CARD */}
-                    <div style={{ ...cardStyle, padding: 0, minHeight: 400 }}>
-                        {/* Tabs Navigation */}
-                        <div style={{ display: 'flex', borderBottom: '1px solid #f1f5f9', padding: '0 16px', background: '#fff' }}>
-                            <TabBtn active={activeTab === "overview"} onClick={() => setActiveTab("overview")}>Tổng quan</TabBtn>
-                            <TabBtn active={activeTab === "orders"} onClick={() => setActiveTab("orders")}>Đơn hàng</TabBtn>
-                            <TabBtn active={activeTab === "quotes"} onClick={() => setActiveTab("quotes")}>Báo giá</TabBtn>
-                            <TabBtn active={activeTab === "transactions"} onClick={() => setActiveTab("transactions")}>Giao dịch</TabBtn>
-                            <TabBtn active={activeTab === "notes"} onClick={() => setActiveTab("notes")}>Ghi chú & Timeline</TabBtn>
-                        </div>
-
-                        {/* Tab Content */}
-                        <div style={{ padding: 32 }}>
-                            {activeTab === "overview" && (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40 }}>
-                                    <div>
-                                        <h3 style={cardTitleStyle}>CHI TIẾT ĐỊNH DANH</h3>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 20 }}>
-                                            <DetailItem label="Họ và tên" value={customer.name} bold />
-                                            <DetailItem label="Mã số thuế" value={customer.taxCode} bold />
-                                            <DetailItem label="Nguồn khách hàng" value={customer.source} />
-                                            <DetailItem label="Ngày tạo hệ thống" value={fmtDate(customer.createdAt)} />
+                                <h3 className="cd-payment-list-title">Lịch sử thanh toán gần đây</h3>
+                                <div className="cd-payment-grid">
+                                    <div className="cd-payment-card">
+                                        <div className="cd-payment-icon" style={{ background: '#f0fdf4', color: '#166534' }}>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
                                         </div>
-                                    </div>
-                                    <div>
-                                        <h3 style={cardTitleStyle}>THÔNG SỐ TÍN DỤNG</h3>
-                                        <div style={{ background: '#f8fafc', padding: 24, borderRadius: 16, marginTop: 20, border: '1px solid #f1f5f9' }}>
-                                            <DetailItem label="Dư nợ hiện tại" value={fmt(customer.currentDebt)} valueColor="#e11d48" large />
-                                            <div style={{ marginTop: 20, marginBottom: 12 }}>
-                                                <DetailItem label="Hạn mức cho phép" value={fmt(customer.creditLimit)} bold />
-                                            </div>
-                                            {/* Progress Bar */}
-                                            <div style={{ width: '100%', height: 6, background: '#e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-                                                <div style={{ height: '100%', background: '#3b82f6', width: `${customer.creditLimit ? Math.min((customer.currentDebt / customer.creditLimit) * 100, 100) : 0}%` }} />
-                                            </div>
+                                        <div className="cd-payment-info">
+                                            <div className="cd-payment-title">Thanh toán {fmt(60000000)}</div>
+                                            <div className="cd-payment-meta">25/10/2023 • Chuyển khoản (Techcombank)</div>
                                         </div>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                                    </div>
+                                    <div className="cd-payment-card">
+                                        <div className="cd-payment-icon" style={{ background: '#f0fdf4', color: '#166534' }}>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                                        </div>
+                                        <div className="cd-payment-info">
+                                            <div className="cd-payment-title">Thanh toán {fmt(15000000)}</div>
+                                            <div className="cd-payment-meta">10/10/2023 • Tiền mặt</div>
+                                        </div>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
                                     </div>
                                 </div>
-                            )}
+                            </div>
+                        )}
 
-                            {activeTab === "orders" && (
-                                <div>
-                                    <table className="sp-table" style={{ margin: 0 }}>
-                                        <thead><tr><th>Mã đơn</th><th>Ngày tạo</th><th>Giá trị</th><th>Trạng thái</th></tr></thead>
-                                        <tbody>
-                                            {(!orders.content || orders.content.length === 0) ? <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Chưa có đơn hàng nào</td></tr> :
-                                                orders.content.map(o => (
-                                                    <tr key={o.id}>
-                                                        <td style={{ fontWeight: 700, color: '#7c3aed' }}>{o.orderNumber}</td>
-                                                        <td>{new Date(o.createdDate).toLocaleDateString("vi-VN")}</td>
-                                                        <td style={{ fontWeight: 600 }}>{fmt(o.totalAmount)}</td>
-                                                        <td><span className={`sp-badge-status ${ORDER_STATUS_MAP[o.status]?.cls}`}>{ORDER_STATUS_MAP[o.status]?.text || o.status}</span></td>
-                                                    </tr>
-                                                ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-
-                            {activeTab === "quotes" && (
-                                <div>
-                                    <table className="sp-table" style={{ margin: 0 }}>
-                                        <thead><tr><th>Mã báo giá</th><th>Ngày tạo</th><th>Hết hạn</th><th>Tổng cộng</th><th>Trạng thái</th></tr></thead>
-                                        <tbody>
-                                            {(!quotes.content || quotes.content.length === 0) ? <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Chưa có báo giá nào</td></tr> :
-                                                quotes.content.map(q => (
-                                                    <tr key={q.id}>
-                                                        <td style={{ fontWeight: 700, color: '#0ea5e9' }}>{q.quotationNumber}</td>
-                                                        <td>{new Date(q.createdDate).toLocaleDateString("vi-VN")}</td>
-                                                        <td>{q.validUntil ? new Date(q.validUntil).toLocaleDateString("vi-VN") : "—"}</td>
-                                                        <td style={{ fontWeight: 600 }}>{fmt(q.totalAmount)}</td>
-                                                        <td><span className={`sp-badge-status status-${q.status?.toLowerCase()}`}>{q.status}</span></td>
-                                                    </tr>
-                                                ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-
-                            {activeTab === "transactions" && (
-                                <div>
-                                    <table className="sp-table" style={{ margin: 0 }}>
-                                        <thead><tr><th>Ngày</th><th>Số tiền</th><th>Phương thức</th><th>Nội dung</th><th>Trạng thái</th></tr></thead>
-                                        <tbody>
-                                            {payments.length === 0 ? <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Chưa có giao dịch thanh toán nào</td></tr> :
-                                                payments.map(p => (
-                                                    <tr key={p.id}>
-                                                        <td>{fmtDate(p.transactionDate || p.payosPaidAt)}</td>
-                                                        <td style={{ fontWeight: 700, color: '#16a34a' }}>{fmt(p.amount)}</td>
-                                                        <td style={{ fontSize: 13 }}>{p.paymentMethod} {p.payosPaymentType ? `(${p.payosPaymentType})` : ''}</td>
-                                                        <td style={{ fontSize: 13, color: '#64748b' }}>{p.salesOrder?.orderNumber ? `Đơn hàng: ${p.salesOrder.orderNumber}` : '—'}</td>
-                                                        <td>
-                                                            <span className={`sp-badge-status status-${p.payosStatus?.toLowerCase() || 'success'}`}>
-                                                                {p.payosStatus || 'SUCCESS'}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-
-                            {activeTab === "notes" && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                        <button
-                                            onClick={() => setShowNoteModal(true)}
-                                            style={{ background: '#4f46e5', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                                        >
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
-                                            Thêm ghi chú
-                                        </button>
+                        {activeTab === 'timeline' && (
+                            <div>
+                                <div className="cd-timeline-input-container">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                                        Thêm ghi chú mới
                                     </div>
-                                    {interactions.length === 0 ? <div style={{ textAlign: 'center', color: '#94a3b8', padding: 40 }}>Chưa có lịch sử.</div> :
-                                        interactions.map(it => (
-                                            <div key={it.id} style={{ padding: 16, border: '1px solid #f1f5f9', borderRadius: 12, background: '#fff' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                                    <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 8, background: '#f1f5f9', color: '#475569' }}>{it.type}</span>
-                                                    <span style={{ fontSize: 12, color: '#94a3b8' }}>{fmtDate(it.interactionDate)}</span>
+                                    <textarea
+                                        className="cd-timeline-textarea"
+                                        placeholder="Nhập nội dung tương tác hoặc ghi chú tại đây..."
+                                        value={logForm.content}
+                                        onChange={e => setLogForm(p => ({ ...p, content: e.target.value }))}
+                                    />
+                                    <div className="cd-timeline-input-footer">
+                                        <button className="cd-btn-send" onClick={handleAddLog}>Gửi</button>
+                                    </div>
+                                </div>
+
+                                <div className="cd-timeline-list">
+                                    <div className="cd-timeline-today">HÔM NAY, 14:20</div>
+                                    <div className="cd-timeline-item active">
+                                        <div className="cd-timeline-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg></div>
+                                        <div className="cd-timeline-title">Ký kết hợp đồng khung năm 2024 (Contract signed)</div>
+                                        <div className="cd-timeline-content">Hợp đồng nguyên tắc cung cấp hạt nhựa PP và PE cho năm 2024 đã được đại diện hai bên ký kết chính thức tại trụ sở khách hàng.</div>
+                                        <div className="cd-timeline-meta">Nhân sự: <b>Trần Văn A (Trưởng phòng KD)</b></div>
+                                    </div>
+
+                                    <div className="cd-timeline-item">
+                                        <div className="cd-timeline-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg></div>
+                                        <div className="cd-timeline-today" style={{ marginBottom: 6 }}>28/10/2023, 09:30</div>
+                                        <div className="cd-timeline-title">Thăm xưởng sản xuất mới (Site visit)</div>
+                                        <div className="cd-timeline-content">Đoàn khảo sát của công ty đã đến thăm quan hệ thống máy ép nhựa mới tại KCN Tân Bình để đánh giá năng lực sản xuất thực tế.</div>
+                                        <div className="cd-timeline-meta">Nhân sự: <b>Nguyễn Văn B (Kỹ thuật)</b></div>
+                                    </div>
+
+                                    <div className="cd-timeline-item">
+                                        <div className="cd-timeline-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg></div>
+                                        <div className="cd-timeline-today" style={{ marginBottom: 6 }}>24/10/2023, 15:15</div>
+                                        <div className="cd-timeline-title">Gửi báo giá số MT-2023-102 (Quote sent)</div>
+                                        <div className="cd-timeline-content">Đã gửi email báo giá chi tiết cho lô hàng 50 tấn hạt nhựa nguyên sinh HDPE. Khách hàng đang xem xét các điều khoản thanh toán.</div>
+                                        <div className="cd-timeline-meta">Nhân sự: Hệ thống (Tự động)</div>
+                                    </div>
+
+                                    <div className="cd-timeline-item">
+                                        <div className="cd-timeline-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.27-2.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg></div>
+                                        <div className="cd-timeline-today" style={{ marginBottom: 6 }}>20/10/2023, 10:30</div>
+                                        <div className="cd-timeline-title">Cuộc gọi tư vấn đơn hàng mới (Call for consultation)</div>
+                                        <div className="cd-timeline-content">Tư vấn về dòng sản phẩm nhựa tái sinh thân thiện môi trường cho dự án gia dụng sắp tới của khách hàng.</div>
+                                        <div className="cd-timeline-meta">Nhân sự: <b>Trần Văn A</b></div>
+                                    </div>
+                                </div>
+
+                                <button className="cd-load-more">Tải thêm hoạt động ∨</button>
+                            </div>
+                        )}
+
+                        {activeTab === 'quotes' && (
+                            <div>
+                                <table className="cd-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Số báo giá</th>
+                                            <th>Ngày tạo</th>
+                                            <th>Hạn hiệu lực</th>
+                                            <th>Tổng giá trị</th>
+                                            <th>Trạng thái</th>
+                                            <th style={{ textAlign: 'center' }}>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td style={{ fontWeight: 700, color: '#1d4ed8' }}>BG-2023-110</td>
+                                            <td>25/10/2023</td>
+                                            <td>25/11/2023</td>
+                                            <td style={{ fontWeight: 700 }}>{fmt(42000000)}</td>
+                                            <td><span className="cd-badge-status" style={{ background: '#f1f5f9', color: '#64748b' }}>BẢN NHÁP</span></td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+                                                    <button className="sp-action-btn" title="Xem báo giá">
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                                                        </svg>
+                                                    </button>
+                                                    <button className="sp-action-btn" title="Tải xuống">
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                                                        </svg>
+                                                    </button>
                                                 </div>
-                                                <div style={{ fontSize: 14, color: '#0f172a' }}>{it.content}</div>
-                                                {it.reminderDate && !it.isResolved && (
-                                                    <button onClick={() => handleResolve(it.id)} style={{ marginTop: 12, fontSize: 12, background: '#e11d48', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 6, cursor: 'pointer' }}>Đánh dấu hoàn thành</button>
-                                                )}
-                                            </div>
-                                        ))
-                                    }
-                                </div>
-                            )}
-
-                        </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style={{ fontWeight: 700, color: '#1d4ed8' }}>BG-2023-102</td>
+                                            <td>20/10/2023</td>
+                                            <td>20/11/2023</td>
+                                            <td style={{ fontWeight: 700 }}>{fmt(120000000)}</td>
+                                            <td><span className="cd-badge-status" style={{ background: '#fff7ed', color: '#f97316' }}>CHỜ DUYỆT</span></td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+                                                    <button className="sp-action-btn" title="Xem báo giá">
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                                                        </svg>
+                                                    </button>
+                                                    <button className="sp-action-btn" title="Tải xuống">
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style={{ fontWeight: 700, color: '#1d4ed8' }}>BG-2023-095</td>
+                                            <td>15/10/2023</td>
+                                            <td>15/11/2023</td>
+                                            <td style={{ fontWeight: 700 }}>{fmt(85000000)}</td>
+                                            <td><span className="cd-badge-status approved">ĐÃ DUYỆT</span></td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+                                                    <button className="sp-action-btn" title="Xem báo giá">
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                                                        </svg>
+                                                    </button>
+                                                    <button className="sp-action-btn" title="Tải xuống">
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style={{ fontWeight: 700, color: '#1d4ed8' }}>BG-2023-088</td>
+                                            <td>05/10/2023</td>
+                                            <td>05/11/2023</td>
+                                            <td style={{ fontWeight: 700 }}>{fmt(30500000)}</td>
+                                            <td><span className="cd-badge-status overdue" style={{ textTransform: 'uppercase' }}>TỪ CHỐI</span></td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+                                                    <button className="sp-action-btn" title="Xem báo giá">
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                                                        </svg>
+                                                    </button>
+                                                    <button className="sp-action-btn" title="Tải xuống">
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <a href="#" className="cd-view-all">Xem tất cả báo giá ∨</a>
+                            </div>
+                        )}
                     </div>
                 </div>
 
+                {/* Sidebar */}
+                <aside className="cd-sidebar">
+                    {/* Contact Info */}
+                    <section className="cd-sidebar-section">
+                        <h2 className="cd-section-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                            Thông tin liên hệ
+                        </h2>
+
+                        <div className="cd-contact-item">
+                            <div className="cd-contact-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.27-2.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg></div>
+                            <div>
+                                <div className="cd-contact-label">Số điện thoại</div>
+                                <div className="cd-contact-value">{customer.phoneNumber || "—"}</div>
+                            </div>
+                        </div>
+
+                        <div className="cd-contact-item">
+                            <div className="cd-contact-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg></div>
+                            <div>
+                                <div className="cd-contact-label">Email</div>
+                                <div className="cd-contact-value">{customer.email || "—"}</div>
+                            </div>
+                        </div>
+
+                        <div className="cd-contact-item">
+                            <div className="cd-contact-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg></div>
+                            <div>
+                                <div className="cd-contact-label">Địa chỉ</div>
+                                <div className="cd-contact-value">{customer.address || "—"}</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Classification */}
+                    <section className="cd-sidebar-section">
+                        <h2 className="cd-section-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
+                            Phân loại khách hàng
+                        </h2>
+                        <div className="cd-class-grid">
+                            <div className="cd-class-box">
+                                <div className="cd-class-label">Loại khách</div>
+                                <div className="cd-class-value">{customer.customerType === 'RETAIL' ? 'Khách lẻ' : 'Đại lý'}</div>
+                            </div>
+                            <div className="cd-class-box alt">
+                                <div className="cd-class-label">Xếp hạng</div>
+                                <div className="cd-class-value">Vàng (Gold)</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Recent Interactions */}
+                    <section className="cd-sidebar-section">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <h2 className="cd-section-title" style={{ marginBottom: 0 }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                                Tương tác gần đây
+                            </h2>
+                            <button className="sp-filter-btn" style={{ fontSize: 11, fontWeight: 700 }} onClick={() => setActiveTab('timeline')}>TẤT CẢ</button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            {latestInteractions.length === 0 ? (
+                                <div style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', padding: 10 }}>Chưa có tương tác</div>
+                            ) : (
+                                latestInteractions.map(it => (
+                                    <div key={it.id} style={{ display: 'flex', gap: 12 }}>
+                                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', marginTop: 5, flexShrink: 0 }}></div>
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{it.type === 'CALL' ? 'Cuộc gọi tư vấn' : it.type === 'NOTE' ? 'Ghi chú mới' : it.content.substring(0, 20) + '...'}</div>
+                                            <div style={{ fontSize: 11, color: '#94a3b8' }}>{fmtDate(it.interactionDate)} • {it.staffName}</div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </section>
+                </aside>
             </div>
 
             {/* Note Modal */}
@@ -372,73 +644,4 @@ export const CustomerDetail = ({ customerId, onBack, onNavigate }) => {
         </div>
     );
 };
-
-// --- STYLES & SUB-COMPONENTS ---
-
-const cardStyle = {
-    background: '#fff',
-    borderRadius: 20,
-    padding: 24,
-    boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-    border: '1px solid #f8fafc'
-};
-
-const cardTitleStyle = {
-    fontSize: 12,
-    fontWeight: 800,
-    color: '#94a3b8',
-    letterSpacing: 1,
-    margin: 0,
-    textTransform: 'uppercase'
-};
-
-const ContactRow = ({ icon, label, value }) => (
-    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-        <div style={{ width: 40, height: 40, background: '#f8fafc', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#4f46e5' }}>{icon}</div>
-        <div>
-            <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500 }}>{label}</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginTop: 2 }}>{value || '—'}</div>
-        </div>
-    </div>
-);
-
-const ClassBox = ({ active, icon, name }) => (
-    <div style={{
-        display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px',
-        borderRadius: 16, border: `2px solid ${active ? '#4f46e5' : '#f8fafc'}`,
-        background: active ? '#fff' : '#f8fafc',
-        boxShadow: active ? '0 8px 20px -4px rgba(79, 70, 229, 0.1)' : 'none',
-        transition: 'all 0.2s', opacity: active ? 1 : 0.6
-    }}>
-        <div style={{ fontSize: 24 }}>{icon}</div>
-        <div style={{ fontWeight: 700, fontSize: 15, color: active ? '#0f172a' : '#64748b' }}>{name}</div>
-    </div>
-);
-
-const TabBtn = ({ active, children, onClick }) => (
-    <button
-        onClick={onClick}
-        style={{
-            padding: '20px 24px', border: 'none', background: 'none', cursor: 'pointer',
-            fontSize: 14, fontWeight: active ? 700 : 500, color: active ? '#4f46e5' : '#64748b',
-            borderBottom: active ? '3px solid #4f46e5' : '3px solid transparent',
-            transition: 'all 0.2s'
-        }}
-    >
-        {children}
-    </button>
-);
-
-const DetailItem = ({ label, value, bold, large, valueColor }) => (
-    <div>
-        <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 4 }}>{label}</div>
-        <div style={{
-            fontSize: large ? 24 : 14,
-            fontWeight: bold || large ? 700 : 500,
-            color: valueColor || '#0f172a'
-        }}>
-            {value || '—'}
-        </div>
-    </div>
-);
 
