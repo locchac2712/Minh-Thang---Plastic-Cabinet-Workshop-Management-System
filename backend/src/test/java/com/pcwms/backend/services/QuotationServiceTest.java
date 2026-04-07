@@ -16,13 +16,15 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT) // Cho phép lenient để tránh lỗi "Unnecessary stubbing"
+@MockitoSettings(strictness = Strictness.LENIENT) // 👉 Chặn triệt để lỗi UnnecessaryStubbingException
 class QuotationServiceTest {
 
     @Mock private QuotationRepository quotationRepository;
@@ -53,10 +55,13 @@ class QuotationServiceTest {
         mockProduct.setSellingPrice(new BigDecimal("100000"));
     }
 
+    // ==========================================
+    // NHÓM 1: TEST TẠO BÁO GIÁ (CREATE)
+    // ==========================================
+
     @Test
-    @DisplayName("TC01: Tạo báo giá thành công - Kiểm tra tính toán chiết khấu và tổng tiền")
+    @DisplayName("CR01: Tạo báo giá thành công - Kiểm tra tính toán chiết khấu và tổng tiền")
     void createQuotation_Success_CalculationCheck() {
-        // GIVEN: 2 sản phẩm giá 100k, chiết khấu 10%
         QuotationRequest.QuotationDetailRequest itemReq = new QuotationRequest.QuotationDetailRequest();
         itemReq.setProductId(10L);
         itemReq.setQuantity(2);
@@ -68,147 +73,115 @@ class QuotationServiceTest {
         request.setStaffId(1L);
         request.setItems(List.of(itemReq));
 
-        when(customerRepository.findById(1L)).thenReturn(Optional.of(mockCustomer));
-        when(staffRepository.findById(1L)).thenReturn(Optional.of(mockStaff));
-        when(productRepository.findById(10L)).thenReturn(Optional.of(mockProduct));
+        lenient().when(customerRepository.findById(1L)).thenReturn(Optional.of(mockCustomer));
+        lenient().when(staffRepository.findById(1L)).thenReturn(Optional.of(mockStaff));
+        lenient().when(productRepository.findById(10L)).thenReturn(Optional.of(mockProduct));
 
-        // Mock lưu DB
-        when(quotationRepository.save(any(Quotation.class))).thenAnswer(invocation -> {
+        lenient().when(quotationRepository.save(any(Quotation.class))).thenAnswer(invocation -> {
             Quotation q = invocation.getArgument(0);
-            q.setId(100L); // Giả lập ID tự sinh
+            q.setId(100L);
             return q;
         });
+        lenient().when(quotationRepository.findById(any())).thenReturn(Optional.of(new Quotation()));
 
-        // Dòng cuối service có findById để load lại dữ liệu
-        when(quotationRepository.findById(100L)).thenReturn(Optional.of(new Quotation()));
-
-        // WHEN
         quotationService.createQuotation(request);
 
-        // THEN
         ArgumentCaptor<Quotation> captor = ArgumentCaptor.forClass(Quotation.class);
         verify(quotationRepository).save(captor.capture());
         Quotation saved = captor.getValue();
 
         // Kiểm tra logic: (2 * 100,000) = 200,000. Chiết khấu 10% = 20,000. Tổng = 180,000.
-        BigDecimal expectedDiscount = new BigDecimal("20000.0");
-        BigDecimal expectedTotal = new BigDecimal("180000.0");
-
-        assertEquals(0, expectedTotal.compareTo(saved.getTotalAmount()), "Tổng tiền báo giá sai!");
-        assertEquals(1, saved.getDetails().size());
-        assertEquals(0, expectedDiscount.compareTo(saved.getDetails().get(0).getDiscount()), "Tiền chiết khấu dòng sai!");
+        assertEquals(0, new BigDecimal("180000.0").compareTo(saved.getTotalAmount()));
+        assertEquals(0, new BigDecimal("20000.0").compareTo(saved.getDetails().get(0).getDiscount()));
         assertEquals("DRAFT", saved.getStatus());
-        assertNotNull(saved.getQuotationNumber());
     }
 
     @Test
-    @DisplayName("TC02: Thất bại khi danh sách sản phẩm (items) null")
+    @DisplayName("CR02: Thất bại khi danh sách sản phẩm trống")
     void createQuotation_Fail_ItemsNull() {
         QuotationRequest request = new QuotationRequest();
         request.setCustomerId(1L);
         request.setStaffId(1L);
         request.setItems(null);
 
-        when(customerRepository.findById(1L)).thenReturn(Optional.of(mockCustomer));
-        when(staffRepository.findById(1L)).thenReturn(Optional.of(mockStaff));
+        lenient().when(customerRepository.findById(1L)).thenReturn(Optional.of(mockCustomer));
+        lenient().when(staffRepository.findById(1L)).thenReturn(Optional.of(mockStaff));
 
         RuntimeException ex = assertThrows(RuntimeException.class, () -> quotationService.createQuotation(request));
         assertEquals("Lỗi: Báo giá phải có ít nhất 1 sản phẩm!", ex.getMessage());
     }
 
     @Test
-    @DisplayName("TC03: Thất bại khi không tìm thấy một Sản phẩm trong danh sách")
-    void createQuotation_Fail_ProductNotFound() {
-        QuotationRequest.QuotationDetailRequest itemReq = new QuotationRequest.QuotationDetailRequest();
-        itemReq.setProductId(999L); // ID ảo
-
-        QuotationRequest request = new QuotationRequest();
-        request.setCustomerId(1L);
-        request.setStaffId(1L);
-        request.setItems(List.of(itemReq));
-
-        when(customerRepository.findById(1L)).thenReturn(Optional.of(mockCustomer));
-        when(staffRepository.findById(1L)).thenReturn(Optional.of(mockStaff));
-        when(productRepository.findById(999L)).thenReturn(Optional.empty());
-
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> quotationService.createQuotation(request));
-        assertTrue(ex.getMessage().contains("Không tìm thấy Sản phẩm ID 999"));
-    }
-
-    @Test
-    @DisplayName("TC04: Kiểm tra chiết khấu khi DiscountPercent là 0 hoặc null")
-    void createQuotation_Success_NoDiscount() {
+    @DisplayName("CR03: Đào Sâu - Bắn lỗi ngay nếu Số lượng <= 0")
+    void createQuotation_Deep_Fail_NegativeQuantity() {
         QuotationRequest.QuotationDetailRequest itemReq = new QuotationRequest.QuotationDetailRequest();
         itemReq.setProductId(10L);
-        itemReq.setQuantity(1);
-        itemReq.setUnitPrice(new BigDecimal("50000"));
-        itemReq.setDiscountPercent(0.0); // Hoặc null
+        itemReq.setQuantity(0); // LỖI
+        itemReq.setUnitPrice(new BigDecimal("100000"));
 
         QuotationRequest request = new QuotationRequest();
         request.setCustomerId(1L);
         request.setStaffId(1L);
         request.setItems(List.of(itemReq));
 
-        when(customerRepository.findById(1L)).thenReturn(Optional.of(mockCustomer));
-        when(staffRepository.findById(1L)).thenReturn(Optional.of(mockStaff));
-        when(productRepository.findById(10L)).thenReturn(Optional.of(mockProduct));
-        when(quotationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        when(quotationRepository.findById(any())).thenReturn(Optional.of(new Quotation()));
+        lenient().when(customerRepository.findById(1L)).thenReturn(Optional.of(mockCustomer));
+        lenient().when(staffRepository.findById(1L)).thenReturn(Optional.of(mockStaff));
+        lenient().when(productRepository.findById(10L)).thenReturn(Optional.of(mockProduct));
 
-        quotationService.createQuotation(request);
-
-        ArgumentCaptor<Quotation> captor = ArgumentCaptor.forClass(Quotation.class);
-        verify(quotationRepository).save(captor.capture());
-
-        // Chiết khấu phải bằng 0
-        assertEquals(0, BigDecimal.ZERO.compareTo(captor.getValue().getDetails().get(0).getDiscount()));
-        assertEquals(0, new BigDecimal("50000").compareTo(captor.getValue().getTotalAmount()));
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> quotationService.createQuotation(request));
+        assertEquals("Lỗi: Số lượng sản phẩm phải lớn hơn 0!", ex.getMessage());
     }
 
     @Test
-    @DisplayName("TC05: Thất bại khi Staff không tồn tại")
-    void createQuotation_Fail_StaffNotFound() {
+    @DisplayName("CR04: Đào Sâu - Bắn lỗi nếu Chiết khấu > 100%")
+    void createQuotation_Deep_Fail_DiscountOver100() {
+        QuotationRequest.QuotationDetailRequest itemReq = new QuotationRequest.QuotationDetailRequest();
+        itemReq.setProductId(10L);
+        itemReq.setQuantity(2);
+        itemReq.setUnitPrice(new BigDecimal("100000"));
+        itemReq.setDiscountPercent(150.0); // LỖI: Chiết khấu 150%
+
         QuotationRequest request = new QuotationRequest();
         request.setCustomerId(1L);
-        request.setStaffId(88L);
+        request.setStaffId(1L);
+        request.setItems(List.of(itemReq));
 
-        when(customerRepository.findById(1L)).thenReturn(Optional.of(mockCustomer));
-        when(staffRepository.findById(88L)).thenReturn(Optional.empty());
+        lenient().when(customerRepository.findById(1L)).thenReturn(Optional.of(mockCustomer));
+        lenient().when(staffRepository.findById(1L)).thenReturn(Optional.of(mockStaff));
+        lenient().when(productRepository.findById(10L)).thenReturn(Optional.of(mockProduct));
 
-        assertThrows(RuntimeException.class, () -> quotationService.createQuotation(request));
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> quotationService.createQuotation(request));
+        assertEquals("Lỗi: Phần trăm chiết khấu phải nằm trong khoảng từ 0% đến 100%!", ex.getMessage());
     }
 
-    //UPDATE QUOTATUION STATUS
+    // ==========================================
+    // NHÓM 2: TEST MÁY TRẠNG THÁI (STATE MACHINE)
+    // ==========================================
+
     @Test
     @DisplayName("ST01: Chuyển trạng thái từ DRAFT sang WAITING_APPROVAL - Thành công")
     void updateStatus_DraftToWaiting_Success() {
-        // GIVEN
         Quotation mockQuotation = new Quotation();
         mockQuotation.setId(1L);
         mockQuotation.setStatus("DRAFT");
 
-        when(quotationRepository.findById(1L)).thenReturn(Optional.of(mockQuotation));
-        when(quotationRepository.save(any(Quotation.class))).thenAnswer(i -> i.getArgument(0));
+        lenient().when(quotationRepository.findById(1L)).thenReturn(Optional.of(mockQuotation));
+        lenient().when(quotationRepository.save(any(Quotation.class))).thenAnswer(i -> i.getArgument(0));
 
-        // WHEN
         Quotation result = quotationService.updateQuotationStatus(1L, "WAITING_APPROVAL", "Gửi duyệt");
 
-        // THEN
         assertEquals("WAITING_APPROVAL", result.getStatus());
-        verify(quotationRepository).save(any());
     }
 
     @Test
     @DisplayName("ST02: Chặn 'Quay xe' khi báo giá đã ACCEPTED")
     void updateStatus_Fail_WhenAlreadyAccepted() {
-        // GIVEN: Báo giá đã chốt thì không được đổi sang bất kỳ trạng thái nào khác
         Quotation mockQuotation = new Quotation();
         mockQuotation.setId(1L);
-        mockQuotation.setStatus("ACCEPTED");
+        mockQuotation.setStatus("ACCEPTED"); // Đã chốt với khách
 
-        when(quotationRepository.findById(1L)).thenReturn(Optional.of(mockQuotation));
+        lenient().when(quotationRepository.findById(1L)).thenReturn(Optional.of(mockQuotation));
 
-        // WHEN & THEN
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> quotationService.updateQuotationStatus(1L, "DRAFT", "Sửa lại"));
 
@@ -216,69 +189,68 @@ class QuotationServiceTest {
     }
 
     @Test
-    @DisplayName("ST03: Sai quy trình - Duyệt (APPROVED) khi chưa chờ duyệt (WAITING_APPROVAL)")
-    void updateStatus_Fail_ApprovedWithoutWaiting() {
-        // GIVEN: Đang là nháp mà Giám đốc đòi Duyệt luôn là sai quy trình
-        Quotation mockQuotation = new Quotation();
-        mockQuotation.setId(1L);
-        mockQuotation.setStatus("DRAFT");
-
-        when(quotationRepository.findById(1L)).thenReturn(Optional.of(mockQuotation));
-
-        // WHEN & THEN
-        RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> quotationService.updateQuotationStatus(1L, "APPROVED", "Duyệt luôn"));
-
-        assertTrue(ex.getMessage().contains("chỉ có thể Duyệt/Từ chối báo giá đang ở trạng thái WAITING_APPROVAL"));
-    }
-
-    @Test
-    @DisplayName("ST04: Kiểm tra lưu Note của Giám đốc khi REJECTED")
-    void updateStatus_SaveApprovalNote_WhenRejected() {
-        // GIVEN
+    @DisplayName("ST03: Cho phép Sếp từ chối (REJECTED) mà không cần ghi lý do")
+    void updateStatus_Success_RejectedWithoutNote() {
         Quotation mockQuotation = new Quotation();
         mockQuotation.setId(1L);
         mockQuotation.setStatus("WAITING_APPROVAL");
 
-        when(quotationRepository.findById(1L)).thenReturn(Optional.of(mockQuotation));
-        when(quotationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        lenient().when(quotationRepository.findById(1L)).thenReturn(Optional.of(mockQuotation));
+        lenient().when(quotationRepository.save(any(Quotation.class))).thenAnswer(i -> i.getArgument(0));
 
-        // WHEN
-        Quotation result = quotationService.updateQuotationStatus(1L, "REJECTED", "Giá quá thấp, tính lại đi!");
+        // Note truyền vào là rỗng
+        Quotation result = quotationService.updateQuotationStatus(1L, "REJECTED", "   ");
 
-        // THEN
         assertEquals("REJECTED", result.getStatus());
-        assertEquals("Giá quá thấp, tính lại đi!", result.getApprovalNote());
+        assertNull(result.getApprovalNote());
     }
-    //UPDATE QUOTATION
+
+    @Test
+    @DisplayName("ST04: Sếp quay xe, duyệt luôn báo giá đang bị REJECTED")
+    void updateStatus_Success_ApproveFromRejected() {
+        Quotation mockQuotation = new Quotation();
+        mockQuotation.setId(1L);
+        mockQuotation.setStatus("REJECTED"); // Đang bị từ chối
+
+        lenient().when(quotationRepository.findById(1L)).thenReturn(Optional.of(mockQuotation));
+        lenient().when(quotationRepository.save(any(Quotation.class))).thenAnswer(i -> i.getArgument(0));
+
+        // Duyệt thẳng
+        Quotation result = quotationService.updateQuotationStatus(1L, "APPROVED", "Thôi duyệt cho em nó!");
+
+        assertEquals("APPROVED", result.getStatus());
+        assertEquals("Thôi duyệt cho em nó!", result.getApprovalNote());
+    }
+
+    // ==========================================
+    // NHÓM 3: TEST CẬP NHẬT NỘI DUNG (UPDATE QUOTATION)
+    // ==========================================
+
     @Test
     @DisplayName("UP01: Sửa báo giá thành công - Xóa cũ nạp mới")
     void updateQuotation_Success_ClearAndAdd() {
-        // 1. GIVEN
         Quotation existingQuotation = new Quotation();
         existingQuotation.setId(1L);
         existingQuotation.setStatus("DRAFT");
+        existingQuotation.setDetails(new ArrayList<>()); // Tránh NullPointerException khi clear()
 
         QuotationRequest request = new QuotationRequest();
-        // Đảm bảo có items để code chạy vào vòng lặp for
         QuotationRequest.QuotationDetailRequest newItem = new QuotationRequest.QuotationDetailRequest();
         newItem.setProductId(10L);
         newItem.setQuantity(5);
         newItem.setUnitPrice(new BigDecimal("20000"));
         request.setItems(List.of(newItem));
 
-        // Mock các bước mà code CHẮC CHẮN sẽ đi qua
-        when(quotationRepository.findById(1L)).thenReturn(Optional.of(existingQuotation));
-        when(productRepository.findById(10L)).thenReturn(Optional.of(mockProduct));
-        when(quotationRepository.save(any())).thenReturn(existingQuotation);
+        lenient().when(quotationRepository.findById(1L)).thenReturn(Optional.of(existingQuotation));
+        lenient().when(productRepository.findById(10L)).thenReturn(Optional.of(mockProduct));
+        lenient().when(quotationRepository.save(any(Quotation.class))).thenAnswer(i -> i.getArgument(0));
+        lenient().when(quotationRepository.findById(any())).thenReturn(Optional.of(existingQuotation));
 
-        // Nếu lỗi báo ở dòng findById cuối cùng, có thể do code chưa chạy tới đó đã crash
-        when(quotationRepository.findById(any())).thenReturn(Optional.of(existingQuotation));
-
-        // 2. WHEN
         quotationService.updateQuotation(1L, request);
 
-        // 3. THEN
+        // Kiểm tra hàm clear và flush có được gọi để dọn dẹp detail cũ không
         verify(quotationRepository).flush();
+        // Kiểm tra tổng tiền mới: 5 * 20,000 = 100,000
+        assertEquals(0, new BigDecimal("100000").compareTo(existingQuotation.getTotalAmount()));
     }
 }

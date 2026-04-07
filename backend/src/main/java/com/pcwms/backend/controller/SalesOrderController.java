@@ -101,25 +101,25 @@ public class SalesOrderController {
     }
 
     //API Director Approval
-    @PutMapping("/{id}/approval")
-    @PreAuthorize("hasRole('DIRECTOR') or hasRole('ADMIN')")
-    public ResponseEntity<ResponseObject> approveOrRejectOrder(
-            @PathVariable Long id,
-            @RequestBody ApprovalRequest request
-    ) {
-        try {
-            Long directorId = 1L; // TODO: Lấy từ UserDetails (SecurityContext)
-            SalesOrder updatedOrder = salesOrderService.processApproval(id, request, directorId);
-            String msg = request.isApproved() ? "Đã PHÊ DUYỆT đơn hàng thành công!" : "Đã TỪ CHỐI đơn hàng!";
-            return ResponseEntity.ok(
-                    new ResponseObject("SUCCESS", msg, new SalesOrderDetailResponse(updatedOrder))
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    new ResponseObject("ERROR", e.getMessage(), null)
-            );
-        }
-    }
+//    @PutMapping("/{id}/approval")
+//    @PreAuthorize("hasRole('DIRECTOR') or hasRole('ADMIN')")
+//    public ResponseEntity<ResponseObject> approveOrRejectOrder(
+//            @PathVariable Long id,
+//            @RequestBody ApprovalRequest request
+//    ) {
+//        try {
+//            Long directorId = 1L; // TODO: Lấy từ UserDetails (SecurityContext)
+//            SalesOrder updatedOrder = salesOrderService.processApproval(id, request, directorId);
+//            String msg = request.isApproved() ? "Đã PHÊ DUYỆT đơn hàng thành công!" : "Đã TỪ CHỐI đơn hàng!";
+//            return ResponseEntity.ok(
+//                    new ResponseObject("SUCCESS", msg, new SalesOrderDetailResponse(updatedOrder))
+//            );
+//        } catch (Exception e) {
+//            return ResponseEntity.badRequest().body(
+//                    new ResponseObject("ERROR", e.getMessage(), null)
+//            );
+//        }
+//    }
 
     // API: LẤY LỊCH SỬ THANH TOÁN CỦA 1 ĐƠN HÀNG CỤ THỂ
     @GetMapping("/{id}/payments")
