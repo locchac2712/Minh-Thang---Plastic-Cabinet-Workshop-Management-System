@@ -1,0 +1,403 @@
+/* Khách sỉ — th-admin-agency-* */
+
+.th-admin-agency {
+  --th-aa-accent: #7c3aed;
+  --th-aa-ink: #0f172a;
+  --th-aa-muted: #64748b;
+  --th-aa-border: rgba(203, 213, 225, 0.85);
+  --th-aa-surface: #ffffff;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0;
+  min-height: 100%;
+  color: var(--th-aa-ink);
+}
+
+.th-admin-agency__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.th-admin-agency__header-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.th-admin-agency__title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.th-admin-agency__title-icon {
+  font-size: var(--th-icon-xl);
+  color: #6d28d9;
+  background: linear-gradient(145deg, #ede9fe, #ddd6fe);
+  border-radius: 12px;
+  padding: 0.45rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.th-admin-agency__title {
+  margin: 0 0 0.35rem;
+  font-size: var(--th-text-3xl);
+  font-weight: var(--th-weight-extrabold);
+  letter-spacing: -0.02em;
+}
+
+.th-admin-agency__lead {
+  margin: 0;
+  max-width: 48rem;
+  font-size: var(--th-text-lg);
+  line-height: 1.55;
+  color: var(--th-aa-muted);
+}
+
+.th-admin-agency__code {
+  font-size: 0.8em;
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* Stats */
+.th-admin-agency__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.th-admin-agency__stat {
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  border: 1px solid var(--th-aa-border);
+  background: linear-gradient(165deg, #fff 0%, #faf5ff 100%);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.th-admin-agency__stat--warn {
+  border-color: rgba(251, 146, 60, 0.5);
+  background: linear-gradient(165deg, #fff 0%, #fff7ed 100%);
+}
+
+.th-admin-agency__stat-label {
+  display: block;
+  font-size: var(--th-text-micro);
+  font-weight: var(--th-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--th-aa-muted);
+}
+
+.th-admin-agency__stat-value {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: var(--th-text-3xl);
+  font-weight: var(--th-weight-extrabold);
+  letter-spacing: -0.02em;
+}
+
+.th-admin-agency__stat-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: var(--th-text-xs);
+  color: var(--th-aa-muted);
+}
+
+/* Table shell */
+.th-admin-agency-table-wrap {
+  border-radius: 14px;
+  border: 1px solid var(--th-aa-border);
+  background: var(--th-aa-surface);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.th-admin-agency-table-scroll {
+  overflow: auto;
+  max-width: 100%;
+}
+
+.th-admin-agency-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--th-text-sm);
+}
+
+.th-admin-agency-table th,
+.th-admin-agency-table td {
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.th-admin-agency-table th {
+  font-size: var(--th-text-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--th-aa-muted);
+  font-weight: var(--th-weight-bold);
+  background: #fafafa;
+  white-space: nowrap;
+}
+
+.th-admin-agency-table__row {
+  cursor: pointer;
+  outline: none;
+}
+
+.th-admin-agency-table__row:hover td {
+  background: #fafbfc;
+}
+
+.th-admin-agency-table__row:focus-visible {
+  box-shadow: inset 0 0 0 2px #c4b5fd;
+}
+
+.th-admin-agency-table__row--warn td {
+  background: rgba(255, 247, 237, 0.65);
+}
+
+.th-admin-agency-table__empty {
+  text-align: center;
+  padding: 2rem 1rem !important;
+  color: var(--th-aa-muted);
+}
+
+.th-admin-agency-table__name {
+  font-weight: var(--th-weight-bold);
+  color: var(--th-aa-ink);
+  line-height: 1.35;
+}
+
+.th-admin-agency-table__sub {
+  font-size: var(--th-text-xs);
+  color: var(--th-aa-muted);
+  margin-top: 0.15rem;
+}
+
+.th-admin-agency__mono {
+  font-family: var(--th-font-mono);
+  font-size: var(--th-text-sm);
+  font-weight: var(--th-weight-semibold);
+  color: #5b21b6;
+}
+
+.th-admin-agency-debt {
+  min-width: 9rem;
+}
+
+.th-admin-agency-debt__nums {
+  font-size: var(--th-text-sm);
+  font-weight: var(--th-weight-semibold);
+  font-family: var(--th-font-mono);
+  white-space: nowrap;
+}
+
+.th-admin-agency-debt__sep {
+  margin: 0 0.2rem;
+  color: #cbd5e1;
+}
+
+.th-admin-agency-debt__limit {
+  color: var(--th-aa-muted);
+  font-weight: var(--th-weight-medium);
+}
+
+.th-admin-agency-debt__bar {
+  height: 4px;
+  margin-top: 0.35rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+
+.th-admin-agency-debt__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #a78bfa, #7c3aed);
+  max-width: 100%;
+}
+
+.th-admin-agency-table__row--warn .th-admin-agency-debt__fill {
+  background: linear-gradient(90deg, #fb923c, #ea580c);
+}
+
+.th-admin-agency__debt-warn {
+  color: #c2410c;
+  font-weight: var(--th-weight-extrabold);
+}
+
+.th-admin-agency__debt-bad {
+  color: #b91c1c;
+  font-weight: var(--th-weight-extrabold);
+}
+
+/* Status */
+.th-admin-agency-status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: var(--th-text-xs);
+  font-weight: var(--th-weight-bold);
+  cursor: pointer;
+  background: #fff;
+}
+
+.th-admin-agency-status-btn--active {
+  border-color: rgba(34, 197, 94, 0.45);
+  color: #15803d;
+  background: #f0fdf4;
+}
+
+.th-admin-agency-status-btn--locked {
+  border-color: rgba(148, 163, 184, 0.6);
+  color: #64748b;
+  background: #f8fafc;
+}
+
+.th-admin-agency-status-btn__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.th-admin-agency__btn-icon-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.th-admin-agency__btn-icon-danger:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.th-admin-agency__btn-ghost {
+  padding: 0.5rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--th-aa-border);
+  background: #fff;
+  font-weight: var(--th-weight-semibold);
+  font-size: var(--th-text-md);
+  cursor: pointer;
+}
+
+.th-admin-agency__btn-primary {
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: none;
+  font-weight: var(--th-weight-bold);
+  font-size: var(--th-text-md);
+  background: #7c3aed;
+  color: #fff;
+  cursor: pointer;
+}
+
+.th-admin-agency__btn-primary--link {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-sizing: border-box;
+}
+
+.th-admin-agency__btn-primary--link:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 3px 10px rgba(124, 58, 237, 0.35);
+}
+
+.th-admin-agency__btn-danger-solid {
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: none;
+  font-weight: var(--th-weight-bold);
+  font-size: var(--th-text-md);
+  background: #dc2626;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* Pagination */
+.th-admin-agency-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #f1f5f9;
+  background: #fafafa;
+}
+
+.th-admin-agency-pagination__meta {
+  margin: 0;
+  font-size: var(--th-text-sm);
+  color: var(--th-aa-muted);
+}
+
+.th-admin-agency-pagination__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.th-admin-agency-pagination__size {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--th-text-sm);
+  color: var(--th-aa-muted);
+}
+
+.th-admin-agency-pagination__size select {
+  padding: 0.25rem 0.4rem;
+  border-radius: 8px;
+  border: 1px solid var(--th-aa-border);
+}
+
+.th-admin-agency-pagination__btn {
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--th-aa-border);
+  background: #fff;
+  font-size: var(--th-text-sm);
+  font-weight: var(--th-weight-semibold);
+  cursor: pointer;
+}
+
+.th-admin-agency-pagination__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.th-admin-agency-pagination__page {
+  font-size: var(--th-text-sm);
+  font-weight: var(--th-weight-semibold);
+  color: #475569;
+}

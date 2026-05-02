@@ -1,0 +1,19 @@
+/* Chi tiết NCC — avatar chữ, bổ sung trên AdminProductDetailPage */
+
+.th-admin-supplier-detail__avatar {
+  flex-shrink: 0;
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.65rem;
+  font-weight: var(--th-weight-extrabold);
+  letter-spacing: -0.02em;
+  color: #fff;
+  background: linear-gradient(145deg, #0d9488 0%, #14b8a6 55%, #5eead4 130%);
+  box-shadow:
+    0 4px 14px rgba(13, 148, 136, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}

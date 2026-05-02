@@ -1,0 +1,94 @@
+/**
+ * Ban Giám đốc — header bảng dữ liệu & dialog đồng bộ palette sidebar
+ * (gradient + accent vàng — trùng tinh thần DirectorSidebar.css).
+ */
+
+.th-director-panel {
+  --th-dr-head-gradient: linear-gradient(165deg, #1e1b4b 0%, #312e81 38%, #1e1033 100%);
+  --th-dr-head-fg: #faf5ff;
+  --th-dr-head-edge: rgba(245, 158, 11, 0.45);
+  --th-dr-dialog-bar: #f59e0b;
+}
+
+/* ── Tables: chỉ hàng tiêu đề ── */
+.th-director-panel .th-director-pricing-table thead th,
+.th-director-panel .th-director-debt-table thead th,
+.th-director-panel .th-director-ar-table thead th,
+.th-director-panel .th-director-mts-table thead th,
+.th-director-panel .th-director-ws-table thead th,
+.th-director-panel .th-director-ws-mini thead th,
+.th-director-panel .th-admin-agency-table thead th,
+.th-director-panel .th-admin-supplier-list-table thead th,
+.th-director-panel .th-director-pricing-detail__table thead th,
+.th-director-panel .th-admin-product-detail__table thead th {
+  background: var(--th-dr-head-gradient);
+  color: var(--th-dr-head-fg);
+  border-bottom: 1px solid var(--th-dr-head-edge);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+}
+
+.th-director-panel .th-director-pricing-detail__table thead th {
+  /* File page dùng chữ nhạt + uppercase — giữ uppercase, đồng bộ màu */
+  color: var(--th-dr-head-fg);
+}
+
+.th-director-panel .th-admin-agency-table thead th,
+.th-director-panel .th-admin-supplier-list-table thead th {
+  color: rgba(253, 230, 138, 0.92);
+}
+
+/* ── Dialog có th-dlg__head (vd. phê duyệt giá) ── */
+.th-director-panel dialog.th-dlg .th-dlg__head {
+  background: var(--th-dr-head-gradient);
+  border-bottom: 1px solid var(--th-dr-head-edge);
+}
+
+.th-director-panel dialog.th-dlg .th-dlg__title {
+  color: var(--th-dr-head-fg);
+}
+
+.th-director-panel dialog.th-dlg .th-dlg__head-icon {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #fbbf24;
+}
+
+.th-director-panel dialog.th-dlg .th-dlg__close {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(250, 245, 255, 0.9);
+}
+
+.th-director-panel dialog.th-dlg .th-dlg__close:hover {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+/* ── Dialog xác nhận (không có __head): thanh accent giống sidebar ── */
+.th-director-panel dialog.th-dlg.th-dlg--confirm .th-dlg__panel {
+  border-top: 3px solid var(--th-dr-dialog-bar);
+  box-shadow:
+    0 0 0 1px rgba(49, 46, 129, 0.12),
+    0 8px 24px rgba(8, 15, 30, 0.16),
+    0 32px 64px rgba(8, 15, 30, 0.22);
+}
+
+/* ── Khách sỉ / NCC: thanh lọc tách khỏi thẻ bảng (cùng ý th-director-ws). ── */
+.th-director-panel .th-director-partners__filter-bar {
+  margin-bottom: 1rem;
+}
+
+.th-director-panel .th-director-partners__filter-bar .th-admin-list-toolbar__head {
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.th-director-panel .th-admin-agency-table-wrap,
+.th-director-panel .th-admin-supplier-list-table-wrap {
+  border-radius: 12px;
+  overflow: hidden;
+  border-color: #e2e8f0;
+}
