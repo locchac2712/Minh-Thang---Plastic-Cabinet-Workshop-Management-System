@@ -1,0 +1,250 @@
+/* Form thêm khách — cùng nhịp emerald với SellerAgenciesPage */
+
+.th-seller-agency-create {
+  --th-sac-accent: #059669;
+  --th-sac-muted: #64748b;
+  --th-sac-border: #e2e8f0;
+  --th-sac-ink: #0f172a;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Breadcrumb */
+.th-seller-agency-create__breadcrumb {
+  margin: 0;
+}
+
+.th-seller-agency-create__breadcrumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+}
+
+.th-seller-agency-create__breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.th-seller-agency-create__breadcrumb-link {
+  color: var(--th-sac-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.th-seller-agency-create__breadcrumb-link:hover {
+  text-decoration: underline;
+}
+
+.th-seller-agency-create__breadcrumb-sep {
+  display: inline-flex;
+  color: #94a3b8;
+  user-select: none;
+}
+
+.th-seller-agency-create__breadcrumb-sep .material-symbols-outlined {
+  font-size: 1.1rem;
+}
+
+.th-seller-agency-create__breadcrumb-text {
+  font-weight: 600;
+  color: #475569;
+}
+
+.th-seller-agency-create__breadcrumb-current {
+  font-weight: 700;
+  color: var(--th-sac-ink);
+}
+
+/* Header */
+.th-seller-agency-create__header {
+  margin: 0;
+}
+
+.th-seller-agency-create__title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.th-seller-agency-create__title-icon {
+  font-size: 2rem;
+  color: #059669;
+  background: linear-gradient(145deg, #d1fae5, #a7f3d0);
+  border-radius: 12px;
+  padding: 0.45rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.th-seller-agency-create__title {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--th-sac-ink);
+}
+
+/* Form */
+.th-seller-agency-create__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.th-seller-agency-create__card {
+  padding: 1.1rem 1.15rem;
+  border-radius: 12px;
+  border: 1px solid var(--th-sac-border);
+  background: #fafafa;
+}
+
+.th-seller-agency-create__sec-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--th-sac-ink);
+}
+
+.th-seller-agency-create__sec-icon {
+  font-size: 1.25rem;
+  color: var(--th-sac-accent);
+}
+
+.th-seller-agency-create__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+}
+
+@media (min-width: 900px) {
+  .th-seller-agency-create__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .th-seller-agency-create__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.th-seller-agency-create__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.th-seller-agency-create__field--full {
+  grid-column: 1 / -1;
+}
+
+.th-seller-agency-create__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.th-seller-agency-create__label abbr {
+  text-decoration: none;
+  color: #dc2626;
+}
+
+.th-seller-agency-create__input,
+.th-seller-agency-create__select {
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--th-sac-border);
+  font-size: 0.875rem;
+  font-family: inherit;
+  background: #fff;
+  color: var(--th-sac-ink);
+}
+
+.th-seller-agency-create__input:focus,
+.th-seller-agency-create__select:focus {
+  outline: 2px solid rgba(5, 150, 105, 0.35);
+  outline-offset: 1px;
+  border-color: #6ee7b7;
+}
+
+.th-seller-agency-create__field-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--th-sac-muted);
+}
+
+.th-seller-agency-create__field-hint code {
+  font-size: 0.68rem;
+  padding: 0.05rem 0.25rem;
+  border-radius: 4px;
+  background: #f1f5f9;
+}
+
+.th-seller-agency-create__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  padding-top: 0.25rem;
+}
+
+.th-seller-agency-create__btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--th-sac-border);
+  background: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #475569;
+  text-decoration: none;
+  font-family: inherit;
+}
+
+.th-seller-agency-create__btn-secondary:hover {
+  background: #f8fafc;
+}
+
+.th-seller-agency-create__btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.15rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(160deg, #34d399 0%, #059669 100%);
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.35);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.th-seller-agency-create__btn-primary:hover {
+  filter: brightness(1.05);
+}
+
+.th-seller-agency-create__btn-primary .material-symbols-outlined {
+  font-size: 1.15rem;
+}

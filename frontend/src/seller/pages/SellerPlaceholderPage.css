@@ -1,0 +1,14 @@
+.th-seller-placeholder__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.th-seller-placeholder__lead {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: #64748b;
+  max-width: 40rem;
+}

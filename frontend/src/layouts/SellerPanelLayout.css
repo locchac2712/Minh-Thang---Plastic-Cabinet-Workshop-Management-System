@@ -1,0 +1,38 @@
+.th-seller-panel {
+  min-height: 100vh;
+  height: 100vh;
+  background: #f8fafc;
+  color: #0f172a;
+  color-scheme: light;
+  display: grid;
+  grid-template-columns: 17.5rem 1fr;
+  overflow: hidden;
+  transition: grid-template-columns 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.th-seller-sidebar-collapsed .th-seller-panel {
+  grid-template-columns: 4.75rem 1fr;
+}
+
+.th-seller-main {
+  min-height: 0;
+  overflow: auto;
+  padding: 1.5rem 1.5rem 2rem;
+}
+
+@media (max-width: 1024px) {
+  .th-seller-panel {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  html.th-seller-sidebar-collapsed .th-seller-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .th-seller-main {
+    padding: 1rem 1rem 1.5rem;
+  }
+}

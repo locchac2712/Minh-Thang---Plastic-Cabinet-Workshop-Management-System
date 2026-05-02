@@ -1,0 +1,41 @@
+.th-seller-pay { display: flex; flex-direction: column; gap: 1rem; }
+.th-seller-pay__head h1 { margin: 0; color: #0f172a; font-size: var(--th-text-2xl); font-weight: var(--th-weight-extrabold); }
+.th-seller-pay__error { margin: .5rem 0 0; color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: .55rem .7rem; font-size: var(--th-text-sm); }
+.th-seller-pay__stats { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: .7rem; }
+.th-seller-pay__stats li { border: 1px solid #e2e8f0; border-radius: 12px; padding: .72rem .85rem; background: #fff; display: flex; flex-direction: column; gap: .25rem; }
+.th-seller-pay__stats span { color: #64748b; font-size: var(--th-text-sm); }
+.th-seller-pay__stats strong { color: #0f172a; font-size: var(--th-text-md); }
+.th-seller-pay__toolbar label { display: inline-flex; flex-direction: column; gap: .35rem; }
+.th-seller-pay__toolbar span { color: #64748b; font-size: var(--th-text-sm); font-weight: var(--th-weight-semibold); }
+.th-seller-pay__toolbar select { min-height: 2.2rem; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #0f172a; padding: .45rem .6rem; font-size: var(--th-text-md); }
+.th-seller-pay__loading { margin: 0; color: #64748b; font-size: var(--th-text-sm); }
+.th-seller-pay__table-wrap { border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; overflow: auto; }
+.th-seller-pay-table { width: 100%; min-width: 980px; border-collapse: collapse; font-size: var(--th-text-sm); }
+.th-seller-pay-table th,.th-seller-pay-table td { padding: .55rem .62rem; border-bottom: 1px solid #f1f5f9; text-align: left; vertical-align: top; }
+.th-seller-pay-table th { background: #f8fafc; color: #334155; font-size: var(--th-text-sm); font-weight: var(--th-weight-semibold); }
+.th-seller-pay-table__num { text-align: right !important; font-variant-numeric: tabular-nums; font-family: var(--th-font-mono); }
+.th-seller-pay-table__empty { text-align: center !important; color: #64748b; padding: 1rem !important; font-size: var(--th-text-md); }
+.th-seller-pay-table__row { cursor: pointer; }
+.th-seller-pay-table__row:hover { background: #fafafa; }
+.th-seller-pay__pager { display: flex; justify-content: space-between; align-items: center; gap: .6rem; }
+.th-seller-pay__pager button { border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #0f172a; font-weight: var(--th-weight-semibold); font-size: var(--th-text-sm); padding: .38rem .75rem; cursor: pointer; }
+.th-seller-pay__pager button:disabled { opacity: .6; cursor: not-allowed; }
+.th-seller-pay__dlg { width: min(1240px, 98vw); max-width: min(1240px, 98vw); color: #0f172a; }
+.th-seller-pay__tabs { display: inline-flex; gap: .4rem; margin-bottom: .7rem; }
+.th-seller-pay__tab { border: 1px solid #d1d5db; border-radius: 999px; background: #fff; color: #475569; font-size: var(--th-text-sm); font-weight: var(--th-weight-bold); padding: .35rem .75rem; cursor: pointer; }
+.th-seller-pay__tab.is-active { border-color: rgba(5,150,105,.45); background: #ecfdf5; color: #065f46; }
+.th-seller-pay__hist-wrap { border: 1px solid #e2e8f0; border-radius: 12px; overflow: auto; background: #fff; max-height: min(62vh,560px); }
+.th-seller-pay__hist-table { width: 100%; min-width: 1180px; border-collapse: collapse; font-size: var(--th-text-sm); }
+.th-seller-pay__hist-table th,.th-seller-pay__hist-table td { padding: .55rem .62rem; border-bottom: 1px solid #f1f5f9; text-align: left; vertical-align: top; }
+.th-seller-pay__hist-table th { background: #f8fafc; color: #334155; font-size: var(--th-text-sm); font-weight: var(--th-weight-semibold); }
+.th-seller-pay__num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--th-font-mono); }
+.th-seller-pay__hist-empty { text-align: center !important; color: #64748b; padding: 1rem !important; }
+.th-seller-pay__new-grid { display: grid; grid-template-columns: repeat(2,minmax(220px,1fr)); gap: .7rem .85rem; }
+.th-seller-pay__new-grid label { display: flex; flex-direction: column; gap: .35rem; }
+.th-seller-pay__new-grid label.full { grid-column: 1 / -1; }
+.th-seller-pay__new-grid span { color: #64748b; font-size: var(--th-text-sm); font-weight: var(--th-weight-semibold); }
+.th-seller-pay__new-grid input,.th-seller-pay__new-grid textarea { min-height: 2.2rem; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #0f172a; padding: .45rem .6rem; font: inherit; font-size: var(--th-text-md); }
+.th-seller-pay__new-grid textarea { min-height: 4.2rem; resize: vertical; }
+.th-seller-pay__new-actions { margin-top: .8rem; display: flex; justify-content: flex-end; }
+@media (max-width: 860px) { .th-seller-pay__new-grid { grid-template-columns: 1fr; } }
+

@@ -1,0 +1,163 @@
+.th-seller-dashboard__header {
+  margin-bottom: 1.5rem;
+}
+
+.th-seller-dashboard__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.th-seller-dashboard__lead {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: #64748b;
+  max-width: 42rem;
+  line-height: 1.5;
+}
+
+.th-seller-dashboard__cards {
+  list-style: none;
+  margin: 0 0 1.2rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.85rem;
+}
+
+.th-seller-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem 1.05rem;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.th-seller-stat-card--alert {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: linear-gradient(180deg, #fff 0%, #fef2f2 100%);
+}
+
+.th-seller-stat-card__label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  line-height: 1.35;
+}
+
+.th-seller-stat-card__value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.th-seller-stat-card--alert .th-seller-stat-card__value {
+  color: #b91c1c;
+}
+
+.th-seller-stat-card__hint {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-family: ui-monospace, monospace;
+}
+
+.th-seller-dashboard__charts {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.th-seller-dashboard__row {
+  display: grid;
+  gap: 1rem;
+}
+
+.th-seller-dashboard__row--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.th-seller-dashboard__row--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .th-seller-dashboard__row--3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .th-seller-dashboard__row--2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .th-seller-dashboard__cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.th-seller-debt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 20rem;
+  overflow: auto;
+}
+
+.th-seller-debt-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.85rem;
+}
+
+.th-seller-debt-row--hi {
+  background: #fff1f2;
+  border-radius: 8px;
+  border-bottom: none;
+  padding: 0.75rem 0.5rem;
+}
+
+.th-seller-debt-row__name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.th-seller-debt-meters__row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: #475569;
+  flex-wrap: wrap;
+}
+
+.th-seller-debt-meters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.th-seller-debt-bar {
+  display: block;
+  height: 0.4rem;
+  min-width: 0;
+  max-width: 8rem;
+  border-radius: 2px;
+}
+
+.th-seller-debt-cap {
+  margin: 0;
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
