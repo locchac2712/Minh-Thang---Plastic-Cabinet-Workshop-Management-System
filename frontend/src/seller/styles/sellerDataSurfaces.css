@@ -1,0 +1,70 @@
+/**
+ * NVBH — header bảng & dialog đồng bộ palette sidebar
+ * (gradient emerald — trùng SellerSidebar.css).
+ */
+
+.th-seller-panel {
+  --th-sv-head-gradient: linear-gradient(165deg, #064e3b 0%, #022c22 48%, #041f17 100%);
+  --th-sv-head-fg: #ecfdf5;
+  --th-sv-head-edge: rgba(52, 211, 153, 0.45);
+  --th-sv-dialog-bar: #34d399;
+}
+
+/* ── Bảng: thead ── */
+.th-seller-panel .th-seller-agency-table thead th,
+.th-seller-panel .th-seller-orders-table thead th,
+.th-seller-panel .th-seller-qt-table thead th,
+.th-seller-panel .th-seller-order-detail__table thead th,
+.th-seller-panel .th-seller-order-detail__payhist-table thead th,
+.th-seller-panel .th-seller-order-create__table thead th,
+.th-seller-panel .th-seller-agency-detail__table thead th,
+.th-seller-panel .th-seller-pay-table thead th,
+.th-seller-panel .th-seller-pay__hist-table thead th,
+.th-seller-panel .th-seller-factory-panel__table thead th {
+  background: var(--th-sv-head-gradient);
+  color: var(--th-sv-head-fg);
+  border-bottom: 1px solid var(--th-sv-head-edge);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+}
+
+.th-seller-panel .th-seller-agency-table thead th,
+.th-seller-panel .th-seller-orders-table thead th,
+.th-seller-panel .th-seller-qt-table thead th {
+  color: rgba(167, 243, 208, 0.95);
+}
+
+/* ── Dialog có th-dlg__head ── */
+.th-seller-panel dialog.th-dlg .th-dlg__head {
+  background: var(--th-sv-head-gradient);
+  border-bottom: 1px solid var(--th-sv-head-edge);
+}
+
+.th-seller-panel dialog.th-dlg .th-dlg__title {
+  color: var(--th-sv-head-fg);
+}
+
+.th-seller-panel dialog.th-dlg .th-dlg__head-icon {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--th-sv-dialog-bar);
+}
+
+.th-seller-panel dialog.th-dlg .th-dlg__close {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(236, 253, 245, 0.9);
+}
+
+.th-seller-panel dialog.th-dlg .th-dlg__close:hover {
+  border-color: rgba(52, 211, 153, 0.5);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.th-seller-panel dialog.th-dlg.th-dlg--confirm .th-dlg__panel {
+  border-top: 3px solid var(--th-sv-dialog-bar);
+  box-shadow:
+    0 0 0 1px rgba(6, 78, 59, 0.12),
+    0 8px 24px rgba(8, 15, 30, 0.14),
+    0 32px 64px rgba(8, 15, 30, 0.2);
+}
