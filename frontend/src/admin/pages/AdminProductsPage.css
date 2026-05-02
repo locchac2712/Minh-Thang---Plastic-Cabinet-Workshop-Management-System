@@ -1,0 +1,517 @@
+/* ── AdminProductsPage.css ─────────────────────────────────────────────
+   Prefix: th-admin-products-*  |  Shared: th-dlg-*, th-admin-badge-*
+   Palette: slate dark + sky-blue accent — đồng bộ admin theme
+─────────────────────────────────────────────────────────────────────── */
+
+/* ── Variables ── */
+.th-admin-products-page {
+  --th-ap-accent:          #38bdf8;
+  --th-ap-accent-hover:    #0ea5e9;
+  --th-ap-accent-pressed:  #0284c7;
+  --th-ap-accent-ring:     rgba(14, 165, 233, 0.55);
+  --th-ap-accent-ring-soft:rgba(14, 165, 233, 0.18);
+  --th-ap-surface:         #ffffff;
+  --th-ap-surface-alt:     #f8fafc;
+  --th-ap-border:          rgba(203, 213, 225, 0.7);
+  --th-ap-ink:             #0f172a;
+  --th-ap-muted:           #64748b;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  min-height: 100%;
+}
+
+/* ── Page header ── */
+.th-admin-products-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.th-admin-products-header__left {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.th-admin-products-header__icon {
+  font-size: var(--th-icon-xl);
+  color: var(--th-ap-accent-pressed);
+  background: linear-gradient(145deg, #e0f2fe, #bae6fd);
+  border-radius: 12px;
+  padding: 0.45rem;
+  line-height: 1;
+}
+
+.th-admin-products-header__title {
+  margin: 0;
+  font-size: var(--th-text-2xl);
+  font-weight: var(--th-weight-extrabold);
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.th-admin-products-header__sub {
+  margin: 0.1rem 0 0;
+  font-size: var(--th-text-sm);
+  color: var(--th-ap-muted);
+}
+
+/* ── Buttons ── */
+.th-admin-products__btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 1.1rem;
+  border: none;
+  border-radius: 10px;
+  font-size: var(--th-text-md);
+  font-weight: var(--th-weight-bold);
+  color: #fff;
+  background: linear-gradient(160deg, #38bdf8 0%, #0ea5e9 100%);
+  box-shadow: 0 2px 6px rgba(14,165,233,0.35);
+  cursor: pointer;
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+.th-admin-products__btn-primary:hover { filter: brightness(1.08); box-shadow: 0 3px 10px rgba(14,165,233,0.45); }
+.th-admin-products__btn-primary:focus-visible { outline: 2px solid var(--th-ap-accent-ring); outline-offset: 2px; }
+
+.th-admin-products__btn-primary--link {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.th-admin-products__btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--th-ap-border);
+  border-radius: 10px;
+  font-size: var(--th-text-md);
+  font-weight: var(--th-weight-semibold);
+  color: #475569;
+  background: var(--th-ap-surface);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+.th-admin-products__btn-ghost:hover { background: #f1f5f9; border-color: #94a3b8; }
+
+.th-admin-products__btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid rgba(239,68,68,0.35);
+  border-radius: 10px;
+  font-size: var(--th-text-md);
+  font-weight: var(--th-weight-semibold);
+  color: #dc2626;
+  background: rgba(254,226,226,0.55);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+.th-admin-products__btn-danger:hover { background: rgba(254,226,226,0.9); }
+
+.th-admin-products__btn-icon {
+  font-size: var(--th-icon-sm);
+  line-height: 1;
+}
+
+.th-admin-products__btn-icon-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem; height: 2rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #94a3b8;
+  background: none;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.th-admin-products__btn-icon-danger:hover {
+  color: #dc2626;
+  background: rgba(254,226,226,0.55);
+  border-color: rgba(239,68,68,0.25);
+}
+.th-admin-products__btn-icon-danger .material-symbols-outlined { font-size: 1.15rem; }
+.th-admin-products__btn-icon-danger .material-symbols-outlined { font-size: var(--th-icon-sm); }
+
+/* ── Form fields ── */
+.th-admin-products-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.th-admin-products-field__label {
+  font-size: var(--th-text-xs);
+  font-weight: var(--th-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--th-ap-muted);
+}
+
+.th-admin-products-field__input {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--th-ap-border);
+  border-radius: 8px;
+  font-size: var(--th-text-md);
+  color: var(--th-ap-ink);
+  background: var(--th-ap-surface);
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+.th-admin-products-field__input:focus {
+  outline: none;
+  border-color: rgba(56,189,248,0.65);
+  box-shadow: 0 0 0 3px var(--th-ap-accent-ring-soft);
+}
+.th-admin-products-field__input--textarea { resize: vertical; min-height: 5rem; }
+
+.th-admin-products-field--editor .th-description-editor .ProseMirror {
+  min-height: 7rem;
+  max-height: 14rem;
+}
+
+.th-admin-products-detail-desc {
+  margin: 0;
+  max-width: 100%;
+}
+
+.th-admin-products-form-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ── Table card ── */
+.th-admin-products-table-wrap {
+  border-radius: 12px;
+  border: 1px solid var(--th-ap-border);
+  background: var(--th-ap-surface);
+  box-shadow: 0 1px 3px rgba(15,23,42,0.06);
+  overflow: hidden;
+}
+
+/* toolbar: dùng chung adminListToolbar.css */
+
+/* table */
+.th-admin-products-table-scroll { overflow-x: auto; }
+
+.th-admin-products-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--th-text-md);
+}
+
+.th-admin-products-table thead th {
+  padding: 0.7rem 1rem;
+  text-align: left;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #0c4a6e;
+  background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-bottom: 2px solid rgba(56,189,248,0.3);
+  white-space: nowrap;
+}
+
+.th-admin-products-table tbody tr {
+  border-bottom: 1px solid rgba(226,232,240,0.8);
+  transition: background 0.1s ease;
+  cursor: pointer;
+}
+.th-admin-products-table tbody tr:last-child { border-bottom: none; }
+.th-admin-products-table tbody tr:hover { background: #f0f9ff; }
+.th-admin-products-table tbody tr:focus-visible { outline: 2px solid var(--th-ap-accent-ring); outline-offset: -2px; }
+
+.th-admin-products-table__row--selected { background: #e0f2fe !important; }
+
+.th-admin-products-table td {
+  padding: 0.8rem 1rem;
+  color: var(--th-ap-ink);
+  vertical-align: middle;
+}
+
+/* ảnh cột */
+.th-admin-products-thumb {
+  width: 3.25rem;
+  height: 3.25rem;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  display: block;
+  background: #f1f5f9;
+}
+
+/* Chi tiết — ảnh trong header dialog */
+.th-admin-products-detail-thumb-wrap {
+  flex-shrink: 0;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
+}
+
+.th-admin-products-detail-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #e2e8f0;
+}
+
+.th-admin-products-image-link {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--th-ap-accent-hover);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+}
+.th-admin-products-image-link:hover {
+  color: var(--th-ap-accent-pressed);
+}
+
+/* name cell */
+.th-admin-products-table__name-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.th-admin-products-table__name {
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 18rem;
+}
+
+.th-admin-products-table__sku {
+  font-size: 0.72rem;
+  color: var(--th-ap-muted);
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  margin-top: 0.1rem;
+}
+
+.th-admin-products-table__material {
+  font-size: 0.8125rem;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.th-admin-products-table__price {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0c4a6e;
+  white-space: nowrap;
+}
+
+.th-admin-products-table__empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--th-ap-muted);
+  font-size: 0.875rem;
+}
+
+/* status button in table */
+.th-admin-products-status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+  white-space: nowrap;
+}
+.th-admin-products-status-btn:hover { filter: brightness(0.94); }
+
+.th-admin-products-status-btn__dot {
+  width: 0.42rem; height: 0.42rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.th-admin-products-status-btn--active {
+  background: rgba(220,252,231,0.8);
+  color: #166534;
+  border-color: rgba(74,222,128,0.35);
+}
+.th-admin-products-status-btn--active .th-admin-products-status-btn__dot { background: #22c55e; }
+
+.th-admin-products-status-btn--draft {
+  background: rgba(254,249,195,0.8);
+  color: #854d0e;
+  border-color: rgba(234,179,8,0.3);
+}
+.th-admin-products-status-btn--draft .th-admin-products-status-btn__dot { background: #eab308; }
+
+.th-admin-products-status-btn--discontinued {
+  background: rgba(241,245,249,0.9);
+  color: #475569;
+  border-color: rgba(148,163,184,0.35);
+}
+.th-admin-products-status-btn--discontinued .th-admin-products-status-btn__dot { background: #94a3b8; }
+
+/* price in detail */
+.th-admin-products__price-lg {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0c4a6e;
+}
+
+/* ── Pagination (đồng bộ Users / Categories) ── */
+.th-admin-products-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem 1.25rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--th-ap-border);
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+  font-size: 0.8125rem;
+  color: #475569;
+}
+
+.th-admin-products-pagination__meta {
+  margin: 0;
+}
+
+.th-admin-products-pagination__meta strong {
+  color: var(--th-ap-ink);
+  font-weight: 600;
+}
+
+.th-admin-products-pagination__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+}
+
+.th-admin-products-pagination__size {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.th-admin-products-pagination__size-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--th-ap-muted);
+  white-space: nowrap;
+}
+
+.th-admin-products-pagination__size-select {
+  min-width: 4.25rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.th-admin-products-pagination__nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.th-admin-products-pagination__page {
+  padding: 0 0.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.th-admin-products-pagination__page strong {
+  color: var(--th-ap-ink);
+  font-weight: 700;
+}
+
+.th-admin-products-pagination__btn {
+  padding: 0.35rem 0.5rem;
+  min-width: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.th-admin-products-pagination__btn .material-symbols-outlined {
+  font-size: 1.15rem;
+}
+
+.th-admin-products-pagination__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Badge: draft variant ── */
+.th-admin-badge--draft {
+  background: rgba(254,249,195,0.85);
+  color: #854d0e;
+  border-color: rgba(234,179,8,0.3);
+}
+.th-admin-badge--draft .th-admin-badge__dot { background: #eab308; }
+
+/* ── Responsive ── */
+@media (max-width: 680px) {
+  .th-admin-products-page { padding: 1rem; }
+
+  .th-admin-products-table thead { display: none; }
+
+  .th-admin-products-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.15rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid rgba(226,232,240,0.8);
+  }
+
+  .th-admin-products-table td {
+    padding: 0.3rem 1rem;
+  }
+
+  .th-admin-products-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--th-ap-muted);
+    margin-bottom: 0.15rem;
+  }
+
+  .th-admin-products-table td[data-label="Ảnh"] {
+    grid-column: 1 / -1;
+  }
+
+  .th-admin-products-table td[data-label="Sản phẩm"] {
+    grid-column: 1 / -1;
+  }
+
+  .th-admin-products-table__name { max-width: none; }
+}

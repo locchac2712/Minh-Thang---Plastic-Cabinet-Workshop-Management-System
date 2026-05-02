@@ -1,0 +1,52 @@
+.th-admin-accordion {
+  margin-bottom: 0.35rem;
+}
+
+.th-admin-accordion__trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(248, 250, 252, 0.92);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.th-admin-accordion__trigger:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.th-admin-accordion__trigger--active {
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.th-admin-accordion__trigger .material-symbols-outlined:first-of-type {
+  font-size: 1.15rem;
+  opacity: 0.95;
+}
+
+.th-admin-accordion__title {
+  flex: 1;
+  min-width: 0;
+}
+
+.th-admin-accordion__chevron {
+  font-size: 1.1rem !important;
+  opacity: 0.75;
+}
+
+.th-admin-accordion__panel {
+  padding: 0.25rem 0 0 0.25rem;
+}

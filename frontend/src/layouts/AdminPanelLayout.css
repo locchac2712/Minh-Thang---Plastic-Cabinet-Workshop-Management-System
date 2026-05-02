@@ -1,0 +1,51 @@
+/* Shell grid — cùng ý tưởng SuDo: cột sidebar + main, class trên html khi rail */
+.th-admin-panel {
+  /* Trùng với nền sáng của admin; :root dùng color-scheme: dark nên ô form native
+     bị tô nền tối nếu không ép light ở đây */
+  color-scheme: light;
+  min-height: 100vh;
+  height: 100vh;
+  background: #f1f5f9;
+  color: #0f172a;
+  display: grid;
+  grid-template-columns: 17.5rem 1fr;
+  overflow: hidden;
+  transition: grid-template-columns 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.th-admin-sidebar-collapsed .th-admin-panel {
+  grid-template-columns: 4.75rem 1fr;
+}
+
+.th-admin-main {
+  min-height: 0;
+  overflow: auto;
+  padding: 1.5rem 1.5rem 2rem;
+}
+
+html[data-admin-theme="dark"] .th-admin-panel {
+  background: #0f172a;
+  color: #e2e8f0;
+  color-scheme: dark;
+}
+
+html[data-admin-density="compact"] .th-admin-main {
+  padding: 1rem 1rem 1.35rem;
+}
+
+@media (max-width: 1024px) {
+  .th-admin-panel {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  html.th-admin-sidebar-collapsed .th-admin-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .th-admin-main {
+    padding: 1rem 1rem 1.5rem;
+  }
+}

@@ -1,0 +1,204 @@
+.th-description-editor {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(203, 213, 225, 0.95);
+  background: #fff;
+}
+
+.th-description-editor--loading {
+  min-height: 14rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+}
+
+.th-description-editor__loading-text {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.th-description-editor-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Toolbar */
+.th-description-editor__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.35rem;
+  padding: 0.45rem 0.55rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.th-description-editor__group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.th-description-editor__sep {
+  width: 1px;
+  height: 1.35rem;
+  background: rgba(203, 213, 225, 0.9);
+  margin: 0 0.15rem;
+  flex-shrink: 0;
+}
+
+.th-description-editor__tb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.85rem;
+  height: 1.85rem;
+  padding: 0 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #475569;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+}
+
+.th-description-editor__tb:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.25);
+  color: #0c4a6e;
+}
+
+.th-description-editor__tb:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.th-description-editor__tb--on {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: rgba(14, 165, 233, 0.45);
+  color: #0369a1;
+  font-weight: 700;
+}
+
+.th-description-editor__tb .material-symbols-outlined {
+  font-size: 1.1rem;
+}
+
+.th-description-editor__u {
+  text-decoration: underline;
+}
+
+.th-description-editor__color {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.th-description-editor__color input[type='color'] {
+  width: 1.65rem;
+  height: 1.45rem;
+  padding: 0;
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  border-radius: 4px;
+  cursor: pointer;
+  background: #fff;
+}
+
+/* Editor surface */
+.th-description-editor__wrap {
+  max-height: 28rem;
+  overflow-y: auto;
+}
+
+.th-description-editor__wrap .ProseMirror {
+  min-height: 12rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: #0f172a;
+  outline: none;
+}
+
+.th-description-editor__wrap .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #94a3b8;
+  pointer-events: none;
+  height: 0;
+}
+
+.th-description-editor__empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #94a3b8;
+  pointer-events: none;
+  height: 0;
+}
+
+.th-description-editor__content {
+  min-height: 12rem;
+}
+
+.th-description-editor__wrap .ProseMirror h1,
+.th-description-editor__wrap .ProseMirror h2,
+.th-description-editor__wrap .ProseMirror h3 {
+  margin: 0.65rem 0 0.35rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.th-description-editor__wrap .ProseMirror h1 {
+  font-size: 1.35rem;
+}
+.th-description-editor__wrap .ProseMirror h2 {
+  font-size: 1.15rem;
+}
+.th-description-editor__wrap .ProseMirror h3 {
+  font-size: 1.02rem;
+}
+
+.th-description-editor__wrap .ProseMirror ul,
+.th-description-editor__wrap .ProseMirror ol {
+  margin: 0.35rem 0;
+  padding-left: 1.35rem;
+}
+
+.th-description-editor__wrap .ProseMirror blockquote {
+  margin: 0.5rem 0;
+  padding-left: 0.85rem;
+  border-left: 3px solid rgba(56, 189, 248, 0.65);
+  color: #475569;
+}
+
+.th-description-editor__wrap .ProseMirror pre {
+  margin: 0.5rem 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  background: #1e293b;
+  color: #e2e8f0;
+  font-size: 0.8125rem;
+  overflow-x: auto;
+}
+
+.th-description-editor__wrap .ProseMirror a {
+  color: #0284c7;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.th-description-editor__wrap .ProseMirror:focus {
+  outline: none;
+}

@@ -1,0 +1,176 @@
+/**
+ * Thanh tìm kiếm & lọc dùng chung — đồng bộ với AdminProducts (sky accent).
+ * Dùng cho: Sản phẩm, Vật tư, Khách sỉ, …
+ */
+
+.th-admin-list-toolbar__head {
+  padding: 0.75rem 1rem;
+  background: linear-gradient(145deg, #e0f2fe 0%, #f0f9ff 42%, #f8fafc 100%);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.28);
+}
+
+.th-admin-list-toolbar__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem 0.65rem;
+}
+
+.th-admin-list-toolbar__search {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: min(100%, 12rem);
+  max-width: 22rem;
+}
+
+.th-admin-list-toolbar__search-icon {
+  position: absolute;
+  left: 0.65rem;
+  font-size: var(--th-icon-sm);
+  color: #0284c7;
+  pointer-events: none;
+}
+
+.th-admin-list-toolbar__search-input {
+  width: 100%;
+  padding: 0.47rem 0.65rem 0.47rem 2.35rem;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 10px;
+  font-size: var(--th-text-md);
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.th-admin-list-toolbar__search-input::placeholder {
+  color: #94a3b8;
+}
+
+.th-admin-list-toolbar__search-input:focus {
+  outline: none;
+  border-color: rgba(14, 165, 233, 0.85);
+  box-shadow:
+    0 0 0 3px rgba(14, 165, 233, 0.18),
+    inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.th-admin-list-toolbar__filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.th-admin-list-toolbar__filter-label {
+  font-size: var(--th-text-micro);
+  font-weight: var(--th-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #0369a1;
+  padding-left: 0.15rem;
+}
+
+.th-admin-list-toolbar__filter-select {
+  min-width: 8.5rem;
+  padding: 0.45rem 0.6rem;
+  font-size: var(--th-text-sm);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.th-admin-list-toolbar__filter-select:focus {
+  outline: none;
+  border-color: rgba(14, 165, 233, 0.75);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
+}
+
+.th-admin-list-toolbar__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: flex-end;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(255, 255, 255, 0.88);
+  font-size: var(--th-text-sm);
+  font-weight: var(--th-weight-semibold);
+  color: #0369a1;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.th-admin-list-toolbar__chip:hover {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+.th-admin-list-toolbar__chip input {
+  accent-color: #0ea5e9;
+}
+
+.th-admin-list-toolbar__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  align-self: flex-end;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 9px;
+  font-size: var(--th-text-xs);
+  font-weight: var(--th-weight-semibold);
+  color: #0369a1;
+  background: rgba(56, 189, 248, 0.08);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.th-admin-list-toolbar__clear:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+.th-admin-list-toolbar__clear .material-symbols-outlined {
+  font-size: 1rem;
+}
+
+.th-admin-list-toolbar-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.th-admin-list-toolbar__error {
+  margin: 0.25rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: var(--th-text-md);
+}
