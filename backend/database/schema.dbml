@@ -1,0 +1,274 @@
+Project B2BFurnitureERP {
+  database_type: 'PostgreSQL'
+  Note: 'Đồng bộ với backend/database/init_schema.sql (PostgreSQL 13+)'
+}
+
+Table users {
+  id uuid [pk, default: `gen_random_uuid()`]
+  username varchar(100) [unique, not null]
+  email varchar(255) [unique]
+  password varchar(255) [not null]
+  full_name varchar(100)
+  avatar_url text
+  role varchar(50) [not null, note: "CHECK: ADMIN, DIRECTOR, SELLER, PRODUCTION, ACCOUNTANT"]
+  is_active boolean [default: true]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table agencies {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(255) [not null]
+  assigned_seller_id uuid [ref: > users.id, note: "Sale phụ trách"]
+  level varchar(50) [not null]
+  phone varchar(20)
+  address text
+  tax_code varchar(50)
+  legal_company_name varchar(255)
+  total_debt decimal(19,4) [default: 0.0]
+  max_debt_limit decimal(19,4) [default: 50000000.0, note: "Hạn mức nợ tối đa"]
+  is_active boolean [default: true]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (assigned_seller_id) [name: 'idx_agencies_seller']
+  }
+}
+
+Table categories {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(255) [unique, not null]
+  description text
+  image_url text
+  is_active boolean [default: true]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table suppliers {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(255) [not null]
+  phone varchar(20)
+  address text
+  tax_code varchar(50)
+  total_debt decimal(19,4) [default: 0.0, note: "Công nợ NCC"]
+  is_active boolean [default: true]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table products {
+  id uuid [pk, default: `gen_random_uuid()`]
+  category_id uuid [ref: > categories.id, note: "Nullable — SP custom có thể không gán danh mục"]
+  sku varchar(100) [unique, not null]
+  name varchar(255) [not null]
+  image_urls jsonb [note: "JSONB mảng URL ảnh"]
+  cost_price decimal(19,4) [default: 0.0]
+  suggested_price decimal(19,4) [default: 0.0]
+  stock_quantity int [default: 0]
+  is_active boolean [default: true]
+  is_custom boolean [not null, default: false, note: "Catalog riêng / bản vẽ đại lý"]
+  agency_id uuid [ref: > agencies.id, note: "Nullable — null = SP bán đại trà"]
+  created_by uuid [ref: > users.id, note: "Nullable — FK users"]
+  resource_url text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (category_id) [name: 'idx_products_category']
+    (agency_id) [name: 'idx_products_agency']
+  }
+}
+
+Table materials {
+  id uuid [pk, default: `gen_random_uuid()`]
+  code varchar(100) [unique, not null]
+  name varchar(255) [not null]
+  image_url text
+  unit varchar(50) [not null]
+  unit_cost decimal(19,4) [default: 0.0]
+  stock_quantity numeric(15,4) [default: 0.0]
+  min_stock_level numeric(15,4) [default: 0.0]
+  is_active boolean [default: true]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table bom_items {
+  id uuid [pk, default: `gen_random_uuid()`]
+  product_id uuid [not null, ref: > products.id]
+  material_id uuid [not null, ref: > materials.id]
+  quantity numeric(15,4) [not null]
+  note text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table orders {
+  id uuid [pk, default: `gen_random_uuid()`]
+  agency_id uuid [not null, ref: > agencies.id]
+  created_by uuid [not null, ref: > users.id]
+  approver_id uuid [ref: > users.id]
+  total_amount decimal(19,4) [default: 0.0]
+  discount_amount decimal(19,4) [default: 0.0]
+  shipping_fee decimal(19,4) [default: 0.0]
+  total_payable decimal(19,4) [default: 0.0]
+  paid_amount decimal(19,4) [default: 0.0]
+  expected_delivery_date date
+  shipping_address text
+  status varchar(50) [not null, note: "CHECK: Draft, Pending, Approved, Producing, Done, Rejected, Canceled"]
+  note text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (agency_id) [name: 'idx_orders_agency']
+    (created_by) [name: 'idx_orders_created_by']
+    (status) [name: 'idx_orders_status']
+  }
+}
+
+Table order_items {
+  id uuid [pk, default: `gen_random_uuid()`]
+  order_id uuid [not null, ref: > orders.id]
+  product_id uuid [not null, ref: > products.id]
+  quantity int [not null]
+  unit_price decimal(19,4) [not null]
+  unit_cost_at_time decimal(19,4) [not null, note: "Giá vốn tại thời điểm duyệt"]
+  subtotal decimal(19,4) [not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (order_id) [name: 'idx_order_items_order']
+  }
+}
+
+Table payments {
+  id uuid [pk, default: `gen_random_uuid()`]
+  order_id uuid [ref: > orders.id]
+  agency_id uuid [not null, ref: > agencies.id]
+  amount decimal(19,4) [not null]
+  payment_method varchar(50) [not null]
+  proof_image text
+  note text
+  status varchar(50) [not null, note: "CHECK: Pending, Completed, Failed"]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (order_id) [name: 'idx_payments_order']
+    (agency_id) [name: 'idx_payments_agency']
+  }
+}
+
+Table invoices {
+  id uuid [pk, default: `gen_random_uuid()`]
+  order_id uuid [not null, ref: > orders.id]
+  invoice_number varchar(100) [unique]
+  sub_total decimal(19,4) [not null]
+  vat_rate decimal(5,2) [not null]
+  vat_amount decimal(19,4) [not null]
+  total_amount decimal(19,4) [not null]
+  invoice_file_url text
+  status varchar(50) [not null, note: "CHECK: Draft, Issued, Canceled"]
+  note text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (order_id) [name: 'idx_invoices_order']
+  }
+}
+
+Table production_tasks {
+  id uuid [pk, default: `gen_random_uuid()`]
+  order_id uuid [ref: > orders.id, note: "Nullable — MTS không gắn đơn"]
+  product_id uuid [ref: > products.id]
+  quantity int [not null, default: 1]
+  assigned_to uuid [ref: > users.id]
+  status varchar(50) [not null, note: "CHECK: Waiting, Doing, Done"]
+  start_date date
+  expected_end_date date
+  completed_at timestamp
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (order_id) [name: 'idx_production_tasks_order']
+    (assigned_to) [name: 'idx_production_tasks_assigned']
+  }
+}
+
+Table activity_logs {
+  id uuid [pk, default: `gen_random_uuid()`]
+  task_id uuid [not null, ref: > production_tasks.id]
+  user_id uuid [not null, ref: > users.id]
+  image_url text
+  description text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (task_id) [name: 'idx_activity_logs_task']
+  }
+}
+
+Table purchase_orders {
+  id uuid [pk, default: `gen_random_uuid()`]
+  supplier_id uuid [not null, ref: > suppliers.id]
+  total_amount decimal(19,4) [default: 0.0]
+  paid_amount decimal(19,4) [default: 0.0]
+  payment_status varchar(50) [default: 'Unpaid', note: "CHECK: Unpaid, Partial, Paid"]
+  status varchar(50) [not null, note: "CHECK: Pending, Received, Canceled"]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (supplier_id) [name: 'idx_purchase_orders_supplier']
+  }
+}
+
+Table purchase_order_items {
+  id uuid [pk, default: `gen_random_uuid()`]
+  purchase_order_id uuid [not null, ref: > purchase_orders.id, note: "ON DELETE CASCADE trong SQL"]
+  material_id uuid [not null, ref: > materials.id]
+  quantity numeric(15,4) [not null, note: "CHECK quantity > 0"]
+  unit_price decimal(19,4) [not null, note: "CHECK unit_price >= 0"]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (purchase_order_id) [name: 'idx_purchase_order_items_po']
+    (material_id) [name: 'idx_purchase_order_items_material']
+  }
+}
+
+Table inventory_logs {
+  id uuid [pk, default: `gen_random_uuid()`]
+  material_id uuid [not null, ref: > materials.id]
+  task_id uuid [ref: > production_tasks.id]
+  purchase_id uuid [ref: > purchase_orders.id]
+  created_by uuid [not null, ref: > users.id]
+  transaction_type varchar(50) [not null, note: "CHECK: IMPORT, EXPORT, WASTE"]
+  quantity_change numeric(15,4) [not null]
+  unit_price_at_time decimal(19,4)
+  note text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (material_id) [name: 'idx_inventory_logs_material']
+  }
+}
+
+Table product_inventory_logs {
+  id uuid [pk, default: `gen_random_uuid()`]
+  product_id uuid [not null, ref: > products.id]
+  order_id uuid [ref: > orders.id]
+  task_id uuid [ref: > production_tasks.id]
+  created_by uuid [not null, ref: > users.id]
+  transaction_type varchar(50) [not null, note: "CHECK: IMPORT, EXPORT, WASTE"]
+  quantity_change int [not null]
+  note text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (product_id) [name: 'idx_product_inventory_logs_product']
+  }
+}
