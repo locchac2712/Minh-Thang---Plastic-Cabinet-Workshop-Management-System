@@ -1,91 +1,74 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+:root {
+  --th-font-sans: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --th-font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
 
-body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --th-text-micro: 0.6875rem;
+  --th-text-xs: 0.75rem;
+  --th-text-sm: 0.8125rem;
+  --th-text-md: 0.875rem;
+  --th-text-lg: 0.9375rem;
+  --th-text-xl: 1.05rem;
+  --th-text-2xl: 1.35rem;
+  --th-text-3xl: 1.5rem;
+
+  --th-leading-tight: 1.25;
+  --th-leading-normal: 1.5;
+
+  --th-weight-medium: 500;
+  --th-weight-semibold: 600;
+  --th-weight-bold: 700;
+  --th-weight-extrabold: 800;
+
+  --th-icon-sm: 1.1rem;
+  --th-icon-md: 1.2rem;
+  --th-icon-lg: 1.25rem;
+  --th-icon-xl: 2rem;
+
+  font-family: var(--th-font-sans);
+  line-height: var(--th-leading-normal);
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #ffffff;
+  color-scheme: dark;
+  color: #e8eef5;
+  background-color: #0b1220;
 }
 
-::selection {
-  background: #E9D5FF;
-  color: #581C87;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-.font-serif { font-family: 'Playfair Display', Georgia, serif; }
-
-/* Liquid float animations */
-@keyframes float {
-  0% { transform: translate(0px, 0px) scale(1); }
-  33% { transform: translate(30px, -50px) scale(1.1); }
-  66% { transform: translate(-20px, 20px) scale(0.9); }
-  100% { transform: translate(0px, 0px) scale(1); }
-}
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-@keyframes pulse-soft {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 0.3; }
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: var(--th-font-sans);
 }
 
-.animate-float-slow { animation: float 20s ease-in-out infinite; }
-.animate-float-medium { animation: float 15s ease-in-out infinite reverse; }
-.animate-fade-in-up { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
-.animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
-.animate-spin-slow { animation: spin-slow 1s linear infinite; }
-.animate-pulse-soft { animation: pulse-soft 3s ease-in-out infinite; }
-.delay-100 { animation-delay: 0.1s; }
-.delay-200 { animation-delay: 0.2s; }
-.delay-300 { animation-delay: 0.3s; }
-.delay-400 { animation-delay: 0.4s; }
-
-/* Reveal on scroll */
-.reveal-on-scroll {
-  opacity: 0;
-  transform: translateY(40px) scale(0.96);
-  filter: blur(4px);
-  transition: opacity 0.8s ease-out, transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.8s ease-out;
-  will-change: opacity, transform, filter;
-}
-.reveal-on-scroll.is-visible {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  filter: blur(0);
+#root {
+  min-height: 100vh;
 }
 
-/* Scrollbar */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-*::-webkit-scrollbar { width: 5px; height: 5px; }
-*::-webkit-scrollbar-track { background: transparent; }
-*::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
-*::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
+a {
+  color: inherit;
+}
 
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
-@media print {
-  .no-print, button, .btn, .Btn, .LinkBtn, nav, aside {
-    display: none !important;
-  }
-  body {
-    background: white !important;
-  }
-  .GlassCard, .Card {
-    border: none !important;
-    box-shadow: none !important;
-    background: white !important;
-  }
+html[data-admin-density='compact'] {
+  --th-text-micro: 0.625rem;
+  --th-text-xs: 0.6875rem;
+  --th-text-sm: 0.75rem;
+  --th-text-md: 0.8125rem;
+  --th-text-lg: 0.875rem;
+}
+
+.th-num-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.th-code-text {
+  font-family: var(--th-font-mono);
 }

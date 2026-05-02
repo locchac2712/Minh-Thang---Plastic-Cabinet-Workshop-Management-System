@@ -1,0 +1,17 @@
+# SPA fallback cho React Router (Vite) — Hostinger / Apache
+# Sao chép toàn bộ nội dung thư mục `dist/` lên public_html (hoặc thư mục subdomain).
+# Nếu app chạy trong thư mục con (vd: /app/), đổi RewriteBase thành /app/
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Gốc site; đổi thành /ten-thu-muc/ nếu deploy không ở domain root
+  RewriteBase /
+
+  # Bỏ qua file & thư mục thật (assets, favicon…)
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Mọi route còn lại → index.html để React Router xử lý
+  RewriteRule ^ index.html [L]
+</IfModule>
