@@ -1,0 +1,57 @@
+.th-listing-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem;
+}
+
+.th-listing-filter-field {
+  min-width: 170px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.th-listing-filter-field--search {
+  min-width: 260px;
+  flex: 1;
+}
+
+.th-listing-filter-label {
+  font-size: var(--th-text-sm);
+  font-weight: var(--th-weight-semibold);
+  color: #475569;
+}
+
+.th-listing-filter-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.th-listing-table-shell {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.th-listing-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.th-listing-pagination__meta {
+  margin: 0;
+  color: #64748b;
+  font-size: var(--th-text-sm);
+}
+
+.th-listing-state {
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}

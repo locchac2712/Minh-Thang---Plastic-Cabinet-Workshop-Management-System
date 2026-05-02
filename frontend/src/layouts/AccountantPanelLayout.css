@@ -1,0 +1,37 @@
+.th-accountant-panel {
+  min-height: 100vh;
+  height: 100vh;
+  background: #f8fafc;
+  color: #0f172a;
+  display: grid;
+  grid-template-columns: 17.5rem 1fr;
+  overflow: hidden;
+  transition: grid-template-columns 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.th-accountant-sidebar-collapsed .th-accountant-panel {
+  grid-template-columns: 4.75rem 1fr;
+}
+
+.th-accountant-main {
+  min-height: 0;
+  overflow: auto;
+  padding: 1.5rem 1.5rem 2rem;
+}
+
+@media (max-width: 1024px) {
+  .th-accountant-panel {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  html.th-accountant-sidebar-collapsed .th-accountant-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .th-accountant-main {
+    padding: 1rem 1rem 1.5rem;
+  }
+}

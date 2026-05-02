@@ -1,0 +1,10 @@
+/* Ảnh logo trong ô mark sidebar — dùng chung mọi panel */
+.th-app-brand-logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: inherit;
+  padding: 0.18rem;
+  box-sizing: border-box;
+}

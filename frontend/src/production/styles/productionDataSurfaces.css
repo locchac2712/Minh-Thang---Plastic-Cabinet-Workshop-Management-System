@@ -1,0 +1,259 @@
+/**
+ * Production — bảng dữ liệu & dialog đồng bộ palette sidebar (cam / xám thép).
+ */
+
+.th-production-panel {
+  --th-pr-head-gradient: linear-gradient(165deg, #292524 0%, #1c1917 48%, #0c0a09 100%);
+  --th-pr-head-fg: #fafaf9;
+  --th-pr-head-edge: rgba(251, 146, 60, 0.42);
+  --th-pr-dialog-accent: #fb923c;
+}
+
+.th-production-panel .th-prod-table-shell {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: auto;
+  background: #fff;
+  -webkit-overflow-scrolling: touch;
+}
+
+.th-production-panel .th-prod-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--th-text-sm);
+}
+
+.th-production-panel .th-prod-data-table th,
+.th-production-panel .th-prod-data-table td {
+  padding: 0.6rem 0.65rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.th-production-panel .th-prod-data-table thead th {
+  background: var(--th-pr-head-gradient);
+  color: var(--th-pr-head-fg);
+  border-bottom: 1px solid var(--th-pr-head-edge);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+
+.th-production-panel .th-prod-data-table__num,
+.th-production-panel .th-prod-data-table__money {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.th-production-panel .th-prod-data-table__col-date,
+.th-production-panel .th-prod-data-table__col-num {
+  white-space: nowrap;
+}
+
+.th-production-panel .th-prod-data-table thead .th-prod-data-table__col-num,
+.th-production-panel .th-prod-data-table thead .th-prod-data-table__col-date {
+  text-align: right !important;
+}
+
+.th-production-panel .th-prod-data-table__empty {
+  text-align: center !important;
+  color: #64748b;
+  padding: 1.25rem 1rem !important;
+  font-size: var(--th-text-md);
+}
+
+.th-production-panel .th-prod-data-table__row {
+  cursor: pointer;
+}
+
+.th-production-panel .th-prod-data-table__row:hover {
+  background: #fafaf9;
+}
+
+.th-production-panel .th-prod-data-table__row:focus-visible {
+  outline: 2px solid var(--th-pr-dialog-accent);
+  outline-offset: -2px;
+}
+
+.th-production-panel .th-prod-data-table__date {
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: #57534e;
+}
+
+.th-production-panel .th-prod-data-table__summary {
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #78716c;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.th-production-panel .th-prod-data-table__name {
+  font-weight: var(--th-weight-semibold);
+  color: #292524;
+  max-width: 14rem;
+}
+
+.th-production-panel .th-prod-data-table__zone {
+  font-size: 0.72rem;
+  color: #78716c;
+  max-width: 10rem;
+}
+
+.th-production-panel .th-prod-data-table__sync {
+  font-size: 0.7rem;
+  color: #78716c;
+  white-space: nowrap;
+}
+
+.th-production-panel .th-prod-data-table__pic {
+  display: block;
+  font-weight: var(--th-weight-semibold);
+  color: #292524;
+}
+
+.th-production-panel .th-prod-data-table__muted {
+  color: #78716c;
+  font-size: 0.8125rem;
+}
+
+.th-production-panel .th-prod-data-table__num--bad {
+  color: #b91c1c;
+  font-weight: var(--th-weight-bold);
+}
+
+.th-production-panel .th-prod-data-table__num--accent {
+  color: #c2410c;
+  font-weight: var(--th-weight-semibold);
+}
+
+.th-production-panel .th-prod-data-table__num--muted {
+  color: #a8a29e;
+}
+
+.th-prod-waste .th-prod-data-table {
+  min-width: 1020px;
+}
+
+.th-prod-stock .th-prod-data-table {
+  min-width: 1080px;
+}
+
+.th-prod-internal .th-prod-data-table {
+  min-width: 880px;
+}
+
+.th-prod-ilog .th-prod-data-table {
+  min-width: 1000px;
+}
+
+.th-prod-tdetail .th-prod-data-table {
+  min-width: 520px;
+}
+
+.th-production-panel .th-prod-data-table--nested {
+  min-width: 560px;
+}
+
+.th-production-panel .th-prod-data-table--nested th:first-child,
+.th-production-panel .th-prod-data-table--nested td:first-child {
+  min-width: 12rem;
+}
+
+.th-production-panel .th-prod-data-table--nested .th-prod-data-table__row:last-child td {
+  border-bottom: none;
+}
+
+/* Dialog */
+.th-production-panel dialog.th-dlg .th-dlg__head {
+  background: var(--th-pr-head-gradient);
+  border-bottom: 1px solid var(--th-pr-head-edge);
+}
+
+.th-production-panel dialog.th-dlg .th-dlg__title {
+  color: var(--th-pr-head-fg);
+}
+
+.th-production-panel dialog.th-dlg .th-dlg__head-icon {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--th-pr-dialog-accent);
+}
+
+.th-production-panel dialog.th-dlg .th-dlg__close {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(250, 250, 249, 0.92);
+}
+
+.th-production-panel dialog.th-dlg .th-dlg__close:hover {
+  border-color: rgba(251, 146, 60, 0.55);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-body {
+  color: #1c1917;
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-body p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-body p + p {
+  margin-top: 0.5rem;
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-body code {
+  font-family: var(--th-font-mono);
+  font-size: 0.85em;
+  padding: 0.1em 0.35em;
+  border-radius: 6px;
+  background: #f5f5f4;
+  color: #1c1917;
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-body strong {
+  color: #0c0a09;
+  font-weight: var(--th-weight-bold);
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-lead {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #78716c;
+  line-height: 1.45;
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-lead strong {
+  color: #0c0a09;
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-lead code {
+  font-size: 0.85em;
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-text {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #44403c;
+  line-height: 1.5;
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-meta {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #78716c;
+  word-break: break-all;
+}
