@@ -1,0 +1,74 @@
+:root {
+  --th-font-sans: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --th-font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --th-text-micro: 0.6875rem;
+  --th-text-xs: 0.75rem;
+  --th-text-sm: 0.8125rem;
+  --th-text-md: 0.875rem;
+  --th-text-lg: 0.9375rem;
+  --th-text-xl: 1.05rem;
+  --th-text-2xl: 1.35rem;
+  --th-text-3xl: 1.5rem;
+
+  --th-leading-tight: 1.25;
+  --th-leading-normal: 1.5;
+
+  --th-weight-medium: 500;
+  --th-weight-semibold: 600;
+  --th-weight-bold: 700;
+  --th-weight-extrabold: 800;
+
+  --th-icon-sm: 1.1rem;
+  --th-icon-md: 1.2rem;
+  --th-icon-lg: 1.25rem;
+  --th-icon-xl: 2rem;
+
+  font-family: var(--th-font-sans);
+  line-height: var(--th-leading-normal);
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color-scheme: dark;
+  color: #e8eef5;
+  background-color: #0b1220;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: var(--th-font-sans);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+}
+
+html[data-admin-density='compact'] {
+  --th-text-micro: 0.625rem;
+  --th-text-xs: 0.6875rem;
+  --th-text-sm: 0.75rem;
+  --th-text-md: 0.8125rem;
+  --th-text-lg: 0.875rem;
+}
+
+.th-num-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.th-code-text {
+  font-family: var(--th-font-mono);
+}
