@@ -1,0 +1,237 @@
+/* Tồn kho vật tư xưởng */
+
+.th-prod-stock {
+  --s-ink: #1c1917;
+  --s-muted: #78716c;
+  --s-border: #e7e5e4;
+  --s-accent: #2563eb;
+  --s-accent-soft: rgba(37, 99, 235, 0.1);
+  --s-warn: #d97706;
+  --s-bad: #b91c1c;
+
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.th-prod-stock__header {
+  margin-bottom: 1.1rem;
+}
+
+.th-prod-stock__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--s-ink);
+}
+
+.th-prod-stock__lead {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--s-muted);
+  line-height: 1.55;
+  max-width: 50rem;
+}
+
+.th-prod-stock__api-error {
+  margin: 0.6rem 0 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 0.82rem;
+}
+
+.th-prod-stock__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0 0 1.1rem;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 900px) {
+  .th-prod-stock__stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.th-prod-stock__stat {
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--s-border);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06);
+}
+
+.th-prod-stock__stat--warn {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: linear-gradient(180deg, #fff 0%, #fffbeb 100%);
+}
+
+.th-prod-stock__stat-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--s-muted);
+  margin-bottom: 0.2rem;
+}
+
+.th-prod-stock__stat-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--s-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.th-prod-stock__stat-value--sm {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.th-prod-stock__toolbar {
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--s-border);
+}
+
+.th-prod-stock__filter-bar {
+  width: 100%;
+  gap: 0.75rem 1rem;
+}
+
+.th-prod-stock__tabs {
+  display: block;
+}
+
+.th-prod-stock__filter-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: min(100%, 13rem);
+}
+
+.th-prod-stock__filter-alert-control {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+}
+
+.th-prod-stock__filter-alert-control .ant-checkbox-wrapper {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #57534e;
+}
+
+.th-prod-stock__pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  background: #fafaf9;
+  border: 1px solid var(--s-border);
+}
+
+.th-prod-stock .th-prod-table-shell {
+  margin-bottom: 1.1rem;
+}
+
+.th-prod-stock__sku {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+.th-prod-stock__cat {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #a8a29e;
+  margin-top: 0.15rem;
+}
+
+.th-prod-stock__pill {
+  display: inline-block;
+  padding: 0.12rem 0.4rem;
+  border-radius: 8px;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.th-prod-stock__pill--ok {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.th-prod-stock__pill--low {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.th-prod-stock__pill--critical {
+  background: #fee2e2;
+  color: var(--s-bad);
+}
+
+.th-prod-stock__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px dashed var(--s-border);
+  background: #fafaf9;
+}
+
+@media (min-width: 720px) {
+  .th-prod-stock__footer {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.th-prod-stock__hint {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--s-muted);
+  line-height: 1.45;
+  max-width: 36rem;
+}
+
+.th-prod-stock__hint .material-symbols-outlined {
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  color: #57534e;
+}
+
+.th-prod-stock__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--s-accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.th-prod-stock__link:hover {
+  text-decoration: underline;
+}
+
+.th-prod-stock__link .material-symbols-outlined {
+  font-size: 1rem;
+}
