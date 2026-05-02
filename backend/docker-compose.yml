@@ -1,0 +1,58 @@
+# Local: Postgres trong compose + app (mặc định).
+# Chỉ app trỏ DB prod: dùng docker-compose.prod-db.yml + file .env.prod-db (xem env.prod-db.example).
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: tuplastic-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tuplastic_erp
+      POSTGRES_USER: ${POSTGRES_USER:-tuplastic}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-TuPlasticDb-local-dev-CHANGE_ME_7xK9mP2q}
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/init_schema.sql:/docker-entrypoint-initdb.d/01_init_schema.sql:ro
+      - ./database/seed_data.sql:/docker-entrypoint-initdb.d/02_seed_data.sql:ro
+      - ./src/main/resources/db/migration/V6__director_waste_team_remarks.sql:/docker-entrypoint-initdb.d/03_v6_director_waste.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: tuplastic-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Bắt buộc khi chạy trong compose: hostname `postgres`, cổng nội bộ 5432 (không dùng 5434 — đó chỉ map ra host)
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tuplastic_erp
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-tuplastic}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-TuPlasticDb-local-dev-CHANGE_ME_7xK9mP2q}
+      SPRING_FLYWAY_ENABLED: "false"
+      # FE + Swagger (Origin khi gọi API từ trang Swagger = host API, ví dụ https://api-be.minhthangerp.space)
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-https://minhthangerp.space,https://www.minhthangerp.space,https://api-be.minhthangerp.space,http://localhost:5173,http://localhost:3000}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-dg0jqsl7k}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-165648672654688}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-qc7ERuF9kr2unw9NQiVGrUySaAY}
+      # Quên mật khẩu (Gmail App Password) — xem env.mail.example; để trống thì không gửi mail
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-smtp.gmail.com}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-hanzoalizer@gmail.com}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-aqjd iqnl tzzl rktv}
+      APP_MAIL_FROM: ${APP_MAIL_FROM:-hanzoalizer@gmail.com}
+      APP_PASSWORD_RESET_FRONTEND_URL: ${APP_PASSWORD_RESET_FRONTEND_URL:-https://minhthangerp.space/reset-password}
+      APP_PASSWORD_RESET_TOKEN_VALIDITY_MS: ${APP_PASSWORD_RESET_TOKEN_VALIDITY_MS:-3600000}
+    # Host: mặc định 8081 nếu 8080 đã dùng trên VPS (container vẫn listen 8080)
+    ports:
+      - "${TUPLASTIC_APP_PORT:-8081}:8080"
+
+volumes:
+  pgdata:
