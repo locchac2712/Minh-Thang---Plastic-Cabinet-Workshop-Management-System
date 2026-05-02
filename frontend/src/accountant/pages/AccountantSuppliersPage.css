@@ -1,0 +1,202 @@
+.th-acc-sup {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.th-acc-sup__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.th-acc-sup__title {
+  margin: 0;
+  color: #0f172a;
+}
+
+.th-acc-sup__lead {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #64748b;
+  max-width: 44rem;
+}
+
+.th-acc-sup__error {
+  margin: 0;
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+}
+
+.th-acc-sup__stats {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.th-acc-sup__stat {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.th-acc-sup__stat--ok {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.th-acc-sup__stat--warn {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.th-acc-sup__stat-label {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.th-acc-sup__stat-value {
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 1.06rem;
+}
+
+.th-acc-sup__stat-value--sm {
+  font-size: 0.95rem;
+}
+
+.th-acc-sup__stat-sublabel {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.th-acc-sup__toolbar-wrap {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  margin-bottom: 0.25rem;
+}
+
+/* Tìm kiếm: dùng lớp adminListToolbar (đồng bộ Admin NCC) */
+
+.th-acc-sup__loading {
+  margin: 0;
+  color: #334155;
+}
+
+.th-acc-sup__name {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.th-acc-sup__id {
+  display: inline-block;
+  margin-top: 0.18rem;
+  color: #64748b;
+  font-size: 0.73rem;
+  word-break: break-all;
+}
+
+.th-acc-sup__addr {
+  max-width: 260px;
+}
+
+.th-acc-sup__pill {
+  display: inline-block;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  padding: 0.17rem 0.5rem;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.76rem;
+}
+
+.th-acc-sup__pill--ok {
+  color: #166534;
+  border-color: #86efac;
+  background: #dcfce7;
+}
+
+.th-acc-sup__pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.th-acc-sup__pagination-meta {
+  margin: 0;
+  color: #475569;
+  font-size: 0.875rem;
+}
+
+.th-acc-sup__pagination-meta strong {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.th-acc-sup__pagination-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+}
+
+.th-acc-sup__page-size {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.th-acc-sup__page-size select {
+  font: inherit;
+  font-size: 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+  color: #0f172a;
+  background: #fff;
+}
+
+.th-acc-sup__pager-btn {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  font-weight: 600;
+  padding: 0.38rem 0.78rem;
+  cursor: pointer;
+  font: inherit;
+}
+
+.th-acc-sup__pager-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.th-acc-sup__page-label {
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.875rem;
+  min-width: 6rem;
+  text-align: center;
+}
+

@@ -1,0 +1,132 @@
+.th-acc-po-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.th-acc-po-detail__breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.th-acc-po-detail__breadcrumb a {
+  color: #475569;
+  text-decoration: none;
+}
+
+.th-acc-po-detail__breadcrumb a:hover {
+  color: #1d4ed8;
+}
+
+.th-acc-po-detail__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.th-acc-po-detail__head h1 {
+  margin: 0;
+  color: #0f172a;
+}
+
+.th-acc-po-detail__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #1d4ed8;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.th-acc-po-detail__loading {
+  margin: 0;
+  color: #334155;
+}
+
+.th-acc-po-detail__error {
+  margin: 0;
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+}
+
+.th-acc-po-detail__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.75rem;
+}
+
+.th-acc-po-detail__card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.th-acc-po-detail__card > span:first-child {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.th-acc-po-detail__card strong {
+  color: #0f172a;
+  font-size: 0.98rem;
+}
+
+.th-acc-po-detail__card code {
+  color: #64748b;
+  font-size: 0.72rem;
+  word-break: break-all;
+}
+
+.th-acc-po-detail__pill {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.th-acc-po-detail__pill--wait {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.th-acc-po-detail__pill--ok {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.th-acc-po-detail__pill--part {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.th-acc-po-detail__pill--bad {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.th-acc-po-detail__items-wrap h2 {
+  margin: 0 0 0.65rem;
+  color: #0f172a;
+  font-size: 1.05rem;
+}
+
+.th-acc-po-detail__subcode {
+  color: #94a3b8;
+  font-size: 0.7rem;
+  margin-top: 0.15rem;
+  word-break: break-all;
+}
