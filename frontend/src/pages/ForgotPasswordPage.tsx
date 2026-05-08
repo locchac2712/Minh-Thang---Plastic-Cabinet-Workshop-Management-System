@@ -1,19 +1,22 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Form, Input, Button, App, Typography, Result } from 'antd'
 import { AuthApiError, forgotPasswordWithApi } from '../auth/authApi'
 import { appLogoUrl } from '../branding/appLogo'
 import { homePathForActor, getStoredActor, isAuthenticated } from '../auth/storage'
 import './LoginPage.css'
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const { Title, Text } = Typography
+
+type ForgotPasswordValues = {
+  email: string
+}
 
 export function ForgotPasswordPage() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [fieldError, setFieldError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const { message } = App.useApp()
   const [submitting, setSubmitting] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -22,36 +25,17 @@ export function ForgotPasswordPage() {
     }
   }, [navigate])
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    setError(null)
-    setFieldError(null)
-    setSuccessMessage(null)
-
-    const trimmed = email.trim()
-    if (!trimmed) {
-      setFieldError('Vui lòng nhập email.')
-      return
-    }
-    if (!EMAIL_RE.test(trimmed)) {
-      setFieldError('Email không đúng định dạng.')
-      return
-    }
-
+  async function onFinish(values: ForgotPasswordValues) {
     setSubmitting(true)
     try {
-      const msg = await forgotPasswordWithApi({ email: trimmed })
+      const msg = await forgotPasswordWithApi({ email: values.email.trim() })
       setSuccessMessage(msg)
+      message.success('Đã gửi yêu cầu thành công.')
     } catch (err) {
       if (err instanceof AuthApiError) {
-        const em = err.fieldErrors?.email?.trim()
-        if (em) {
-          setFieldError(em)
-        } else {
-          setError(err.message)
-        }
+        message.error(err.message)
       } else {
-        setError('Không kết nối được máy chủ. Vui lòng thử lại.')
+        message.error('Không kết nối được máy chủ. Vui lòng thử lại.')
       }
     } finally {
       setSubmitting(false)
@@ -59,91 +43,105 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <div className="login-page">
-      <div className="login-page__layout">
-        <aside className="login-page__hero" aria-label="Giới thiệu dự án">
-          <div className="login-page__hero-bg" aria-hidden />
-          <div className="login-page__hero-content">
-            <div className="login-page__hero-logo" aria-hidden>
+    <div className="th-login">
+      <div className="th-login__layout">
+        <aside className="th-login__hero" aria-label="Giới thiệu dự án">
+          <div className="th-login__hero-bg" aria-hidden />
+          <div className="th-login__hero-content">
+            <div className="th-login__hero-logo" aria-hidden>
               <img
-                className="login-page__hero-logo-img"
+                className="th-login__hero-logo-img"
                 src={appLogoUrl}
                 alt=""
                 width={52}
                 height={52}
               />
             </div>
-            <h1 className="login-page__hero-title">Minh Thắng</h1>
-            <p className="login-page__hero-kicker">Công ty / dự án nội bộ</p>
-            <p className="login-page__hero-lead">
+            <Title level={1} className="th-login__hero-title">Minh Thắng</Title>
+            <Text className="th-login__hero-kicker">Công ty / dự án nội bộ</Text>
+            <Text className="th-login__hero-lead">
               Đặt lại mật khẩu qua email — an toàn, không lộ thông tin tài khoản.
-            </p>
+            </Text>
           </div>
         </aside>
 
-        <div className="login-page__form-column">
-          <main className="login-page__main">
-            <section className="login-card" aria-labelledby="forgot-title">
-              <header className="login-card__header">
-                <h2 id="forgot-title" className="login-card__title">
-                  Quên mật khẩu
-                </h2>
-                <p className="login-card__subtitle">
-                  Nhập email đã đăng ký. Nếu hợp lệ, hệ thống gửi hướng dẫn đặt lại mật khẩu.
-                </p>
-              </header>
-
+        <div className="th-login__form-column">
+          <main className="th-login__main">
+            <section className="th-login-card" aria-labelledby="forgot-title">
               {successMessage ? (
-                <div className="login-form__success" role="status">
-                  <p className="login-form__success-text">{successMessage}</p>
-                  <p className="login-form__success-hint">
-                    Kiểm tra cả thư mục <strong>Spam</strong> / <strong>Junk</strong>. Liên kết trong email có
-                    hiệu lực giới hạn — nếu hết hạn, gửi yêu cầu lại từ trang này.
-                  </p>
-                  <Link className="login-form__submit login-form__submit--as-link" to="/login">
-                    Quay lại đăng nhập
-                  </Link>
-                </div>
-              ) : (
-                <form className="login-form" onSubmit={handleSubmit} noValidate>
-                  {error && !fieldError ? (
-                    <div className="login-form__error" role="alert">
-                      {error}
+                <Result
+                  status="success"
+                  title="Gửi yêu cầu thành công"
+                  subTitle={
+                    <div style={{ textAlign: 'left' }}>
+                      <Text>{successMessage}</Text>
+                      <br /><br />
+                      <Text type="secondary" size="small">
+                        Kiểm tra cả thư mục <strong>Spam</strong> / <strong>Junk</strong>. Liên kết trong email có
+                        hiệu lực giới hạn — nếu hết hạn, hãy gửi lại yêu cầu.
+                      </Text>
                     </div>
-                  ) : null}
+                  }
+                  extra={[
+                    <Button type="primary" key="login" onClick={() => navigate('/login')}>
+                      Quay lại đăng nhập
+                    </Button>
+                  ]}
+                />
+              ) : (
+                <>
+                  <header className="th-login-card__header">
+                    <Title level={2} id="forgot-title" className="th-login-card__title">
+                      Quên mật khẩu
+                    </Title>
+                    <Text className="th-login-card__subtitle">
+                      Nhập email đã đăng ký. Nếu hợp lệ, hệ thống gửi hướng dẫn đặt lại mật khẩu.
+                    </Text>
+                  </header>
 
-                  <label className="login-field">
-                    <span className="login-field__label">Email</span>
-                    <input
-                      className="login-field__input"
-                      type="email"
+                  <Form
+                    className="th-login-form"
+                    onFinish={onFinish}
+                    layout="vertical"
+                    requiredMark={false}
+                  >
+                    <Form.Item
+                      label="Email"
                       name="email"
-                      autoComplete="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={submitting}
-                      placeholder="ten@congty.com"
-                    />
-                    {fieldError ? (
-                      <span className="login-field__error" role="alert">
-                        {fieldError}
-                      </span>
-                    ) : null}
-                  </label>
+                      rules={[
+                        { required: true, message: 'Vui lòng nhập email.' },
+                        { type: 'email', message: 'Email không đúng định dạng.' }
+                      ]}
+                    >
+                      <Input
+                        type="email"
+                        autoComplete="email"
+                        disabled={submitting}
+                        placeholder="ten@congty.com"
+                      />
+                    </Form.Item>
 
-                  <button className="login-form__submit" type="submit" disabled={submitting}>
-                    {submitting ? 'Đang gửi…' : 'Gửi hướng dẫn'}
-                  </button>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      size="large"
+                      loading={submitting}
+                      block
+                      style={{ marginTop: 8 }}
+                    >
+                      Gửi hướng dẫn
+                    </Button>
 
-                  <p className="login-auth-alt">
-                    <Link className="login-form__link" to="/login">
-                      ← Quay lại đăng nhập
-                    </Link>
-                  </p>
-                </form>
+                    <div style={{ textAlign: 'center', marginTop: 24 }}>
+                      <Link className="th-login-form__link" to="/login">
+                        ← Quay lại đăng nhập
+                      </Link>
+                    </div>
+                  </Form>
+                </>
               )}
 
-              <p className="login-card__foot">Cần hỗ trợ? Liên hệ bộ phận IT nội bộ.</p>
+              <Text className="th-login-card__foot">Cần hỗ trợ? Liên hệ bộ phận IT nội bộ.</Text>
             </section>
           </main>
         </div>
