@@ -8,8 +8,9 @@ import {
   sellerOrderKindLabel,
   sellerOrderRowStatusLabel,
   type SellerOrderListRow,
-} from '../data/sellerOrdersMock'
-import { fetchSellerOrders, fetchSellerOrderTabTotals } from '../sellerOrdersApi'
+  fetchSellerOrders,
+  fetchSellerOrderTabTotals,
+} from '../sellerOrdersApi'
 import '../../admin/pages/AdminUsersPage.css'
 import './SellerOrdersPage.css'
 

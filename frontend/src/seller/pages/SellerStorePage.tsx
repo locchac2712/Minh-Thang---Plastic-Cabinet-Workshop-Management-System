@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Badge, Checkbox, Drawer } from 'antd'
 import { useNavigate } from 'react-router-dom'
-import { formatVND, htmlToPlainText } from '../../admin/catalog/productModel'
-import { PAGE_SIZE_OPTIONS } from '../../admin/catalog/productModel'
-import type { SellerAgencyRow } from '../data/sellerAgenciesMock'
-import type { SellerStoreProduct } from '../data/sellerStoreMock'
+import { formatVND, htmlToPlainText, PAGE_SIZE_OPTIONS } from '../../admin/catalog/productModel'
+import { fetchSellerAgencies, type SellerAgencyRow } from '../sellerAgenciesApi'
+import { fetchSellerProducts, type SellerStoreProduct } from '../sellerProductsApi'
 import { sellerPaths } from '../config/sellerPaths'
 import {
   type QuickQuoteLineSource,
   type QuickQuotePrefillPayload,
   writeQuickQuotePrefill,
 } from '../quickQuotePrefill'
-import { fetchSellerAgencies } from '../sellerAgenciesApi'
-import { fetchSellerProducts } from '../sellerProductsApi'
 import {
   AppFilterBar,
   AppFilterField,

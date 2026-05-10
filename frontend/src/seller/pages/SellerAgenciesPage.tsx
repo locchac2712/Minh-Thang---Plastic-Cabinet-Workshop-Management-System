@@ -3,8 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { formatVND, isDebtRisk } from '../../admin/partners/agencyModel'
 import { PAGE_SIZE_OPTIONS } from '../../admin/catalog/productModel'
 import { sellerPaths } from '../config/sellerPaths'
-import type { SellerAgencyRow } from '../data/sellerAgenciesMock'
-import { fetchSellerAgencies } from '../sellerAgenciesApi'
+import { fetchSellerAgencies, type SellerAgencyRow } from '../sellerAgenciesApi'
 import { getAccessToken } from '../../auth/storage'
 import {
   AppFilterActions,

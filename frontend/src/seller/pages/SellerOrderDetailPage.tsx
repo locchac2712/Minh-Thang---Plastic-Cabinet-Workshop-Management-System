@@ -5,17 +5,10 @@ import { SellerPushProductionDialog } from '../components/SellerPushProductionDi
 import { formatVND } from '../../admin/partners/agencyModel'
 import { sellerPaths } from '../config/sellerPaths'
 import {
-  getSellerFactoryProgress,
-  getSellerOrderDetail,
   sellerOrderKindLabel,
   sellerOrderRowStatusLabel,
   type SellerOrderDetail,
   type SellerOrderListRowStatus,
-} from '../data/sellerOrdersMock'
-import { SELLER_LOGIN_NAME } from '../data/sellerAgenciesMock'
-import { fetchSellerAgencies } from '../sellerAgenciesApi'
-import {
-  createSellerOrderPayment,
   fetchSellerOrderProductionTasks,
   fetchSellerOrderPayments,
   fetchSellerOrderById,
@@ -24,6 +17,7 @@ import {
   pushSellerOrderToProduction,
   submitSellerOrder,
   updateSellerOrder,
+  createSellerOrderPayment,
   type CreateSellerOrderPayload,
   type SellerApiOrderStatus,
   type SellerOrderListDto,
@@ -240,13 +234,7 @@ export function SellerOrderDetailInner({
   const [factoryTasksError, setFactoryTasksError] = useState<string | null>(null)
   const [factoryTasks, setFactoryTasks] = useState<SellerOrderProductionTaskDto[]>([])
 
-  const mockDetail = useMemo(
-    () =>
-      variant === 'quotation' || !orderCode || isUuidParam
-        ? undefined
-        : getSellerOrderDetail(orderCode),
-    [orderCode, isUuidParam, variant],
-  )
+  const mockDetail = undefined
 
   useEffect(() => {
     if (!isUuidParam || !orderCode) {
@@ -334,10 +322,7 @@ export function SellerOrderDetailInner({
     return ORDER_FACTORY_PIPELINE.findIndex((p) => p.status === detail.status)
   }, [detail])
 
-  const factoryProgress = useMemo(
-    () => (detail ? getSellerFactoryProgress(detail.orderCode, detail.status) : null),
-    [detail],
-  )
+  const factoryProgress = null
 
   const factoryTasksOrdered = useMemo(
     () =>

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { sellerPaths } from '../../config/sellerPaths'
-import type { SellerFactoryProgress, SellerOrderFactoryGate } from '../../data/sellerOrdersMock'
+import type { SellerFactoryProgress, SellerOrderFactoryGate } from '../../sellerOrdersApi'
 import './SellerOrderFactoryPanel.css'
 
 type Props = {

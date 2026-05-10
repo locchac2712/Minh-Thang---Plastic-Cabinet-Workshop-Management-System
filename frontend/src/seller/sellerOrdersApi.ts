@@ -1,11 +1,151 @@
+
+
 import { getAccessToken, getTokenType } from '../auth/storage'
-import type {
-  SellerOrderDetail,
-  SellerOrderKind,
-  SellerOrderLineItem,
-  SellerOrderListRow,
-  SellerOrderListRowStatus,
-} from './data/sellerOrdersMock'
+
+/** Phân loại đơn cấp đơn hàng — đơn sẵn (catalog) vs custom (thiết kế riêng). */
+export type SellerOrderKind = 'ready_made' | 'custom'
+
+export function sellerOrderKindLabel(kind: SellerOrderKind): string {
+  return kind === 'ready_made' ? 'Đơn sẵn' : 'Custom'
+}
+
+/** Trạng thái hiển thị badge — mock (snake) + API (slug từ Draft/Pending/…) */
+export type SellerOrderListRowStatus =
+  | 'draft'
+  | 'pending_approval'
+  | 'producing'
+  | 'shipping'
+  | 'done'
+  | 'pending'
+  | 'approved'
+  | 'canceled'
+
+const SELLER_ORDER_ROW_STATUS_LABEL: Record<SellerOrderListRowStatus, string> = {
+  draft: 'Nháp',
+  pending_approval: 'Chờ duyệt',
+  pending: 'Chờ duyệt',
+  approved: 'Đã duyệt',
+  producing: 'Thợ đang ráp',
+  shipping: 'Chờ giao xe',
+  done: 'Hoàn tất',
+  canceled: 'Đã hủy',
+}
+
+export function sellerOrderRowStatusLabel(s: SellerOrderListRowStatus): string {
+  return SELLER_ORDER_ROW_STATUS_LABEL[s] ?? String(s)
+}
+
+export type SellerOrderListRow = {
+  id: string
+  orderCode: string
+  orderedAt: string
+  agencyId: string
+  agencyCode: string
+  agencyShortName: string
+  summary: string
+  lineCount: number
+  totalVnd: number
+  /** Tổng chiết khấu trên đơn (mock) */
+  discountVnd: number
+  status: SellerOrderListRowStatus
+  orderKind: SellerOrderKind
+}
+
+export type SellerOrderLineKind = 'catalog' | 'custom'
+
+export type SellerOrderLineItem = {
+  lineNo: number
+  sku: string
+  productName: string
+  kind: SellerOrderLineKind
+  qty: number
+  unitPriceVnd: number
+  /** Giá vốn đơn vị tại thời điểm lập đơn (API: unitCostAtTime) */
+  unitCostAtTimeVnd?: number
+  lineTotalVnd: number
+  lineNote?: string
+}
+
+export type SellerOrderTimelineEvent = {
+  at: string
+  title: string
+  detail?: string
+}
+
+/** Chi tiết đơn — mock mở rộng từ dòng danh sách + khách */
+export type SellerOrderDetail = SellerOrderListRow & {
+  agencyLegalName: string
+  agencyEmail: string
+  agencyPhone: string
+  agencyCity: string
+  agencyAddress: string
+  /** Trước giảm giá */
+  subtotalBeforeDiscountVnd: number
+  shippingFeeVnd: number
+  /** Mock phí khác (đóng gói, cắt CNC…) */
+  serviceFeeVnd: number
+  /** Tổng thanh toán (sau giảm + phí ship + phí dịch vụ) */
+  grandTotalVnd: number
+  depositVnd: number
+  balanceDueVnd: number
+  expectedDeliveryDate: string | null
+  factoryWindow: string | null
+  deliveryMethod: string
+  internalNote: string
+  /** Đơn custom: mô tả yêu cầu khách / kỹ thuật do NVBH nhập khi lập đơn */
+  requirementDescription: string | null
+  items: SellerOrderLineItem[]
+  timeline: SellerOrderTimelineEvent[]
+  /** Chi tiết lấy từ GET /api/seller/orders/:id */
+  orderDetailSource?: 'mock' | 'api'
+  /** Khi orderDetailSource === api — người tạo đơn trên hệ thống */
+  createdByName?: string
+  /** API — loại đơn để PUT (Standard / Custom) */
+  apiOrderType?: 'Standard' | 'Custom'
+  /** API — dòng hàng gốc để gửi PUT cập nhật */
+  apiOrderLinesForEdit?: {
+    productId: string
+    quantity: number
+    unitPrice: number
+  }[]
+}
+
+/** Trạng thái từng chặng trên chuyền — đồng bộ manufacturing / production_tasks (mock). */
+export type SellerFactoryGateStatus = 'pending' | 'active' | 'done' | 'blocked'
+
+export type SellerOrderFactoryGate = {
+  id: string
+  order: number
+  label: string
+  hint: string
+  status: SellerFactoryGateStatus
+  workcenter?: string
+  startedAt?: string
+  finishedAt?: string
+}
+
+export type SellerFactoryMaterialLine = {
+  sku: string
+  name: string
+  requiredQty: number
+  uom: string
+  /** Tồn kho phục vụ lệnh — documents/usecase seller SEL-T01/T02 */
+  stockStatus: 'đủ' | 'đặt mua' | 'về kho'
+}
+
+/** Tiến độ xưởng cho tab NVBH khi đơn đang ở Xưởng ráp */
+export type SellerFactoryProgress = {
+  orderCode: string
+  percentComplete: number
+  currentGateLabel: string
+  productionLot: string
+  gates: SellerOrderFactoryGate[]
+  materials: SellerFactoryMaterialLine[]
+  lastActivityAt: string
+  lastActivityText: string
+  qcHold?: string
+  blocker?: string
+}
 
 type ApiEnvelope<T> = {
   success: boolean

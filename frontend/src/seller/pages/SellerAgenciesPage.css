@@ -363,7 +363,7 @@
   overflow: hidden;
 }
 
-.th-seller-agency-debt__bar > span {
+.th-seller-agency-debt__bar>span {
   display: block;
   height: 100%;
   border-radius: 999px;
@@ -372,7 +372,7 @@
   transition: width 0.25s ease;
 }
 
-.th-seller-agency-debt__bar--risk > span {
+.th-seller-agency-debt__bar--risk>span {
   background: linear-gradient(90deg, #fb923c, #ea580c);
 }
 

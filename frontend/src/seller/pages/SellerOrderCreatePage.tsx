@@ -12,9 +12,9 @@ import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { formatVND } from '../../admin/partners/agencyModel'
 import { CATEGORY_OPTIONS } from '../../admin/catalog/productModel'
+import { type SellerAgencyRow } from '../sellerAgenciesApi'
+import { type SellerStoreProduct } from '../sellerProductsApi'
 import { sellerPaths } from '../config/sellerPaths'
-import { SELLER_LOGIN_NAME, type SellerAgencyRow } from '../data/sellerAgenciesMock'
-import { SELLER_STORE_PRODUCTS, type SellerStoreProduct } from '../data/sellerStoreMock'
 import { fetchSellerAgencies } from '../sellerAgenciesApi'
 import {
   buildSellerOrderConcatenatedNote,
@@ -539,9 +539,7 @@ export function SellerOrderCreatePage() {
   const [internalNote, setInternalNote] = useState('')
   const [deliveryNote, setDeliveryNote] = useState('')
   const [lines, setLines] = useState<SellerOrderDraftLine[]>([])
-  const [catalogProducts, setCatalogProducts] = useState<SellerStoreProduct[]>(() => [
-    ...SELLER_STORE_PRODUCTS,
-  ])
+  const [catalogProducts, setCatalogProducts] = useState<SellerStoreProduct[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -558,7 +556,7 @@ export function SellerOrderCreatePage() {
           setCatalogProducts(data.content)
         }
       } catch {
-        /* giữ mock khi chưa đăng nhập hoặc API lỗi */
+        if (!cancelled) setCatalogProducts([])
       }
     })()
     return () => {
@@ -768,7 +766,7 @@ export function SellerOrderCreatePage() {
           </div>
         </div>
         <p className="th-seller-order-create__seller-note">
-          NVBH: <strong>{SELLER_LOGIN_NAME}</strong>
+          NVBH: <strong>NVBH</strong>
           {' · '}
           <Link className="th-seller-order-create__store-link" to={sellerPaths.store}>
             Danh mục hàng

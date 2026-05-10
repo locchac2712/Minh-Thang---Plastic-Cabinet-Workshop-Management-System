@@ -1,6 +1,22 @@
-import type { AgencyLevel } from '../admin/partners/agencyModel'
+import type { AgencyLevel, Agency } from '../admin/partners/agencyModel'
 import { getAccessToken, getTokenType } from '../auth/storage'
-import type { SellerAgencyRow } from './data/sellerAgenciesMock'
+
+export type SellerAgencyRow = Agency & {
+  /** Số đơn / tủ đã lấy gần đây (mock 90 ngày) — up-sale */
+  recentCabinetOrders90d: number
+}
+
+/** Đơn hàng mock cho tab “Đơn & tủ đã lấy” — API GET /orders?seller&agencyId sau */
+export type SellerAgencyOrderMock = {
+  orderCode: string
+  orderedAt: string
+  summary: string
+  lineCount: number
+  totalVnd: number
+  status: 'draft' | 'pending_approval' | 'producing' | 'shipping' | 'done'
+  /** Đơn sẵn (thành phẩm chuẩn) hoặc custom (theo thiết kế / đo thực tế) */
+  orderKind: 'ready_made' | 'custom'
+}
 
 type ApiEnvelope<T> = {
   success: boolean

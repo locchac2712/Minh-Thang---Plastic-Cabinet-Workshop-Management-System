@@ -1,6 +1,12 @@
-import { DEFAULT_PRODUCT_IMAGE_URL } from '../admin/catalog/productModel'
+import { DEFAULT_PRODUCT_IMAGE_URL, type Product } from '../admin/catalog/productModel'
 import { getAccessToken, getTokenType } from '../auth/storage'
-import type { SellerStoreProduct } from './data/sellerStoreMock'
+
+export type SellerStoreProduct = Product & {
+  /** SL có thể bán / giao ngay (mock kho) */
+  stockQty: number
+  /** Khi lấy từ API — hiển thị ngành hàng thật (categoryId có thể là UUID) */
+  categoryName?: string
+}
 
 type ApiEnvelope<T> = {
   success: boolean

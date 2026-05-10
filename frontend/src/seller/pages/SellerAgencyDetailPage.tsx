@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { formatVND, isDebtRisk, levelLabel, type AgencyLevel } from '../../admin/partners/agencyModel'
 import { sellerPaths } from '../config/sellerPaths'
-import { getSellerAgencyById } from '../data/sellerAgenciesMock'
-import type { SellerAgencyRow } from '../data/sellerAgenciesMock'
+import { type SellerAgencyRow } from '../sellerAgenciesApi'
 import { getAccessToken, getTokenType } from '../../auth/storage'
 import '../../admin/pages/AdminUsersPage.css'
 import './SellerAgencyDetailPage.css'
@@ -130,14 +129,8 @@ export function SellerAgencyDetailPage() {
         }
       }
       if (cancelled) return
-      const mock = getSellerAgencyById(agencyId)
-      if (mock) {
-        setAgency(mock)
-        setDetailLoadError(null)
-      } else {
-        setAgency(undefined)
-        setDetailLoadError('Không tìm thấy đại lý.')
-      }
+      setAgency(undefined)
+      setDetailLoadError('Không tải được thông tin đại lý.')
       setDetailLoading(false)
     })()
     return () => {

@@ -13,9 +13,9 @@ import { App } from 'antd'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { formatVND, isDebtRisk } from '../../admin/partners/agencyModel'
 import { CATEGORY_OPTIONS } from '../../admin/catalog/productModel'
+import { type SellerAgencyRow } from '../sellerAgenciesApi'
+import { type SellerStoreProduct } from '../sellerProductsApi'
 import { sellerPaths } from '../config/sellerPaths'
-import { SELLER_LOGIN_NAME, type SellerAgencyRow } from '../data/sellerAgenciesMock'
-import { SELLER_STORE_PRODUCTS, type SellerStoreProduct } from '../data/sellerStoreMock'
 import { clearQuickQuotePrefill, readQuickQuotePrefill, type QuickQuotePrefillPayload } from '../quickQuotePrefill'
 import { fetchSellerAgencies } from '../sellerAgenciesApi'
 import {
@@ -100,7 +100,7 @@ function buildFallbackAgencyFromPrefill(prefill: QuickQuotePrefillPayload): Sell
     email: '',
     city: '',
     address: '',
-    assignedSellerName: SELLER_LOGIN_NAME,
+    assignedSellerName: '',
     totalDebtVnd: 0,
     creditLimitVnd: 0,
     isActive: true,
@@ -618,9 +618,7 @@ export function SellerQuotationCreatePage() {
   const [internalNote, setInternalNote] = useState('')
   const [deliveryNote, setDeliveryNote] = useState('')
   const [lines, setLines] = useState<SellerOrderDraftLine[]>(() => quickQuoteHydrate?.lines ?? [])
-  const [standardProducts, setStandardProducts] = useState<SellerStoreProduct[]>(() => [
-    ...SELLER_STORE_PRODUCTS,
-  ])
+  const [standardProducts, setStandardProducts] = useState<SellerStoreProduct[]>([])
   const [customProducts, setCustomProducts] = useState<SellerStoreProduct[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -640,7 +638,7 @@ export function SellerQuotationCreatePage() {
         }
       } catch {
         if (!cancelled) {
-          setStandardProducts([...SELLER_STORE_PRODUCTS])
+          setStandardProducts([])
         }
       }
     })()
