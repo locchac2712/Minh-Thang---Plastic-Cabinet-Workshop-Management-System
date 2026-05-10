@@ -1,6 +1,6 @@
 
 
-import { getAccessToken, getTokenType } from '../auth/storage'
+import { getAccessToken, getTokenType } from '../../auth/storage'
 
 /** Phân loại đơn cấp đơn hàng — đơn sẵn (catalog) vs custom (thiết kế riêng). */
 export type SellerOrderKind = 'ready_made' | 'custom'

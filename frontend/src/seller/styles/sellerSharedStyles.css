@@ -1,16 +1,19 @@
 /**
- * NVBH — header bảng & dialog đồng bộ palette sidebar
- * (gradient emerald — trùng SellerSidebar.css).
+ * STYLE DÙNG CHUNG CHO PHÂN HỆ SELLER
+ * Quản lý tập trung giao diện các Bảng (Table) và Hộp thoại (Dialog)
+ * giúp đồng bộ màu sắc với thanh Sidebar (màu xanh Emerald).
  */
 
 .th-seller-panel {
+  /* Định nghĩa các biến màu sắc chủ đạo của phân hệ Seller */
   --th-sv-head-gradient: linear-gradient(165deg, #064e3b 0%, #022c22 48%, #041f17 100%);
   --th-sv-head-fg: #ecfdf5;
   --th-sv-head-edge: rgba(52, 211, 153, 0.45);
   --th-sv-dialog-bar: #34d399;
 }
 
-/* ── Bảng: thead ── */
+/* ── QUẢN LÝ GIAO DIỆN CÁC BẢNG (TABLE HEADERS) ── */
+/* Áp dụng màu xanh đậm và hiệu ứng đổ bóng cho tiêu đề tất cả các bảng dữ liệu */
 .th-seller-panel .th-seller-agency-table thead th,
 .th-seller-panel .th-seller-orders-table thead th,
 .th-seller-panel .th-seller-qt-table thead th,
@@ -33,7 +36,8 @@
   color: rgba(167, 243, 208, 0.95);
 }
 
-/* ── Dialog có th-dlg__head ── */
+/* ── QUẢN LÝ GIAO DIỆN CÁC HỘP THOẠI (DIALOG HEADERS) ── */
+/* Đồng bộ phần đầu trang (header) của các cửa sổ Popup */
 .th-seller-panel dialog.th-dlg .th-dlg__head {
   background: var(--th-sv-head-gradient);
   border-bottom: 1px solid var(--th-sv-head-edge);
@@ -61,6 +65,7 @@
   color: #fff;
 }
 
+/* Hiệu ứng viền trên cho các Dialog xác nhận (Confirm) */
 .th-seller-panel dialog.th-dlg.th-dlg--confirm .th-dlg__panel {
   border-top: 3px solid var(--th-sv-dialog-bar);
   box-shadow:

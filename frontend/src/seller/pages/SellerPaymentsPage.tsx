@@ -9,7 +9,7 @@ import {
   type SellerApiOrderStatus,
   type SellerOrderListDto,
   type SellerOrderPaymentDto,
-} from '../sellerOrdersApi'
+} from '../services/sellerOrdersApi'
 import { AppFilterBar, AppFilterField, AppFilterSelect, AppPagination } from '../../shared/ui/listing'
 import '../../admin/pages/AdminUsersPage.css'
 import './SellerPaymentsPage.css'

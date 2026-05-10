@@ -10,7 +10,7 @@ import {
   type SellerOrderListRow,
   fetchSellerOrders,
   fetchSellerOrderTabTotals,
-} from '../sellerOrdersApi'
+} from '../services/sellerOrdersApi'
 import '../../admin/pages/AdminUsersPage.css'
 import './SellerOrdersPage.css'
 

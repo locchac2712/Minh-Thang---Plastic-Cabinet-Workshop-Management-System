@@ -3,7 +3,7 @@
  * Nghiệp vụ: DIR-A01, DIR-A02 (ORDERS.discount_amount, order_type Standard|Custom, status Pending).
  * API: GET /api/director/approvals/orders — documents/api/director.md
  */
-import type { SellerOrderKind, SellerOrderLineItem } from '../../seller/data/sellerOrdersMock'
+import type { SellerOrderKind, SellerOrderLineItem } from '../../seller/services/sellerOrdersApi'
 
 export type DirectorPricingCaseKind = 'margin_loss' | 'deep_discount' | 'custom_bom'
 

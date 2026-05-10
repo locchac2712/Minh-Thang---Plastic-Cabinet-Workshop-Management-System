@@ -1,6 +1,6 @@
-import { fetchChartJsonGet } from '../dashboards/dashboardChartsClient'
-import type { AgencyDebtRow, BucketPoint, NamedValuePoint } from '../dashboards/chartTypes'
-import type { ChartGranularity } from '../dashboards/chartFormat'
+import { fetchChartJsonGet } from '../../dashboards/dashboardChartsClient'
+import type { AgencyDebtRow, BucketPoint, NamedValuePoint } from '../../dashboards/chartTypes'
+import type { ChartGranularity } from '../../dashboards/chartFormat'
 
 const P = '/api/seller/dashboard/charts' as const
 

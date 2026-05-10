@@ -12,16 +12,16 @@ import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { formatVND } from '../../admin/partners/agencyModel'
 import { CATEGORY_OPTIONS } from '../../admin/catalog/productModel'
-import { type SellerAgencyRow } from '../sellerAgenciesApi'
-import { type SellerStoreProduct } from '../sellerProductsApi'
+import { type SellerAgencyRow } from '../services/sellerAgenciesApi'
+import { type SellerStoreProduct } from '../services/sellerProductsApi'
 import { sellerPaths } from '../config/sellerPaths'
-import { fetchSellerAgencies } from '../sellerAgenciesApi'
+import { fetchSellerAgencies } from '../services/sellerAgenciesApi'
 import {
   buildSellerOrderConcatenatedNote,
   createSellerOrder,
   type CreateSellerOrderItemPayload,
-} from '../sellerOrdersApi'
-import { fetchSellerProducts } from '../sellerProductsApi'
+} from '../services/sellerOrdersApi'
+import { fetchSellerProducts } from '../services/sellerProductsApi'
 import '../../admin/pages/AdminUsersPage.css'
 import './SellerOrderCreatePage.css'
 

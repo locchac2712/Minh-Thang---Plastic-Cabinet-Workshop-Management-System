@@ -22,14 +22,13 @@ html.th-seller-sidebar-collapsed .th-seller-panel {
 
 @media (max-width: 1024px) {
   .th-seller-panel {
-    grid-template-columns: 1fr;
-    height: auto;
-    min-height: 100vh;
-    overflow: visible;
+    grid-template-columns: 17.5rem 1fr;
+    height: 100vh;
+    overflow: hidden;
   }
 
   html.th-seller-sidebar-collapsed .th-seller-panel {
-    grid-template-columns: 1fr;
+    grid-template-columns: 4.75rem 1fr;
   }
 
   .th-seller-main {

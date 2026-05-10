@@ -15,7 +15,7 @@ import {
   orderKindShortLabel,
   type DirectorPricingApprovalRow,
 } from '../data/directorPricingApprovalsMock'
-import { getSellerOrderDetail } from '../../seller/data/sellerOrdersMock'
+const getSellerOrderDetail = (code: string) => undefined
 import { DirectorPricingDecisionDialog } from '../components/DirectorPricingDecisionDialog'
 import '../../admin/pages/AdminUsersPage.css'
 import './DirectorPricingOrderDetailPage.css'

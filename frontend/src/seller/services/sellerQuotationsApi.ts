@@ -1,4 +1,4 @@
-import { getAccessToken, getTokenType } from '../auth/storage'
+import { getAccessToken, getTokenType } from '../../auth/storage'
 import {
   createSellerOrder,
   fetchSellerOrderById,

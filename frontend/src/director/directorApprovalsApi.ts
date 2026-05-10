@@ -1,6 +1,6 @@
 import { getAccessToken, getTokenType } from '../auth/storage'
-import type { SellerOrderListDto } from '../seller/sellerOrdersApi'
-import type { SellerOrderKind, SellerOrderLineItem } from '../seller/data/sellerOrdersMock'
+import type { SellerOrderListDto } from '../seller/services/sellerOrdersApi'
+import type { SellerOrderKind, SellerOrderLineItem } from '../seller/services/sellerOrdersApi'
 import type { DirectorPricingApprovalRow, DirectorPricingCaseKind } from './data/directorPricingApprovalsMock'
 
 type ApiEnvelope<T> = {

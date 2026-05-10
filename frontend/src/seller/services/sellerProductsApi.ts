@@ -1,5 +1,5 @@
-import { DEFAULT_PRODUCT_IMAGE_URL, type Product } from '../admin/catalog/productModel'
-import { getAccessToken, getTokenType } from '../auth/storage'
+import { DEFAULT_PRODUCT_IMAGE_URL, type Product } from '../../admin/catalog/productModel'
+import { getAccessToken, getTokenType } from '../../auth/storage'
 
 export type SellerStoreProduct = Product & {
   /** SL có thể bán / giao ngay (mock kho) */

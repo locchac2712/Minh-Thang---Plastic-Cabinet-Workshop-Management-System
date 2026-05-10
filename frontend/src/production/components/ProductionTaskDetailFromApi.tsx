@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { formatVND } from '../../admin/partners/agencyModel'
 import { sellerPaths } from '../../seller/config/sellerPaths'
-import { sellerOrderKindLabel } from '../../seller/data/sellerOrdersMock'
+import { sellerOrderKindLabel } from '../../seller/services/sellerOrdersApi'
 import { productionPaths } from '../config/productionPaths'
 import { floorColumnLabel } from '../data/productionTasksByOrderMock'
 import { internalStatusLabel, type ProductionInternalTaskStatus } from '../data/productionTasksInternalMock'

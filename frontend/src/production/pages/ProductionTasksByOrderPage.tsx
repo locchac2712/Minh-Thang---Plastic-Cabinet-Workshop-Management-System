@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { sellerOrderKindLabel } from '../../seller/data/sellerOrdersMock'
+import { sellerOrderKindLabel } from '../../seller/services/sellerOrdersApi'
 import { AppFilterBar, AppFilterField, AppFilterInput, AppPagination } from '../../shared/ui/listing'
 import { productionPaths } from '../config/productionPaths'
 import { floorColumnLabel, type ProductionFloorColumn } from '../data/productionTasksByOrderMock'

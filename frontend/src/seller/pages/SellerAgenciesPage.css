@@ -279,8 +279,26 @@
 
 .th-seller-agency-table__empty {
   text-align: center;
-  padding: 2rem 1rem !important;
+  padding: 3rem 1rem !important;
   color: var(--th-sa-muted);
+}
+
+.th-seller-agency-table__clear-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1.25rem;
+  border: 1px solid #34d399;
+  border-radius: 8px;
+  background: #fff;
+  color: #059669;
+  font-size: var(--th-text-sm);
+  font-weight: var(--th-weight-bold);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.th-seller-agency-table__clear-btn:hover {
+  background: #ecfdf5;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.15);
 }
 
 .th-seller-agency-table__name {

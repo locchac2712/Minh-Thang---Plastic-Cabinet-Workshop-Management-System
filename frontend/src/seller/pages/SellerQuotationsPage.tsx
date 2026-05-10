@@ -7,8 +7,8 @@ import {
   fetchSellerQuotations,
   type SellerQuotationListDto,
   type SellerQuotationStatus,
-} from '../sellerQuotationsApi'
-import type { SellerApiOrderStatus } from '../sellerOrdersApi'
+} from '../services/sellerQuotationsApi'
+import type { SellerApiOrderStatus } from '../services/sellerOrdersApi'
 import '../../admin/pages/AdminUsersPage.css'
 import './SellerQuotationsPage.css'
 

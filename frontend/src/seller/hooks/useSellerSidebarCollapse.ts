@@ -14,14 +14,13 @@ function readCollapsed(fallback: boolean): boolean {
   }
 }
 
-/** Rail sidebar Seller — tách biệt key/class với Admin để hai shell không đè state. */
 export function useSellerSidebarCollapse() {
   const [isDesktop, setIsDesktop] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 1025px)').matches : true
   )
   const [collapsed, setCollapsed] = useState(() => readCollapsed(false))
 
-  const isNarrow = isDesktop && collapsed
+  const isNarrow = collapsed
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1025px)')

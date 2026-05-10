@@ -19,10 +19,15 @@
 .th-seller-sidebar-toolbar {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 0.35rem;
-  margin: -0.15rem 0 0.35rem;
-  padding: 0 0.1rem;
+  padding: 0.5rem 0.1rem;
+  border-top: 1px solid var(--th-sv-edge);
+}
+
+.th-seller-sidebar-toolbar .th-seller-nav-label {
+  padding: 0 0.65rem;
+  margin: 0;
 }
 
 .th-seller-sidebar-tool-btn {
@@ -203,9 +208,27 @@
   color: rgba(255, 255, 255, 0.38);
 }
 
-.th-seller-nav-label--footer {
+.th-seller-sidebar-footer {
+  flex-shrink: 0;
+  margin-top: auto;
+  padding: 1rem 0 1.25rem;
+  border-top: 1px solid var(--th-sv-edge);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.th-seller-sidebar--collapsed .th-seller-sidebar-footer {
+  gap: 0.75rem;
+}
+
+.th-seller-sidebar-footer .th-seller-nav-label {
+  margin-top: 0.75rem;
   padding-top: 0;
-  margin-bottom: 0.2rem;
+}
+
+.th-seller-sidebar-footer .th-seller-nav-label:first-child {
+  margin-top: 0;
 }
 
 .th-seller-nav-sub {
@@ -308,37 +331,32 @@
   min-width: 0;
 }
 
-button.th-seller-nav-link--logout {
+/* Reset cho các nút bấm trong Sidebar để giống hệt NavLink */
+.th-seller-nav-link-btn {
   width: 100%;
   border: none;
   background: none;
   font: inherit;
   text-align: left;
   cursor: pointer;
+  padding: 0; /* Sẽ dùng padding của th-seller-nav-link */
+}
+
+button.th-seller-nav-link.th-seller-nav-link--logout,
+button.th-seller-nav-link.th-seller-nav-link--btn {
   color: rgba(248, 250, 252, 0.75);
 }
 
-button.th-seller-nav-link--logout:hover {
+button.th-seller-nav-link.th-seller-nav-link--btn:hover,
+button.th-seller-nav-link.th-seller-nav-link--logout:hover {
   background: rgba(52, 211, 153, 0.12);
   color: #d1fae5;
 }
 
-button.th-seller-nav-link--logout:focus-visible {
-  outline: 2px solid rgba(52, 211, 153, 0.5);
-  outline-offset: 2px;
-}
-
-.th-seller-sidebar-footer {
-  flex-shrink: 0;
-  padding: 0.85rem 0 1rem;
-  border-top: 1px solid var(--th-sv-edge);
-}
-
 @media (max-width: 1024px) {
   .th-seller-sidebar {
-    padding: 0.8rem 1rem 0;
-    height: auto;
-    max-height: none;
+    padding: 0.8rem 0.5rem 0;
+    height: 100vh;
   }
 
   .th-seller-sidebar-footer {

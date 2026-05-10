@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { formatVND, isDebtRisk } from '../../admin/partners/agencyModel'
 import { PAGE_SIZE_OPTIONS } from '../../admin/catalog/productModel'
 import { sellerPaths } from '../config/sellerPaths'
-import { fetchSellerAgencies, type SellerAgencyRow } from '../sellerAgenciesApi'
+import { fetchSellerAgencies, type SellerAgencyRow } from '../services/sellerAgenciesApi'
 import { getAccessToken } from '../../auth/storage'
 import {
   AppFilterActions,
@@ -14,8 +14,14 @@ import {
   AppFilterSelect,
   AppPagination,
 } from '../../shared/ui/listing'
-import '../../admin/pages/AdminUsersPage.css'
+import '../styles/sellerSharedStyles.css'
 import './SellerAgenciesPage.css'
+
+/** Tính tỷ lệ nợ trên hạn mức (0.0 đến 1.0) */
+function getDebtRatio(a: SellerAgencyRow): number {
+  if (a.creditLimitVnd <= 0) return a.totalDebtVnd > 0 ? 1 : 0
+  return Math.min(1, a.totalDebtVnd / a.creditLimitVnd)
+}
 
 /**
  * Khách sỉ trực thuộc NVBH (phân trang).
@@ -89,10 +95,6 @@ export function SellerAgenciesPage() {
     setFilterActive('')
   }, [])
 
-  const debtRatio = useCallback((a: SellerAgencyRow) => {
-    if (a.creditLimitVnd <= 0) return a.totalDebtVnd > 0 ? 1 : 0
-    return Math.min(1, a.totalDebtVnd / a.creditLimitVnd)
-  }, [])
 
   const safePage = totalPages === 0 ? 0 : Math.min(pageIndex, Math.max(0, totalPages - 1))
 
@@ -187,14 +189,26 @@ export function SellerAgenciesPage() {
               {!loading && rows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="th-seller-agency-table__empty">
-                    Không có khách sỉ khớp bộ lọc.
+                    <div>Không có khách sỉ khớp bộ lọc.</div>
+                    {filtersApplied || debouncedSearch ? (
+                      <button
+                        type="button"
+                        className="th-seller-agency-table__clear-btn"
+                        onClick={() => {
+                          setSearchInput('')
+                          setFilterActive('')
+                        }}
+                      >
+                        Xóa tất cả bộ lọc
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ) : null}
               {!loading &&
                 rows.map((a) => {
                   const risk = isDebtRisk(a) || a.totalDebtVnd > a.creditLimitVnd
-                  const ratio = debtRatio(a)
+                  const ratio = getDebtRatio(a)
                   const overLimit = a.totalDebtVnd > a.creditLimitVnd && a.creditLimitVnd > 0
                   return (
                     <tr

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
-import type { SellerQuotationListDto, SellerQuotationStatus } from '../sellerQuotationsApi'
+import type { SellerQuotationListDto, SellerQuotationStatus } from '../services/sellerQuotationsApi'
 import { SellerPushProductionDialog } from '../components/SellerPushProductionDialog'
 import { formatVND } from '../../admin/partners/agencyModel'
 import { sellerPaths } from '../config/sellerPaths'
@@ -23,12 +23,12 @@ import {
   type SellerOrderListDto,
   type SellerOrderProductionTaskDto,
   type SellerOrderPaymentDto,
-} from '../sellerOrdersApi'
+} from '../services/sellerOrdersApi'
 import {
   fetchSellerQuotationById,
   inferQuotationStatusFromOrder,
   resolveQuotationPipeline,
-} from '../sellerQuotationsApi'
+} from '../services/sellerQuotationsApi'
 import { getAccessToken, getTokenType } from '../../auth/storage'
 import '../../admin/pages/AdminUsersPage.css'
 import './SellerOrderDetailPage.css'

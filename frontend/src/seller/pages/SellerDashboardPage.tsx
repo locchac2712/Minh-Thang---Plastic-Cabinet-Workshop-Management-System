@@ -32,7 +32,7 @@ import {
   fetchSellerMyPipelineFunnel,
   fetchSellerMyRevenueTrend,
   fetchSellerMyTopAgencies,
-} from '../sellerDashboardChartsApi'
+} from '../services/sellerDashboardChartsApi'
 import './SellerDashboardPage.css'
 
 const CH = 280

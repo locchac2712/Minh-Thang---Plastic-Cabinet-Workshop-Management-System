@@ -13,17 +13,21 @@ import { App } from 'antd'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { formatVND, isDebtRisk } from '../../admin/partners/agencyModel'
 import { CATEGORY_OPTIONS } from '../../admin/catalog/productModel'
-import { type SellerAgencyRow } from '../sellerAgenciesApi'
-import { type SellerStoreProduct } from '../sellerProductsApi'
+import { type SellerAgencyRow } from '../services/sellerAgenciesApi'
+import { type SellerStoreProduct } from '../services/sellerProductsApi'
 import { sellerPaths } from '../config/sellerPaths'
-import { clearQuickQuotePrefill, readQuickQuotePrefill, type QuickQuotePrefillPayload } from '../quickQuotePrefill'
-import { fetchSellerAgencies } from '../sellerAgenciesApi'
+import {
+  clearQuickQuotePrefill,
+  readQuickQuotePrefill,
+  type QuickQuotePrefillPayload,
+} from '../services/sellerQuotationPrefill'
+import { fetchSellerAgencies } from '../services/sellerAgenciesApi'
 import {
   buildSellerOrderConcatenatedNote,
   type CreateSellerOrderItemPayload,
-} from '../sellerOrdersApi'
-import { createSellerQuotation } from '../sellerQuotationsApi'
-import { fetchSellerProducts } from '../sellerProductsApi'
+} from '../services/sellerOrdersApi'
+import { createSellerQuotation } from '../services/sellerQuotationsApi'
+import { fetchSellerProducts } from '../services/sellerProductsApi'
 import '../../admin/pages/AdminUsersPage.css'
 import './SellerOrderCreatePage.css'
 

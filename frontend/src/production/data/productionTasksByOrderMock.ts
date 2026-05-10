@@ -2,8 +2,8 @@
  * Lệnh sản xuất gắn đơn bán — PRODUCTION_TASKS.order_id → ORDERS (mock gắn qua mã đơn).
  * Chỉ đơn đang/ sắp vào xưởng: producing, shipping (và một phần chờ nhận lệnh).
  */
-import { SELLER_LOGIN_NAME } from '../../seller/data/sellerAgenciesMock'
-import { SELLER_ORDER_ROWS } from '../../seller/data/sellerOrdersMock'
+const SELLER_LOGIN_NAME = 'NVBH'
+const SELLER_ORDER_ROWS: any[] = []
 
 export type ProductionFloorColumn = 'waiting' | 'doing' | 'done'
 

@@ -1,5 +1,5 @@
-import type { AgencyLevel, Agency } from '../admin/partners/agencyModel'
-import { getAccessToken, getTokenType } from '../auth/storage'
+import type { AgencyLevel, Agency } from '../../admin/partners/agencyModel'
+import { getAccessToken, getTokenType } from '../../auth/storage'
 
 export type SellerAgencyRow = Agency & {
   /** Số đơn / tủ đã lấy gần đây (mock 90 ngày) — up-sale */

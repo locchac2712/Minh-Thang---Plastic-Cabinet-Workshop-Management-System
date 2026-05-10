@@ -2,7 +2,7 @@ import { useCallback, useId, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { App } from 'antd'
 import { sellerPaths } from '../config/sellerPaths'
-import { createSellerAgency, SellerAgencyApiError } from '../sellerAgenciesApi'
+import { createSellerAgency, SellerAgencyApiError } from '../services/sellerAgenciesApi'
 import '../../admin/pages/AdminUsersPage.css'
 import './SellerAgencyCreatePage.css'
 
