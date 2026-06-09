@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { formatVND } from '../../admin/partners/agencyModel'
 import { sellerPaths } from '../config/sellerPaths'
 import { fetchSellerOrderProductionTasks, fetchSellerOrdersRaw, type SellerOrderListDto } from '../sellerOrdersApi'
+import { orderProductionTaskRef } from '../../shared/productionProgress/types'
 import '../../admin/pages/AdminUsersPage.css'
 import './SellerTrackingPage.css'
 
@@ -160,7 +161,10 @@ export function SellerTrackingPage() {
             <h2 className="th-seller-track__panel-title">Đơn đang sản xuất</h2>
             <div className="th-seller-track__panel-actions">
               {activeOrder ? (
-                <Link to={sellerPaths.order(activeOrder.id)} className="th-seller-track__link-detail">
+                <Link
+                  to={`${sellerPaths.order(activeOrder.id)}?tab=factory`}
+                  className="th-seller-track__link-detail"
+                >
                   Chi tiết đơn
                   <span className="material-symbols-outlined" aria-hidden>
                     open_in_new
@@ -243,7 +247,7 @@ export function SellerTrackingPage() {
             ) : tasks.length === 0 ? (
               <p className="th-seller-track__muted">
                 {activeOrderId
-                  ? 'Đơn này chưa có lệnh sản xuất hoặc chưa sync từ xưởng.'
+                  ? 'Đơn đã vào sản xuất. Xưởng cần tạo lô SX trước khi có tiến độ.'
                   : 'Chọn một đơn ở cột bên trái.'}
               </p>
             ) : (
@@ -257,16 +261,34 @@ export function SellerTrackingPage() {
                           SL: {t.quantity} · Thợ: {t.assignedToName || '—'}
                         </span>
                       </div>
-                      <span
-                        className={`th-seller-track__status th-seller-track__status--${t.status.toLowerCase()}`}
-                      >
-                        {taskStatusVi(t.status)}
-                      </span>
+                      <div className="th-seller-track__task-badges">
+                        <span
+                          className={`th-seller-track__status th-seller-track__status--${t.status.toLowerCase()}`}
+                        >
+                          {taskStatusVi(t.status)}
+                        </span>
+                        {t.deliveredAt ? (
+                          <span className="th-seller-track__delivery-badge th-seller-track__delivery-badge--done">
+                            Đã giao
+                          </span>
+                        ) : t.status === 'Done' && t.deliverable ? (
+                          <span className="th-seller-track__delivery-badge th-seller-track__delivery-badge--pending">
+                            Chờ giao
+                          </span>
+                        ) : null}
+                      </div>
                     </header>
                     <p className="th-seller-track__meta">
-                      Mã lệnh: <code>{t.taskId}</code> · Bắt đầu: {t.startDate || '—'} · Dự kiến xong:{' '}
+                      Mã lệnh: <code>{orderProductionTaskRef(t)}</code> · Bắt đầu: {t.startDate || '—'} · Dự kiến xong:{' '}
                       {t.expectedEndDate || '—'} · Hoàn tất: {fmtDateTime(t.completedAt)}
                     </p>
+                    {t.status === 'Done' && (t.deliverable || t.deliveredAt) ? (
+                      <p className="th-seller-track__muted" style={{ margin: '0.5rem 0 0' }}>
+                        <Link to={`${sellerPaths.order(activeOrderId)}?tab=factory`}>
+                          Giao lô tại tab Tiến độ xưởng
+                        </Link>
+                      </p>
+                    ) : null}
                     {t.activityLogs.length === 0 ? (
                       <p className="th-seller-track__muted">Chưa có nhật ký tiến độ.</p>
                     ) : (

@@ -1,5 +1,7 @@
 import type { AgencyLevel } from '../admin/partners/agencyModel'
+import { mapAgencyDebtFromApi } from '../admin/partners/agencyModel'
 import { getAccessToken, getTokenType } from '../auth/storage'
+import { isFulfillmentRecord } from './sellerOrderRef'
 import type { SellerAgencyRow } from './data/sellerAgenciesMock'
 
 type ApiEnvelope<T> = {
@@ -23,10 +25,13 @@ export type AgencyApiDto = {
   assignedSellerName: string
   level: string
   phone: string
+  email: string
   address: string
   taxCode: string
   legalCompanyName: string
   totalDebt: number
+  computedDebtFromOrders?: number | null
+  debtReconciliationDelta?: number | null
   maxDebtLimit: number
   isActive: boolean
   createdAt: string
@@ -58,6 +63,7 @@ export type SellerCreateAgencyRequest = {
 export type SellerUpdateAgencyRequest = {
   name?: string
   phone?: string
+  email?: string
   address?: string
   taxCode?: string
   legalCompanyName?: string
@@ -152,6 +158,7 @@ export async function updateSellerAgency(
   const body: Record<string, string> = {}
   if (patch.name !== undefined && patch.name.trim()) body.name = patch.name.trim()
   if (patch.phone !== undefined && patch.phone.trim()) body.phone = patch.phone.trim()
+  if (patch.email !== undefined && patch.email.trim()) body.email = patch.email.trim()
   if (patch.address !== undefined && patch.address.trim()) body.address = patch.address.trim()
   if (patch.taxCode !== undefined && patch.taxCode.trim()) body.taxCode = patch.taxCode.trim()
   if (patch.legalCompanyName !== undefined && patch.legalCompanyName.trim()) {
@@ -197,6 +204,7 @@ function guessCityFromAddress(address: string): string {
 }
 
 export function mapApiToSellerRow(d: AgencyApiDto): SellerAgencyRow {
+  const debt = mapAgencyDebtFromApi(d)
   return {
     id: d.id,
     code: (d.taxCode ?? '') || `KS-${d.id.slice(0, 8)}`,
@@ -205,11 +213,12 @@ export function mapApiToSellerRow(d: AgencyApiDto): SellerAgencyRow {
     taxCode: d.taxCode ?? '',
     level: apiLevelToAgencyLevel(d.level ?? ''),
     phone: d.phone ?? '',
-    email: '',
+    email: d.email ?? '',
     city: guessCityFromAddress(d.address ?? ''),
     address: d.address ?? '',
     assignedSellerName: d.assignedSellerName ?? '',
-    totalDebtVnd: d.totalDebt ?? 0,
+    totalDebtVnd: debt.totalDebtVnd,
+    computedDebtVnd: debt.computedDebtVnd,
     creditLimitVnd: d.maxDebtLimit ?? 0,
     isActive: d.isActive ?? true,
     note: '',
@@ -268,5 +277,62 @@ export async function fetchSellerAgencies(params: FetchSellerAgenciesParams): Pr
     totalPages: data.totalPages,
     last: data.last,
     content: data.content.map(mapApiToSellerRow),
+  }
+}
+
+export type AgencyOrderHistoryDto = {
+  id: string
+  displayCode?: string | null
+  sourceOrderId: string | null
+  recordKind?: 'quotation' | 'fulfillment' | null
+  totalPayable: number
+  status: string
+  createdAt: string
+}
+
+type AgencyOrderListResponse = {
+  content: AgencyOrderHistoryDto[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  last: boolean
+}
+
+export async function fetchSellerAgencyOrders(
+  agencyId: string,
+  params: { page?: number; size?: number; status?: string } = {},
+): Promise<AgencyOrderListResponse> {
+  const accessToken = getAccessToken()
+  if (!accessToken) {
+    throw new Error('Thiếu access token')
+  }
+  const q = new URLSearchParams()
+  q.set('page', String(params.page ?? 0))
+  q.set('size', String(params.size ?? 20))
+  if (params.status?.trim()) q.set('status', params.status.trim())
+
+  const res = await fetch(
+    `${API_BASE_URL}/api/seller/agencies/${encodeURIComponent(agencyId)}/orders?${q.toString()}`,
+    {
+      headers: {
+        accept: '*/*',
+        Authorization: `${getTokenType()} ${accessToken}`,
+      },
+    },
+  )
+  const envelope = (await res.json()) as ApiEnvelope<AgencyOrderListResponse>
+  if (!res.ok || !envelope.success || !envelope.data) {
+    throw new Error(envelope.message || 'Không tải được lịch sử đơn')
+  }
+  const data = envelope.data
+  return {
+    ...data,
+    content: data.content
+      .map((row) => ({
+        ...row,
+        sourceOrderId: row.sourceOrderId ?? null,
+      }))
+      .filter(isFulfillmentRecord),
   }
 }

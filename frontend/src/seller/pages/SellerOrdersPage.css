@@ -20,21 +20,7 @@
 }
 
 .th-seller-orders__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.th-seller-orders__heading {
-  flex: 1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  min-width: min(100%, 28rem);
+  margin: 0;
 }
 
 .th-seller-orders__title-row {
@@ -143,12 +129,23 @@
   color: var(--th-so-muted);
 }
 
+/* Toolbar: tab trạng thái + tạo đơn */
+.th-seller-orders__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 /* Tabs trạng thái */
 .th-seller-orders__tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
   padding: 0.2rem 0;
+  flex: 1;
+  min-width: min(100%, 16rem);
 }
 
 .th-seller-orders__tab {
@@ -196,6 +193,30 @@
 
 .th-seller-orders__tab--active .th-seller-orders__tab-count {
   background: rgba(255, 255, 255, 0.95);
+}
+
+.th-seller-orders__tab--approved.th-seller-orders__tab--active {
+  background: linear-gradient(145deg, #fef3c7, #fde68a);
+  border-color: rgba(217, 119, 6, 0.45);
+  color: #92400e;
+  box-shadow: 0 1px 4px rgba(217, 119, 6, 0.18);
+}
+
+.th-seller-orders-table__provenance {
+  white-space: nowrap;
+}
+
+.th-seller-orders-table__provenance-link {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #0369a1;
+  text-decoration: none;
+}
+
+.th-seller-orders-table__provenance-link:hover {
+  color: #0c4a6e;
+  text-decoration: underline;
 }
 
 /* Table shell */
@@ -305,8 +326,20 @@
 }
 
 .th-seller-orders-table__summary {
-  max-width: 14rem;
+  max-width: 16rem;
   line-height: 1.35;
+}
+
+.th-seller-orders-table__summary-text {
+  display: block;
+}
+
+.th-seller-orders-table__summary-meta {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: var(--th-text-xs);
+  font-weight: var(--th-weight-semibold);
+  color: #94a3b8;
 }
 
 .th-seller-orders-table__agency {
@@ -426,26 +459,6 @@
   color: #047857;
 }
 
-/* Loại đơn: đơn sẵn vs custom */
-.th-seller-orders-kind {
-  display: inline-block;
-  padding: 0.18rem 0.45rem;
-  border-radius: 8px;
-  font-size: var(--th-text-micro);
-  font-weight: var(--th-weight-extrabold);
-  white-space: nowrap;
-}
-
-.th-seller-orders-kind--ready_made {
-  background: #e0f2fe;
-  color: #0369a1;
-}
-
-.th-seller-orders-kind--custom {
-  background: #fff7ed;
-  color: #c2410c;
-}
-
 /* Pagination — cùng nhịp agencies */
 .th-seller-orders-pagination {
   display: flex;
@@ -520,7 +533,7 @@
 }
 
 @media (max-width: 640px) {
-  .th-seller-orders__heading {
+  .th-seller-orders__toolbar {
     flex-direction: column;
     align-items: stretch;
   }

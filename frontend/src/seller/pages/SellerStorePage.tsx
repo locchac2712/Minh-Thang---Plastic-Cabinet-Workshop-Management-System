@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { Badge, Checkbox, Drawer } from 'antd'
+import { Badge, Drawer } from 'antd'
 import { useNavigate } from 'react-router-dom'
-import { formatVND, htmlToPlainText } from '../../admin/catalog/productModel'
+import { formatVND } from '../../admin/catalog/productModel'
 import { PAGE_SIZE_OPTIONS } from '../../admin/catalog/productModel'
 import type { SellerAgencyRow } from '../data/sellerAgenciesMock'
 import type { SellerStoreProduct } from '../data/sellerStoreMock'
@@ -13,6 +13,7 @@ import {
 } from '../quickQuotePrefill'
 import { fetchSellerAgencies } from '../sellerAgenciesApi'
 import { fetchSellerProducts } from '../sellerProductsApi'
+import { SELLER_CATALOG_KIND_LABEL, SELLER_CUSTOM_KIND_LABEL } from '../data/sellerOrdersMock'
 import {
   AppFilterBar,
   AppFilterField,
@@ -54,7 +55,6 @@ export function SellerStorePage() {
   const [searchInput, setSearchInput] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [filterActive, setFilterActive] = useState<'' | 'active' | 'inactive'>('active')
-  const [inStockOnly, setInStockOnly] = useState(false)
 
   const [pageIndex, setPageIndex] = useState(0)
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(10)
@@ -107,7 +107,7 @@ export function SellerStorePage() {
 
   useEffect(() => {
     setPageIndex(0)
-  }, [debouncedSearch, filterActive, inStockOnly, sourceMode, agencyId, pageSize])
+  }, [debouncedSearch, filterActive, sourceMode, agencyId, pageSize])
 
   useEffect(() => {
     if (sourceMode !== 'custom' || !agencyComboOpen) return
@@ -254,8 +254,11 @@ export function SellerStorePage() {
         page: pageIndex,
         size: pageSize,
         search: debouncedSearch || undefined,
-        is_active: filterActive === '' ? undefined : filterActive === 'active',
-        in_stock: inStockOnly ? true : undefined,
+        is_active: isCustom
+          ? undefined
+          : filterActive === ''
+            ? undefined
+            : filterActive === 'active',
         is_custom: isCustom,
         ...(isCustom && agencyId.trim() ? { agency_id: agencyId.trim() } : {}),
         signal: ac.signal,
@@ -275,7 +278,7 @@ export function SellerStorePage() {
     } finally {
       if (!ac.signal.aborted) setLoading(false)
     }
-  }, [pageIndex, pageSize, debouncedSearch, filterActive, inStockOnly, sourceMode, agencyId])
+  }, [pageIndex, pageSize, debouncedSearch, filterActive, sourceMode, agencyId])
 
   useEffect(() => {
     void loadProducts()
@@ -614,8 +617,8 @@ export function SellerStorePage() {
                   setSourceMode(e.target.value as StoreSourceMode)
                 }}
               >
-                <option value="standard">Catalog chuẩn (toàn mạng lưới)</option>
-                <option value="custom">Hàng custom theo khách sỉ (đại lý)</option>
+                <option value="standard">{SELLER_CATALOG_KIND_LABEL} (toàn mạng lưới)</option>
+                <option value="custom">{SELLER_CUSTOM_KIND_LABEL} theo đại lý</option>
               </select>
             </label>
             {sourceMode === 'custom' ? (
@@ -731,28 +734,21 @@ export function SellerStorePage() {
                 disabled={needAgency}
               />
             </AppFilterField>
-            <div className="th-seller-store__filters">
-              <AppFilterField label="Trạng thái" className="th-seller-store__field">
-                <AppFilterSelect
-                  value={filterActive}
-                  onChangeValue={(value) => setFilterActive(value as '' | 'active' | 'inactive')}
-                  options={[
-                    { value: '', label: 'Tất cả' },
-                    { value: 'active', label: 'Đang bán' },
-                    { value: 'inactive', label: 'Ngừng bán' },
-                  ]}
-                />
-              </AppFilterField>
-              <label className="th-seller-store__chip">
-                <Checkbox
-                  checked={inStockOnly}
-                  onChange={(event) => setInStockOnly(event.target.checked)}
-                  disabled={needAgency}
-                >
-                  Chỉ còn hàng
-                </Checkbox>
-              </label>
-            </div>
+            {sourceMode !== 'custom' ? (
+              <div className="th-seller-store__filters">
+                <AppFilterField label="Trạng thái" className="th-seller-store__field">
+                  <AppFilterSelect
+                    value={filterActive}
+                    onChangeValue={(value) => setFilterActive(value as '' | 'active' | 'inactive')}
+                    options={[
+                      { value: '', label: 'Tất cả' },
+                      { value: 'active', label: 'Đang bán' },
+                      { value: 'inactive', label: 'Ngừng bán' },
+                    ]}
+                  />
+                </AppFilterField>
+              </div>
+            ) : null}
           </AppFilterBar>
           <p className="th-seller-store__count" aria-live="polite">
             <strong>{needAgency ? 0 : totalElements}</strong> mẫu
@@ -799,28 +795,15 @@ export function SellerStorePage() {
                     decoding="async"
                   />
                   {sourceMode === 'custom' ? (
-                    <span className="th-seller-store__tag th-seller-store__tag--custom" aria-label="Hàng custom">
-                      Custom
+                    <span className="th-seller-store__tag th-seller-store__tag--custom" aria-label={SELLER_CUSTOM_KIND_LABEL}>
+                      {SELLER_CUSTOM_KIND_LABEL}
                     </span>
                   ) : null}
-                  <span
-                    className={
-                      p.stockQty > 0
-                        ? 'th-seller-store__stock th-seller-store__stock--ok'
-                        : 'th-seller-store__stock th-seller-store__stock--zero'
-                    }
-                  >
-                    Tồn kho: {p.stockQty}
-                  </span>
                 </div>
                 <div className="th-seller-store__card-body">
                   <p className="th-seller-store__sku">{p.sku}</p>
                   <h2 className="th-seller-store__name">{p.name}</h2>
                   <p className="th-seller-store__cat">{categoryLine(p)}</p>
-                  <p className="th-seller-store__desc">
-                    {htmlToPlainText(p.description).slice(0, 120)}
-                    {htmlToPlainText(p.description).length > 120 ? '…' : ''}
-                  </p>
                   <p className="th-seller-store__material">{p.material}</p>
                   <div className="th-seller-store__price-row">
                     <span className="th-seller-store__price">{formatVND(p.price)}</span>
@@ -852,7 +835,8 @@ export function SellerStorePage() {
       <Drawer
         title="Báo giá nhanh"
         placement="right"
-        width="clamp(320px, 33vw, 520px)"
+        size="large"
+        styles={{ wrapper: { width: 'clamp(320px, 33vw, 520px)' } }}
         open={quickQuoteDrawerOpen}
         onClose={() => setQuickQuoteDrawerOpen(false)}
         className="th-seller-store-quick-drawer"
@@ -981,7 +965,9 @@ export function SellerStorePage() {
                     </div>
                     <p className="th-seller-store-quick__item-meta">
                       <code>{item.sku}</code> ·{' '}
-                      {item.lineSource === 'agency_custom' ? 'Custom theo đại lý' : 'Catalog chuẩn'}
+                      {item.lineSource === 'agency_custom'
+                        ? `${SELLER_CUSTOM_KIND_LABEL} theo đại lý`
+                        : SELLER_CATALOG_KIND_LABEL}
                     </p>
                     <div className="th-seller-store-quick__item-row">
                       <div className="th-seller-store-quick__qty">

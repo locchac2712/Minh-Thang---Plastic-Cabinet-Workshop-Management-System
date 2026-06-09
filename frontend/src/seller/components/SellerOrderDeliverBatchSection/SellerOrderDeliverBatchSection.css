@@ -1,0 +1,338 @@
+.th-sod-deliver {
+  margin: 1.25rem 0;
+  padding: 1rem 1.05rem;
+  border-radius: 14px;
+  border: 1px solid #dbeafe;
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 48%);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.th-sod-deliver__loading {
+  margin: 0;
+  font-size: var(--th-text-sm);
+  color: #64748b;
+}
+
+.th-sod-deliver__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.th-sod-deliver__head-main {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.th-sod-deliver__title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.th-sod-deliver__title .material-symbols-outlined {
+  font-size: 1.25rem;
+  color: #0284c7;
+}
+
+.th-sod-deliver__lead {
+  margin: 0;
+  font-size: var(--th-text-sm);
+  color: #64748b;
+  line-height: 1.5;
+  max-width: 36rem;
+}
+
+.th-sod-deliver__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.th-sod-deliver__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 4.5rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.th-sod-deliver__stat--pending {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: #fffbeb;
+}
+
+.th-sod-deliver__stat--done {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: #f0fdf4;
+}
+
+.th-sod-deliver__stat-value {
+  font-size: 1.125rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+.th-sod-deliver__stat-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.th-sod-deliver__empty {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 10px;
+  border: 1px dashed #cbd5e1;
+  background: #fff;
+}
+
+.th-sod-deliver__empty-icon {
+  font-size: 1.35rem;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.th-sod-deliver__empty p {
+  margin: 0;
+  font-size: var(--th-text-sm);
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.th-sod-deliver__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+@media (min-width: 720px) {
+  .th-sod-deliver__list {
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  }
+}
+
+.th-sod-deliver__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+  padding: 0.85rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.th-sod-deliver__card--pending {
+  border-color: rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.08);
+}
+
+.th-sod-deliver__card--delivered {
+  border-color: rgba(34, 197, 94, 0.28);
+  background: #fafdfa;
+}
+
+.th-sod-deliver__card--selected {
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.22);
+}
+
+.th-sod-deliver__card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.th-sod-deliver__card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.th-sod-deliver__product {
+  margin: 0;
+  font-size: var(--th-text-sm);
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.th-sod-deliver__badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.th-sod-deliver__badge--pending {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.th-sod-deliver__badge--done {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.th-sod-deliver__meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem 0.75rem;
+  margin: 0;
+}
+
+.th-sod-deliver__meta dt {
+  margin: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
+.th-sod-deliver__meta dd {
+  margin: 0.1rem 0 0;
+  font-size: 0.8125rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.th-sod-deliver__meta-wide {
+  grid-column: 1 / -1;
+}
+
+.th-sod-deliver__meta-wide dd {
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.th-sod-deliver__proof-link {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 0.5rem;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  text-decoration: none;
+  background: #f8fafc;
+}
+
+.th-sod-deliver__proof-link img {
+  display: block;
+  max-width: min(100%, 12rem);
+  max-height: 5.5rem;
+  object-fit: cover;
+}
+
+.th-sod-deliver__proof-link span {
+  display: block;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #0284c7;
+  text-align: center;
+}
+
+.th-sod-deliver__meta code {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.th-sod-deliver__card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.th-sod-deliver__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  transition: filter 0.12s ease, background 0.12s ease;
+}
+
+.th-sod-deliver__btn .material-symbols-outlined {
+  font-size: 1.05rem;
+}
+
+.th-sod-deliver__btn--primary {
+  color: #fff;
+  background: linear-gradient(160deg, #38bdf8 0%, #0284c7 100%);
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.28);
+}
+
+.th-sod-deliver__btn--primary:hover {
+  filter: brightness(1.05);
+}
+
+.th-sod-deliver__btn--ghost {
+  color: #047857;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+}
+
+.th-sod-deliver__btn--ghost:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.th-sod-deliver__btn--ghost[aria-pressed='true'] {
+  border-color: rgba(5, 150, 105, 0.45);
+  background: #ecfdf5;
+}
+
+.th-sod-deliver__done-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #166534;
+}
+
+.th-sod-deliver__done-note .material-symbols-outlined {
+  font-size: 1.1rem;
+}

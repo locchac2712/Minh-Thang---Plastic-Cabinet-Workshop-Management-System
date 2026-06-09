@@ -40,7 +40,7 @@ export function mapSellerProductDtoToStoreProduct(d: SellerProductListDto): Sell
     sku: d.sku,
     name: d.name,
     categoryId: d.categoryId,
-    description: `<p>${d.categoryName}</p>`,
+    description: '',
     price: d.suggestedPrice,
     material: '—',
     status: d.isActive ? 'active' : 'discontinued',

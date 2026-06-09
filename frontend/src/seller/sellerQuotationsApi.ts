@@ -5,7 +5,9 @@ import {
   type CreateSellerOrderPayload,
   type SellerApiOrderStatus,
   type SellerOrderListDto,
+  type SellerOrdersRawPage,
 } from './sellerOrdersApi'
+import { isFulfillmentRecord } from './sellerOrderRef'
 
 type ApiEnvelope<T> = {
   success: boolean
@@ -15,7 +17,7 @@ type ApiEnvelope<T> = {
 }
 
 /** Trạng thái báo giá — query GET /api/seller/quotations?status=… */
-export type SellerQuotationStatus = 'Draft' | 'Pending' | 'Approved' | 'Rejected'
+export type SellerQuotationStatus = 'Draft' | 'Pending' | 'Approved' | 'Rejected' | 'Canceled'
 
 export type SellerQuotationListDto = SellerOrderListDto & {
   quotationStatus: SellerQuotationStatus
@@ -35,6 +37,8 @@ export type FetchSellerQuotationsParams = {
   size?: number
   /** Bỏ qua để lấy tất cả (nếu backend hỗ trợ). */
   status?: SellerQuotationStatus
+  /** Lọc theo mã báo giá (displayCode, ví dụ BG-2026-00001). */
+  search?: string
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://be.minhthangerp.space'
@@ -50,6 +54,8 @@ export async function fetchSellerQuotations(
   q.set('page', String(params.page ?? 0))
   q.set('size', String(params.size ?? 20))
   if (params.status) q.set('status', params.status)
+  const search = params.search?.trim()
+  if (search) q.set('search', search)
 
   const res = await fetch(`${API_BASE_URL}/api/seller/quotations?${q.toString()}`, {
     headers: {
@@ -84,8 +90,9 @@ export function inferQuotationStatusFromOrder(order: { status: SellerApiOrderSta
     case 'Approved':
     case 'Producing':
     case 'Done':
-    case 'Canceled':
       return 'Approved'
+    case 'Canceled':
+      return 'Canceled'
     default:
       return 'Pending'
   }
@@ -117,7 +124,17 @@ export function resolveQuotationPipeline(
     }
   }
 
-  const inApprovedBucket: SellerApiOrderStatus[] = ['Approved', 'Producing', 'Done', 'Canceled']
+  if (quotationStatus === 'Canceled') {
+    return {
+      isRejectedFlow: false,
+      steps: [
+        { ...s1, state: 'done' },
+        { label: 'Đã hủy', hint: 'Báo giá không còn hiệu lực', state: 'done' },
+      ],
+    }
+  }
+
+  const inApprovedBucket: SellerApiOrderStatus[] = ['Approved', 'Producing', 'Done']
 
   if (quotationStatus === 'Draft') {
     return {
@@ -187,5 +204,45 @@ export async function fetchSellerQuotationById(id: string): Promise<SellerQuotat
   return {
     ...order,
     quotationStatus: inferQuotationStatusFromOrder(order),
+  }
+}
+
+export type FetchSellerQuotationOrdersParams = {
+  page?: number
+  size?: number
+  status?: SellerApiOrderStatus
+}
+
+/** GET /api/seller/quotations/:id/orders — đơn fulfillment tạo từ báo giá. */
+export async function fetchSellerQuotationOrders(
+  quotationId: string,
+  params: FetchSellerQuotationOrdersParams = {},
+): Promise<SellerOrdersRawPage> {
+  const accessToken = getAccessToken()
+  if (!accessToken) {
+    throw new Error('Thiếu access token')
+  }
+  const q = new URLSearchParams()
+  q.set('page', String(params.page ?? 0))
+  q.set('size', String(params.size ?? 20))
+  if (params.status) q.set('status', params.status)
+
+  const res = await fetch(
+    `${API_BASE_URL}/api/seller/quotations/${encodeURIComponent(quotationId)}/orders?${q.toString()}`,
+    {
+      headers: {
+        accept: '*/*',
+        Authorization: `${getTokenType()} ${accessToken}`,
+      },
+    },
+  )
+  const envelope = (await res.json()) as ApiEnvelope<SellerOrdersRawPage>
+  if (!res.ok || !envelope.success || !envelope.data) {
+    throw new Error(envelope.message || 'Không tải được danh sách đơn từ báo giá')
+  }
+  const data = envelope.data
+  return {
+    ...data,
+    content: data.content.filter(isFulfillmentRecord),
   }
 }

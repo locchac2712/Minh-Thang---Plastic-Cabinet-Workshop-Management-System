@@ -34,15 +34,14 @@ export function SellerSidebar({ narrow: isNarrow, onToggle: toggle }: Props) {
       <Link
         to={sellerPaths.root}
         className="th-seller-brand"
-        aria-label="Minh Thắng — Kinh doanh"
-        title={isNarrow ? 'Kinh doanh bán sỉ' : undefined}
+        aria-label="Minh Thắng — Bán sỉ - Đại lý"
+        title={isNarrow ? 'Bán sỉ - Đại lý' : undefined}
       >
         <div className="th-seller-brand-mark" aria-hidden>
           <img src={appLogoUrl} alt="" className="th-app-brand-logo" width={40} height={40} />
         </div>
         <div className="th-seller-brand-text">
-          <span className="th-seller-brand-name">Kinh doanh</span>
-          <span className="th-seller-brand-role">Bán sỉ · Đại lý</span>
+          <span className="th-seller-brand-name th-seller-brand-name--shell">Bán sỉ - Đại lý</span>
         </div>
       </Link>
 
@@ -52,7 +51,7 @@ export function SellerSidebar({ narrow: isNarrow, onToggle: toggle }: Props) {
             to={sellerPaths.dashboard}
             end
             icon="insights"
-            label="Sale Dashboard"
+            label="Tổng quan doanh thu"
             narrow={isNarrow}
           />
         </SellerNavGroup>
@@ -62,57 +61,33 @@ export function SellerSidebar({ narrow: isNarrow, onToggle: toggle }: Props) {
             <SellerNavItemLink
               to={sellerPaths.agencies}
               icon="domain"
-              label="Khách sỉ trực thuộc"
+              label="Danh sách đại lý"
               narrow={isNarrow}
               className="th-seller-nav-sublink"
             />
           </div>
         </SellerNavGroup>
 
-        <SellerNavGroup label="Giao dịch & đơn">
+        <SellerNavGroup label="Bán hàng">
           <div className="th-seller-nav-sub" role="group">
             <SellerNavItemLink
               to={sellerPaths.store}
               icon="storefront"
-              label="Menu hàng hóa"
+              label="Danh mục sản phẩm"
               narrow={isNarrow}
               className="th-seller-nav-sublink"
             />
             <SellerNavItemLink
               to={sellerPaths.orders}
               icon="receipt_long"
-              label="Đơn đặt hàng"
+              label="Quản lý đơn hàng"
               narrow={isNarrow}
               className="th-seller-nav-sublink"
             />
             <SellerNavItemLink
               to={sellerPaths.quotations}
               icon="request_quote"
-              label="Báo giá"
-              narrow={isNarrow}
-              className="th-seller-nav-sublink"
-            />
-          </div>
-        </SellerNavGroup>
-
-        <SellerNavGroup label="Tài chính">
-          <div className="th-seller-nav-sub" role="group">
-            <SellerNavItemLink
-              to={sellerPaths.payments}
-              icon="payments"
-              label="Thanh toán & đối soát"
-              narrow={isNarrow}
-              className="th-seller-nav-sublink"
-            />
-          </div>
-        </SellerNavGroup>
-
-        <SellerNavGroup label="Xưởng">
-          <div className="th-seller-nav-sub" role="group">
-            <SellerNavItemLink
-              to={sellerPaths.tracking}
-              icon="photo_library"
-              label="Nhật ký theo dõi xưởng"
+              label="Quản lý báo giá"
               narrow={isNarrow}
               className="th-seller-nav-sublink"
             />

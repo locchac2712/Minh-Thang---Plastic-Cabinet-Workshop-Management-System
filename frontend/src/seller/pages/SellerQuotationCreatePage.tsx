@@ -11,7 +11,12 @@ import {
 import { createPortal } from 'react-dom'
 import { App } from 'antd'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { formatVND, isDebtRisk } from '../../admin/partners/agencyModel'
+import { formatVND } from '../../admin/partners/agencyModel'
+import {
+  formatVndInputAmount,
+  normalizeVndInputTyping,
+  parseVndInput,
+} from '../../shared/money/vndInput'
 import { CATEGORY_OPTIONS } from '../../admin/catalog/productModel'
 import { sellerPaths } from '../config/sellerPaths'
 import { SELLER_LOGIN_NAME, type SellerAgencyRow } from '../data/sellerAgenciesMock'
@@ -22,8 +27,18 @@ import {
   buildSellerOrderConcatenatedNote,
   type CreateSellerOrderItemPayload,
 } from '../sellerOrdersApi'
+import { orderCodeFromDto } from '../sellerOrderRef'
+import { computeAgencyCreditSnapshot } from '../agencyCreditSnapshot'
 import { createSellerQuotation } from '../sellerQuotationsApi'
 import { fetchSellerProducts } from '../sellerProductsApi'
+import { sellerQuotationLineSourceLabel, SELLER_CATALOG_KIND_LABEL, SELLER_CUSTOM_KIND_LABEL } from '../data/sellerOrdersMock'
+import { bumpProductLineQty } from '../sellerOrderDraftLines'
+import {
+  effectiveUnitFromListAndPercent,
+  lineSubtotalFromListAndPercent,
+  parseDiscountPercentField,
+} from '../sellerQuotationLinePricing'
+import { todayIsoDate, validateQuotationValidUntilInput } from '../sellerQuotationValidity'
 import '../../admin/pages/AdminUsersPage.css'
 import './SellerOrderCreatePage.css'
 
@@ -44,8 +59,19 @@ type SellerOrderDraftLine = {
   sku: string
   productName: string
   qty: number
+  /** Đơn giá niêm yết (khóa theo giá SP). */
   unitPriceVnd: number
+  /** Chiết khấu % trên đơn giá dòng (0–100). */
+  discountPercent: number
   lineNote: string
+}
+
+function lineEffectiveUnitPriceVnd(ln: SellerOrderDraftLine): number {
+  return effectiveUnitFromListAndPercent(ln.unitPriceVnd, ln.discountPercent)
+}
+
+function lineTotalVnd(ln: SellerOrderDraftLine): number {
+  return lineSubtotalFromListAndPercent(ln.unitPriceVnd, ln.discountPercent, ln.qty)
 }
 
 function newLineId(): string {
@@ -53,12 +79,6 @@ function newLineId(): string {
     return `ln-${crypto.randomUUID().slice(0, 10)}`
   }
   return `ln-${Date.now()}-${Math.random().toString(16).slice(2)}`
-}
-
-function defaultDeliveryDateIso(): string {
-  const d = new Date()
-  d.setDate(d.getDate() + 21)
-  return d.toISOString().slice(0, 10)
 }
 
 type QuickQuoteHydrateResult = {
@@ -82,6 +102,7 @@ function hydrateLinesFromQuickQuotePrefill(prefill: QuickQuotePrefillPayload): Q
       productName: item.productName,
       qty: Math.max(1, Math.floor(item.qty) || 1),
       unitPriceVnd: Math.max(0, item.unitPriceVnd),
+      discountPercent: 0,
       lineNote: '',
     })
   }
@@ -108,6 +129,15 @@ function buildFallbackAgencyFromPrefill(prefill: QuickQuotePrefillPayload): Sell
     createdAt: new Date(prefill.createdAt).toISOString().slice(0, 10),
     recentCabinetOrders90d: 0,
   }
+}
+
+function vndInputDisplay(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return ''
+  return formatVndInputAmount(n)
+}
+
+function parseVndField(raw: string): number {
+  return Math.max(0, parseVndInput(raw) ?? 0)
 }
 
 function categoryLabel(categoryId: string): string {
@@ -310,7 +340,6 @@ function CatalogProductCombo({
                   <span className="th-seller-order-create__combo-option-name">{p.name}</span>
                   <span className="th-seller-order-create__combo-option-meta">
                     <code>{p.sku}</code>
-                    <span>{productCategoryLine(p)}</span>
                     <strong>{formatVND(p.price)}</strong>
                   </span>
                 </button>
@@ -579,7 +608,7 @@ function AgencyCombo({
 
 /** Tạo báo giá NVBH. */
 export function SellerQuotationCreatePage() {
-  const { modal } = App.useApp()
+  const { modal, message } = App.useApp()
   const fid = useId()
   const navigate = useNavigate()
   const location = useLocation()
@@ -612,7 +641,7 @@ export function SellerQuotationCreatePage() {
     const fallback = buildFallbackAgencyFromPrefill(quickQuotePrefill)
     return { [fallback.id]: fallback }
   })
-  const [expectedDelivery, setExpectedDelivery] = useState(defaultDeliveryDateIso)
+  const [quotationValidUntil, setQuotationValidUntil] = useState('')
   const [discountVnd, setDiscountVnd] = useState(0)
   const [shippingFeeVnd, setShippingFeeVnd] = useState(0)
   const [internalNote, setInternalNote] = useState('')
@@ -789,7 +818,7 @@ export function SellerQuotationCreatePage() {
   }, [agencyId, agencyRows, agencyPickCache])
 
   const subtotalVnd = useMemo(
-    () => lines.reduce((s, ln) => s + Math.max(0, ln.qty) * Math.max(0, ln.unitPriceVnd), 0),
+    () => lines.reduce((s, ln) => s + lineTotalVnd(ln), 0),
     [lines],
   )
 
@@ -800,44 +829,7 @@ export function SellerQuotationCreatePage() {
 
   const agencyCredit = useMemo(() => {
     if (!selectedAgency) return null
-    const debt = selectedAgency.totalDebtVnd
-    const limit = selectedAgency.creditLimitVnd
-    const ratio = limit <= 0 ? (debt > 0 ? 1 : 0) : Math.min(1, debt / limit)
-    const risk = isDebtRisk(selectedAgency)
-    const overLimit = limit > 0 && debt > limit
-    const projDebt = debt + grandTotalVnd
-    const projRatio = limit <= 0 ? (projDebt > 0 ? 1 : 0) : Math.min(1, projDebt / limit)
-    const projOver = limit > 0 && projDebt > limit
-    const projRisk = limit <= 0 ? projDebt > 0 : projRatio >= 0.8
-    const showProj = grandTotalVnd > 0
-    const tone: 'ok' | 'risk' | 'bad' =
-      overLimit || projOver ? 'bad' : risk || projRisk ? 'risk' : 'ok'
-    const hintCurrent = overLimit
-      ? 'Đã vượt hạn mức — cần thu nợ hoặc điều chỉnh hạn mức trước khi chốt thêm giá trị.'
-      : risk
-        ? 'Dư nợ gần hoặc tại trần (≥80% HM) — nhắc khách tất toán / cọc khi báo giá.'
-        : limit <= 0 && debt <= 0
-          ? 'Chưa cấp hạn mức trên hệ thống — kiểm tra hồ sơ đại lý.'
-          : 'Còn room hạn mức; vẫn nên đối chiếu trước khi gửi duyệt.'
-    const hintProj =
-      projOver && !overLimit
-        ? 'Tổng nợ ước sau báo giá có thể vượt hạn mức.'
-        : projRisk && !risk && !overLimit
-          ? 'Tổng nợ ước sau báo giá có thể chạm ngưỡng cảnh báo (≥80%).'
-          : null
-    return {
-      ratio,
-      risk,
-      overLimit,
-      projDebt,
-      projRatio,
-      projOver,
-      projRisk,
-      showProj,
-      tone,
-      hintCurrent,
-      hintProj,
-    }
+    return computeAgencyCreditSnapshot(selectedAgency, grandTotalVnd, 'quotation')
   }, [selectedAgency, grandTotalVnd])
 
   const addProductLine = useCallback(
@@ -846,21 +838,29 @@ export function SellerQuotationCreatePage() {
       const p = pool.find((x) => x.id === productId)
       if (!p) return
       if (source === 'agency_custom' && !agencyId.trim()) return
-      setLines((prev) => [
-        ...prev,
-        {
-          id: newLineId(),
-          lineSource: source,
-          productId: p.id,
-          sku: p.sku,
-          productName: p.name,
-          qty: 1,
-          unitPriceVnd: p.price,
-          lineNote: '',
-        },
-      ])
+      setLines((prev) => {
+        const bumped = bumpProductLineQty(prev, productId, 1, (ln) => ln.lineSource === source)
+        if (bumped.merged) {
+          message.info(`Đã cộng thêm 1 vào "${bumped.mergedLine!.productName}"`)
+          return bumped.next
+        }
+        return [
+          ...prev,
+          {
+            id: newLineId(),
+            lineSource: source,
+            productId: p.id,
+            sku: p.sku,
+            productName: p.name,
+            qty: 1,
+            unitPriceVnd: p.price,
+            discountPercent: 0,
+            lineNote: '',
+          },
+        ]
+      })
     },
-    [agencyId, customProducts, standardProducts],
+    [agencyId, customProducts, message, standardProducts],
   )
 
   const removeLine = useCallback((id: string) => {
@@ -871,24 +871,6 @@ export function SellerQuotationCreatePage() {
     setLines((prev) => prev.map((ln) => (ln.id === id ? { ...ln, ...patch } : ln)))
   }, [])
 
-  const onChangeCatalogProduct = useCallback(
-    (lineId: string, productId: string) => {
-      setLines((prev) => {
-        const ln = prev.find((l) => l.id === lineId)
-        if (!ln) return prev
-        const pool = ln.lineSource === 'agency_custom' ? customProducts : standardProducts
-        const p = pool.find((x) => x.id === productId)
-        if (!p) return prev
-        return prev.map((l) =>
-          l.id === lineId
-            ? { ...l, productId: p.id, sku: p.sku, productName: p.name, unitPriceVnd: p.price }
-            : l,
-        )
-      })
-    },
-    [customProducts, standardProducts],
-  )
-
   const linesMatchingKind = useMemo(
     () =>
       lines.filter(
@@ -897,19 +879,35 @@ export function SellerQuotationCreatePage() {
     [lines],
   )
 
-  const canSubmitOrder = Boolean(agencyId) && linesMatchingKind.length > 0
+  const quotationValidUntilError = useMemo(() => {
+    if (!quotationValidUntil.trim()) return null
+    return validateQuotationValidUntilInput(quotationValidUntil)
+  }, [quotationValidUntil])
+
+  const canSubmitOrder =
+    Boolean(agencyId) &&
+    linesMatchingKind.length > 0 &&
+    Boolean(quotationValidUntil.trim()) &&
+    !quotationValidUntilError
 
   const saveDraftOrder = useCallback(
     async (e: FormEvent) => {
       e.preventDefault()
       if (!canSubmitOrder || !selectedAgency || submitting) return
+      const validityError = !quotationValidUntil.trim()
+        ? 'Vui lòng chọn hạn báo giá.'
+        : validateQuotationValidUntilInput(quotationValidUntil)
+      if (validityError) {
+        setSubmitError(validityError)
+        return
+      }
       setSubmitting(true)
       setSubmitError(null)
       try {
         const items: CreateSellerOrderItemPayload[] = linesMatchingKind.map((ln) => ({
           productId: ln.productId!,
           quantity: ln.qty,
-          unitPrice: ln.unitPriceVnd,
+          unitPrice: lineEffectiveUnitPriceVnd(ln),
         }))
         const noteRaw = buildSellerOrderConcatenatedNote(linesMatchingKind, {
           internalNote,
@@ -925,12 +923,12 @@ export function SellerQuotationCreatePage() {
           discountAmount: Math.max(0, discountVnd),
           shippingFee: Math.max(0, shippingFeeVnd),
           shippingAddress,
-          expectedDeliveryDate: expectedDelivery.trim() || null,
+          quotationValidUntil: quotationValidUntil.trim(),
           note: noteRaw.length > 0 ? noteRaw : null,
           items,
         })
         clearQuickQuotePrefill()
-        navigate(sellerPaths.quotation(data.id))
+        navigate(sellerPaths.quotation(orderCodeFromDto(data)))
       } catch (err) {
         setSubmitError(err instanceof Error ? err.message : 'Không lưu được báo giá nháp')
       } finally {
@@ -944,13 +942,11 @@ export function SellerQuotationCreatePage() {
       linesMatchingKind,
       discountVnd,
       shippingFeeVnd,
-      expectedDelivery,
+      quotationValidUntil,
       internalNote,
       navigate,
     ],
   )
-
-  const firstStandardCatalogId = standardProducts[0]?.id
 
   return (
     <div className="th-seller-order-create">
@@ -996,13 +992,6 @@ export function SellerQuotationCreatePage() {
             <h1 className="th-seller-order-create__title">Tạo báo giá mới</h1>
           </div>
         </div>
-        <p className="th-seller-order-create__seller-note">
-          NVBH: <strong>{SELLER_LOGIN_NAME}</strong>
-          {' · '}
-          <Link className="th-seller-order-create__store-link" to={sellerPaths.store}>
-            Danh mục hàng
-          </Link>
-        </p>
       </header>
 
       {quickQuotePrefill ? (
@@ -1053,17 +1042,38 @@ export function SellerQuotationCreatePage() {
                       </p>
                     ) : null}
                   </div>
-                  <div className="th-seller-order-create__field th-seller-order-create__field--delivery-date">
-                    <label className="th-seller-order-create__label" htmlFor={`${fid}-eta`}>
-                      Ngày giao dự kiến
+                  <div className="th-seller-order-create__field th-seller-order-create__field--validity-date">
+                    <label
+                      className="th-seller-order-create__label"
+                      htmlFor={`${fid}-valid-until`}
+                    >
+                      Hạn báo giá <abbr title="bắt buộc">*</abbr>
                     </label>
                     <input
-                      id={`${fid}-eta`}
-                      className="th-seller-order-create__input th-seller-order-create__input--date-inline"
+                      id={`${fid}-valid-until`}
+                      className={`th-seller-order-create__input th-seller-order-create__input--date-inline${
+                        quotationValidUntilError ? ' th-seller-order-create__input--invalid' : ''
+                      }`}
                       type="date"
-                      value={expectedDelivery}
-                      onChange={(e) => setExpectedDelivery(e.target.value)}
+                      min={todayIsoDate()}
+                      value={quotationValidUntil}
+                      onChange={(e) => setQuotationValidUntil(e.target.value)}
+                      required
+                      aria-required="true"
+                      aria-invalid={quotationValidUntilError ? true : undefined}
+                      aria-describedby={
+                        quotationValidUntilError ? `${fid}-valid-until-error` : undefined
+                      }
                     />
+                    {quotationValidUntilError ? (
+                      <p
+                        id={`${fid}-valid-until-error`}
+                        className="th-seller-order-create__field-error"
+                        role="alert"
+                      >
+                        {quotationValidUntilError}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -1080,7 +1090,7 @@ export function SellerQuotationCreatePage() {
               <div className="th-seller-order-create__line-toolbar">
                 <div className="th-seller-order-create__quick-add">
                   <span className="th-seller-order-create__label" id={`${fid}-quick-std-label`}>
-                    Thêm catalog chuẩn
+                    Thêm {SELLER_CATALOG_KIND_LABEL.toLowerCase()}
                   </span>
                   <div className="th-seller-order-create__quick-add-combo">
                     <CatalogProductCombo
@@ -1093,7 +1103,7 @@ export function SellerQuotationCreatePage() {
                 </div>
                 <div className="th-seller-order-create__quick-add">
                   <span className="th-seller-order-create__label" id={`${fid}-quick-cus-label`}>
-                    Thêm hàng custom đại lý
+                    Thêm {SELLER_CUSTOM_KIND_LABEL.toLowerCase()} theo đại lý
                   </span>
                   <div className="th-seller-order-create__quick-add-combo">
                     <CatalogProductCombo
@@ -1104,21 +1114,6 @@ export function SellerQuotationCreatePage() {
                       onSelect={(productId) => addProductLine(productId, 'agency_custom')}
                     />
                   </div>
-                </div>
-                <div className="th-seller-order-create__line-actions">
-                  <button
-                    type="button"
-                    className="th-seller-order-create__btn-ghost"
-                    disabled={!firstStandardCatalogId}
-                    onClick={() =>
-                      firstStandardCatalogId && addProductLine(firstStandardCatalogId, 'standard')
-                    }
-                  >
-                    <span className="material-symbols-outlined" aria-hidden>
-                      add_shopping_cart
-                    </span>
-                    Thêm dòng catalog đầu tiên
-                  </button>
                 </div>
               </div>
 
@@ -1136,6 +1131,9 @@ export function SellerQuotationCreatePage() {
                       <th scope="col" className="th-seller-order-create__col-money">
                         Đơn giá
                       </th>
+                      <th scope="col" className="th-seller-order-create__col-num">
+                        CK %
+                      </th>
                       <th scope="col" className="th-seller-order-create__col-money">
                         Thành tiền
                       </th>
@@ -1146,14 +1144,15 @@ export function SellerQuotationCreatePage() {
                   <tbody>
                     {lines.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="th-seller-order-create__empty">
-                          Chưa có sản phẩm. Chọn catalog hoặc custom ở trên, hoặc bấm Thêm dòng catalog đầu
-                          tiên.
+                        <td colSpan={10} className="th-seller-order-create__empty">
+                          Chưa có sản phẩm. Chọn {SELLER_CATALOG_KIND_LABEL.toLowerCase()} hoặc{' '}
+                          {SELLER_CUSTOM_KIND_LABEL.toLowerCase()} ở ô thêm phía trên.
                         </td>
                       </tr>
                     ) : (
                       lines.map((ln, idx) => {
-                        const lineTotal = Math.max(0, ln.qty) * Math.max(0, ln.unitPriceVnd)
+                        const lineTotal = lineTotalVnd(ln)
+                        const effectiveUnit = lineEffectiveUnitPriceVnd(ln)
                         return (
                           <tr key={ln.id}>
                             <td>{idx + 1}</td>
@@ -1165,19 +1164,11 @@ export function SellerQuotationCreatePage() {
                                     : 'th-seller-order-create__badge th-seller-order-create__badge--cat'
                                 }
                               >
-                                {ln.lineSource === 'agency_custom' ? 'Custom' : 'Catalog'}
+                                {sellerQuotationLineSourceLabel(ln.lineSource)}
                               </span>
                             </td>
                             <td className="th-seller-order-create__cell-name">
-                              <CatalogProductCombo
-                                instanceId={`${fid}-line-${ln.id}`}
-                                products={
-                                  ln.lineSource === 'agency_custom' ? customProducts : standardProducts
-                                }
-                                variant="table"
-                                selectedProductId={ln.productId}
-                                onSelect={(productId) => onChangeCatalogProduct(ln.id, productId)}
-                              />
+                              <span className="th-seller-order-create__line-name">{ln.productName}</span>
                             </td>
                             <td>
                               <code className="th-seller-order-create__sku">{ln.sku}</code>
@@ -1196,18 +1187,33 @@ export function SellerQuotationCreatePage() {
                               />
                             </td>
                             <td className="th-seller-order-create__col-money">
+                              <span
+                                className="th-seller-order-create__money-readonly"
+                                title="Đơn giá niêm yết — chỉnh qua chiết khấu %"
+                              >
+                                {formatVND(ln.unitPriceVnd)}
+                              </span>
+                              {ln.discountPercent > 0 ? (
+                                <span className="th-seller-order-create__price-effective">
+                                  Sau CK: {formatVND(effectiveUnit)}
+                                </span>
+                              ) : null}
+                            </td>
+                            <td className="th-seller-order-create__col-num">
                               <input
-                                className="th-seller-order-create__input th-seller-order-create__input--num"
+                                className="th-seller-order-create__input th-seller-order-create__input--num th-seller-order-create__input--pct"
                                 type="number"
                                 min={0}
-                                step={1000}
-                                value={ln.unitPriceVnd}
+                                max={100}
+                                step={0.01}
+                                value={ln.discountPercent === 0 ? '' : ln.discountPercent}
                                 onChange={(e) =>
                                   patchLine(ln.id, {
-                                    unitPriceVnd: Math.max(0, Number(e.target.value) || 0),
+                                    discountPercent: parseDiscountPercentField(e.target.value),
                                   })
                                 }
-                                aria-label={`Đơn giá dòng ${idx + 1}`}
+                                aria-label={`Chiết khấu % dòng ${idx + 1}`}
+                                placeholder="0"
                               />
                             </td>
                             <td className="th-seller-order-create__col-money">
@@ -1253,16 +1259,19 @@ export function SellerQuotationCreatePage() {
               <div className="th-seller-order-create__grid">
                 <div className="th-seller-order-create__field">
                   <label className="th-seller-order-create__label" htmlFor={`${fid}-disc`}>
-                    Chiết khấu đơn (VND)
+                    Chiết khấu thêm (VND)
                   </label>
                   <input
                     id={`${fid}-disc`}
-                    className="th-seller-order-create__input"
-                    type="number"
-                    min={0}
-                    step={100_000}
-                    value={discountVnd}
-                    onChange={(e) => setDiscountVnd(Math.max(0, Number(e.target.value) || 0))}
+                    className="th-seller-order-create__input th-seller-order-create__input--money"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={vndInputDisplay(discountVnd)}
+                    onChange={(e) =>
+                      setDiscountVnd(parseVndField(normalizeVndInputTyping(e.target.value)))
+                    }
+                    placeholder="0"
                   />
                 </div>
                 <div className="th-seller-order-create__field">
@@ -1271,12 +1280,15 @@ export function SellerQuotationCreatePage() {
                   </label>
                   <input
                     id={`${fid}-ship`}
-                    className="th-seller-order-create__input"
-                    type="number"
-                    min={0}
-                    step={100_000}
-                    value={shippingFeeVnd}
-                    onChange={(e) => setShippingFeeVnd(Math.max(0, Number(e.target.value) || 0))}
+                    className="th-seller-order-create__input th-seller-order-create__input--money"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={vndInputDisplay(shippingFeeVnd)}
+                    onChange={(e) =>
+                      setShippingFeeVnd(parseVndField(normalizeVndInputTyping(e.target.value)))
+                    }
+                    placeholder="0"
                   />
                 </div>
                 <div className="th-seller-order-create__field th-seller-order-create__field--full">
@@ -1332,12 +1344,6 @@ export function SellerQuotationCreatePage() {
               <h2 id={`${fid}-aside-sum`} className="th-seller-order-create__summary-title">
                 Tóm tắt
               </h2>
-              <p className="th-seller-order-create__summary-kind">
-                <span className="th-seller-order-create__summary-kind-label">Loại báo giá</span>
-                <span className="th-seller-order-create__summary-kind-badge th-seller-order-create__summary-kind-badge--ready_made">
-                  Đơn sẵn
-                </span>
-              </p>
               {selectedAgency ? (
                 <>
                   <dl className="th-seller-order-create__agency-dl">
@@ -1429,7 +1435,7 @@ export function SellerQuotationCreatePage() {
                   <strong>{formatVND(subtotalVnd)}</strong>
                 </li>
                 <li>
-                  <span>Chiết khấu</span>
+                  <span>Chiết khấu thêm</span>
                   <strong>−{formatVND(discountVnd)}</strong>
                 </li>
                 <li>
@@ -1441,21 +1447,19 @@ export function SellerQuotationCreatePage() {
                   <strong>{formatVND(grandTotalVnd)}</strong>
                 </li>
               </ul>
-              <p className="th-seller-order-create__sum-foot">
-                {linesMatchingKind.length} dòng hợp lệ
-                {!canSubmitOrder ? (
-                  <>
-                    <br />
-                    <span className="th-seller-order-create__sum-warn">
-                      {!agencyId
-                        ? 'Chọn khách sỉ.'
+              {!canSubmitOrder ? (
+                <p className="th-seller-order-create__sum-foot">
+                  <span className="th-seller-order-create__sum-warn">
+                    {!agencyId
+                      ? 'Chọn khách sỉ.'
+                      : !quotationValidUntil.trim()
+                        ? 'Chọn hạn báo giá.'
                         : linesMatchingKind.length === 0
                           ? 'Thêm ít nhất một dòng sản phẩm.'
-                          : 'Kiểm tra lại thông tin.'}
-                    </span>
-                  </>
-                ) : null}
-              </p>
+                          : quotationValidUntilError ?? 'Kiểm tra lại thông tin.'}
+                  </span>
+                </p>
+              ) : null}
             </div>
           </aside>
         </div>

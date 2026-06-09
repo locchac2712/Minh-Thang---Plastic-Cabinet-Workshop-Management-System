@@ -1,0 +1,138 @@
+.th-sod-deliver-dlg__summary {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #334155;
+  line-height: 1.55;
+}
+
+.th-sod-deliver-dlg__task-id {
+  margin: 0.5rem 0 1rem;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.th-sod-deliver-dlg__task-id code {
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+.th-sod-deliver-dlg__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.th-sod-deliver-dlg__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+}
+
+.th-sod-deliver-dlg__req {
+  color: #dc2626;
+}
+
+.th-sod-deliver-dlg__textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  padding: 0.55rem 0.65rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  resize: vertical;
+}
+
+.th-sod-deliver-dlg__textarea:focus {
+  outline: 2px solid rgba(5, 150, 105, 0.35);
+  outline-offset: 1px;
+}
+
+.th-sod-deliver-dlg__link-btn {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #0284c7;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.th-sod-deliver-dlg__link-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.th-sod-deliver-dlg__upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.th-sod-deliver-dlg__file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.th-sod-deliver-dlg__upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: #0369a1;
+  background: #f0f9ff;
+  border: 1px dashed rgba(2, 132, 199, 0.45);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.th-sod-deliver-dlg__upload-btn .material-symbols-outlined {
+  font-size: 1.1rem;
+}
+
+.th-sod-deliver-dlg__file-name {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.th-sod-deliver-dlg__hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.th-sod-deliver-dlg__preview {
+  margin-top: 0.35rem;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  max-width: 100%;
+}
+
+.th-sod-deliver-dlg__preview img {
+  display: block;
+  width: 100%;
+  max-height: 10rem;
+  object-fit: cover;
+}
+
+.th-sod-deliver-dlg .th-admin-users__api-error {
+  margin-top: 0;
+}

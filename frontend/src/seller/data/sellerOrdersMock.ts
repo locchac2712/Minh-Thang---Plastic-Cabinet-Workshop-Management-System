@@ -9,11 +9,26 @@ import {
   SELLER_MY_AGENCY_ROWS,
 } from './sellerAgenciesMock'
 
+export type SellerOrderLineKind = 'catalog' | 'custom'
+
 /** Phân loại đơn cấp đơn hàng — đơn sẵn (catalog) vs custom (thiết kế riêng). */
 export type SellerOrderKind = SellerAgencyOrderMock['orderKind']
 
+/** Nhãn UI: hàng chuẩn (catalog) / thiết kế riêng (custom). */
+export const SELLER_CATALOG_KIND_LABEL = 'Hàng chuẩn'
+export const SELLER_CUSTOM_KIND_LABEL = 'Thiết kế riêng'
+
 export function sellerOrderKindLabel(kind: SellerOrderKind): string {
-  return kind === 'ready_made' ? 'Đơn sẵn' : 'Custom'
+  return kind === 'ready_made' ? 'Đơn sẵn' : SELLER_CUSTOM_KIND_LABEL
+}
+
+export function sellerOrderLineKindLabel(kind: SellerOrderLineKind): string {
+  return kind === 'catalog' ? SELLER_CATALOG_KIND_LABEL : SELLER_CUSTOM_KIND_LABEL
+}
+
+/** Nguồn dòng trên form báo giá (standard = catalog, agency_custom = custom theo đại lý). */
+export function sellerQuotationLineSourceLabel(source: 'standard' | 'agency_custom'): string {
+  return source === 'agency_custom' ? SELLER_CUSTOM_KIND_LABEL : SELLER_CATALOG_KIND_LABEL
 }
 
 /** Trạng thái hiển thị badge — mock (snake) + API (slug từ Draft/Pending/…) */
@@ -52,6 +67,10 @@ export type SellerOrderListRow = {
   discountVnd: number
   status: SellerOrderListRowStatus
   orderKind: SellerOrderKind
+  /** Báo giá gốc khi đơn tạo từ copy (API) */
+  sourceOrderId?: string | null
+  sourceDisplayCode?: string | null
+  recordKind?: 'quotation' | 'fulfillment' | null
 }
 
 function buildSellerOrderRows(): SellerOrderListRow[] {
@@ -85,7 +104,6 @@ export function findSellerOrderByCode(orderCode: string): SellerOrderListRow | u
   return SELLER_ORDER_ROWS.find((r) => r.orderCode === orderCode)
 }
 
-export type SellerOrderLineKind = 'catalog' | 'custom'
 
 export type SellerOrderLineItem = {
   lineNo: number
@@ -98,6 +116,9 @@ export type SellerOrderLineItem = {
   unitCostAtTimeVnd?: number
   lineTotalVnd: number
   lineNote?: string
+  /** API — tiến độ giao MTO */
+  deliveredQty?: number
+  remainingToDeliver?: number
 }
 
 export type SellerOrderTimelineEvent = {
@@ -123,6 +144,10 @@ export type SellerOrderDetail = SellerOrderListRow & {
   depositVnd: number
   balanceDueVnd: number
   expectedDeliveryDate: string | null
+  quotationValidUntil: string | null
+  /** Đơn/báo giá gốc khi tạo từ copy UI */
+  sourceOrderId?: string | null
+  sourceDisplayCode?: string | null
   factoryWindow: string | null
   deliveryMethod: string
   internalNote: string
@@ -275,6 +300,14 @@ export function getSellerOrderDetail(orderCode: string): SellerOrderDetail | und
         : row.status === 'shipping'
           ? '2025-04-11'
           : '2025-04-18',
+    quotationValidUntil:
+      row.status === 'draft' || row.status === 'pending' || row.status === 'pending_approval'
+        ? h % 4 === 0
+          ? '2025-04-01'
+          : h % 4 === 1
+            ? '2026-12-31'
+            : null
+        : null,
     factoryWindow:
       row.status === 'producing' || row.status === 'shipping'
         ? 'Chuyền ráp 2 — tuần 15/2025 (mock)'

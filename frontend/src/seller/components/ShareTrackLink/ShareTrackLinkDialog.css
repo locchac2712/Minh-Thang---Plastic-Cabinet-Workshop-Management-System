@@ -1,0 +1,136 @@
+.th-share-track__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.4rem 0.65rem;
+  font: inherit;
+  font-size: var(--th-text-sm);
+  cursor: pointer;
+  color: #334155;
+}
+
+.th-share-track__btn:hover:not(:disabled) {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.th-share-track__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.th-share-track__btn .material-symbols-outlined {
+  font-size: 1.1rem;
+}
+
+.th-share-track__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.th-share-track__dialog {
+  width: min(100%, 28rem);
+  background: #fff;
+  border-radius: 14px;
+  padding: 1rem 1.15rem 1.15rem;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+}
+
+.th-share-track__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.th-share-track__head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.th-share-track__subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.th-share-track__close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #64748b;
+  padding: 0.2rem;
+  border-radius: 8px;
+}
+
+.th-share-track__close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.th-share-track__lead {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.th-share-track__url-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.th-share-track__url {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.5rem 0.65rem;
+  font: inherit;
+  font-size: 0.8rem;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+.th-share-track__copy {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 10px;
+  padding: 0.5rem 0.85rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.th-share-track__copy:hover {
+  background: #1e40af;
+}
+
+.th-share-track__expiry,
+.th-share-track__note,
+.th-share-track__muted {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.th-share-track__error {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #b91c1c;
+}

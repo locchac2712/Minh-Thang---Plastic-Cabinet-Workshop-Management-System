@@ -1,24 +1,41 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { App } from 'antd'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { SellerQuotationListDto, SellerQuotationStatus } from '../sellerQuotationsApi'
 import { SellerPushProductionDialog } from '../components/SellerPushProductionDialog'
+import { SellerSubmitOrderDialog } from '../components/SellerSubmitOrderDialog'
+import { SellerMarkDoneDialog } from '../components/SellerMarkDoneDialog'
+import { SellerCancelOrderDialog } from '../components/SellerCancelOrderDialog'
+import { SellerDeliverBatchDialog } from '../components/SellerDeliverBatchDialog'
+import { ShareTrackLinkDialog } from '../components/ShareTrackLink/ShareTrackLinkDialog'
+import { SellerOrderDeliverBatchSection } from '../components/SellerOrderDeliverBatchSection/SellerOrderDeliverBatchSection'
+import { SellerOrderFulfillmentPanel, SellerOrderFulfillmentStrip } from '../components/SellerOrderFulfillmentPanel/SellerOrderFulfillmentPanel'
+import { OrderProductionTaskTimeline } from '../../shared/productionProgress/OrderProductionTaskTimeline'
 import { formatVND } from '../../admin/partners/agencyModel'
+import {
+  normalizeVndInputTyping,
+  parseVndInput,
+} from '../../shared/money/vndInput'
 import { sellerPaths } from '../config/sellerPaths'
 import {
   getSellerFactoryProgress,
   getSellerOrderDetail,
   sellerOrderKindLabel,
+  sellerOrderLineKindLabel,
   sellerOrderRowStatusLabel,
   type SellerOrderDetail,
-  type SellerOrderListRowStatus,
 } from '../data/sellerOrdersMock'
 import { SELLER_LOGIN_NAME } from '../data/sellerAgenciesMock'
 import { fetchSellerAgencies } from '../sellerAgenciesApi'
 import {
   createSellerOrderPayment,
+  createSellerTaskShareLink,
+  cancelSellerOrder,
   fetchSellerOrderProductionTasks,
   fetchSellerOrderPayments,
   fetchSellerOrderById,
+  fetchSellerOrderFulfillment,
+  canMarkOrderDoneFromFulfillment,
   mapSellerOrderDtoToDetail,
   markSellerOrderDone,
   pushSellerOrderToProduction,
@@ -29,17 +46,69 @@ import {
   type SellerOrderListDto,
   type SellerOrderProductionTaskDto,
   type SellerOrderPaymentDto,
+  type OrderFulfillmentSummaryDto,
 } from '../sellerOrdersApi'
 import {
   fetchSellerQuotationById,
+  fetchSellerQuotationOrders,
   inferQuotationStatusFromOrder,
   resolveQuotationPipeline,
 } from '../sellerQuotationsApi'
+import { formatDateVi } from '../../shared/formatDateVi'
+import {
+  isQuotationExpired,
+  quotationValidityContextHint,
+  todayIsoDate,
+  validateQuotationValidUntilInput,
+} from '../sellerQuotationValidity'
+import {
+  derivePhaseFlags,
+  quotationStatusLabel,
+  quotationStatusPillClass,
+  resolvePhaseHandoffBanner,
+  shortOrderRef,
+  showCopyToOrderAction,
+  showQuotationCancelAction,
+  showQuotationSubmitAction,
+  type SellerOrderDetailVariant,
+} from '../sellerOrderDetailPhase'
+import {
+  buildFromOrderDto,
+  writeQuotationOrderCopyPrefill,
+} from '../quotationOrderCopyPrefill'
+import { isBackendDisplayCode, isBackendOrderRef } from '../sellerOrderRef'
+import { fetchSellerProducts } from '../sellerProductsApi'
+import {
+  effectiveUnitFromListAndPercent,
+  parseDiscountPercentField,
+  resolveDiscountPercentForStored,
+} from '../sellerQuotationLinePricing'
+import {
+  formatSellerPaymentRef,
+  hasConfirmedSellerPayment,
+  SellerPaymentProofThumb,
+  sellerPaymentMethodLabel,
+  sellerPaymentStatusClass,
+  sellerPaymentStatusLabel,
+} from '../sellerPaymentDisplay'
+import {
+  AgencyOrderHistoryTable,
+  mapApiOrderToAgencyOrderRow,
+} from '../../admin/partners/AgencyOrderHistoryTable'
+import type { AgencyOrderRow } from '../../admin/partners/agencyDetailMock'
 import { getAccessToken, getTokenType } from '../../auth/storage'
 import '../../admin/pages/AdminUsersPage.css'
 import './SellerOrderDetailPage.css'
+import './SellerOrderCreatePage.css'
 
-type SellerOrderDetailVariant = 'order' | 'quotation'
+type DraftEditItem = CreateSellerOrderPayload['items'][number] & {
+  listUnitPriceVnd?: number
+  discountPercent?: number
+}
+
+type DraftEditFormState = Omit<CreateSellerOrderPayload, 'items'> & {
+  items: DraftEditItem[]
+}
 
 function escapeHtmlText(text: string): string {
   return text
@@ -58,7 +127,7 @@ function buildSellerOrderPrintDocumentHtml(
   const itemsSum = detail.items.reduce((s, x) => s + x.lineTotalVnd, 0)
   const rows = detail.items
     .map((line) => {
-      const kind = line.kind === 'custom' ? 'Custom' : 'Catalog'
+      const kind = sellerOrderLineKindLabel(line.kind)
       const note = line.lineNote ? ` — ${escapeHtmlText(line.lineNote)}` : ''
       const cost =
         line.unitCostAtTimeVnd != null ? escapeHtmlText(formatVND(line.unitCostAtTimeVnd)) : '—'
@@ -78,6 +147,15 @@ function buildSellerOrderPrintDocumentHtml(
   const internalNoteBlock =
     detail.internalNote && detail.internalNote.trim() && detail.internalNote !== '—'
       ? `<p style="margin-top:16px"><strong>Ghi chú:</strong> ${escapeHtmlText(detail.internalNote)}</p>`
+      : ''
+
+  const validityBlock =
+    variant === 'quotation'
+      ? `<p style="margin-top:8px"><strong>Hạn báo giá:</strong> ${
+          detail.quotationValidUntil?.trim()
+            ? escapeHtmlText(formatDateVi(detail.quotationValidUntil))
+            : 'Không giới hạn'
+        }</p>`
       : ''
 
   return `<!DOCTYPE html>
@@ -131,7 +209,7 @@ function buildSellerOrderPrintDocumentHtml(
     <tbody>${rows}</tbody>
     <tfoot>
       <tr>
-        <td colspan="7" style="text-align:right;font-weight:600">Cộng các dòng</td>
+        <td colspan="7" style="text-align:right;font-weight:600">TỔNG</td>
         <td class="num">${escapeHtmlText(formatVND(itemsSum))}</td>
       </tr>
     </tfoot>
@@ -153,43 +231,29 @@ function buildSellerOrderPrintDocumentHtml(
     </table>
   </div>
   ${internalNoteBlock}
+  ${validityBlock}
 </body>
 </html>`
 }
 
 function isSellerBackendOrderIdParam(s: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.trim())
+  return isBackendOrderRef(s)
 }
 
 /**
- * Chỉ hiển thị từ xưởng đang ráp trở đi (không còn Nháp / Chờ duyệt trên thanh tiến độ).
- * draft · pending · approved: chưa vào xưởng → cả 3 bước đều upcoming (stepIndex -1).
+ * Pipeline vận hành đơn: Chờ đẩy SX → Xưởng → Giao → Hoàn tất.
  */
-const ORDER_FACTORY_PIPELINE_STEP_BY_STATUS: Partial<Record<SellerOrderListRowStatus, number>> = {
-  draft: -1,
-  pending: -1,
-  pending_approval: -1,
-  approved: -1,
-  producing: 0,
-  shipping: 1,
-  done: 2,
-  canceled: -1,
-}
-
-const ORDER_FACTORY_PIPELINE: { status: SellerOrderDetail['status']; label: string; hint: string }[] = [
-  { status: 'producing', label: 'Xưởng ráp', hint: 'BOM — thợ thi công' },
-  { status: 'shipping', label: 'Giao hàng', hint: 'Xe tải / nhận tại kho' },
-  { status: 'done', label: 'Hoàn tất', hint: 'Nghiệm thu — công nợ' },
+const ORDER_OPERATIONS_PIPELINE: { label: string; hint: string }[] = [
+  { label: 'Chờ đẩy SX', hint: 'Duyệt xong — đẩy lệnh xưởng' },
+  { label: 'Xưởng ráp', hint: 'BOM — thợ thi công' },
+  { label: 'Giao hàng', hint: 'Xe tải / nhận tại kho' },
+  { label: 'Hoàn tất', hint: 'Nghiệm thu — công nợ' },
 ]
 
-function agencyInitials(shortName: string): string {
-  const p = shortName.trim().split(/\s+/)
-  if (p.length >= 2) {
-    const a = p[0]?.[0]
-    const b = p[p.length - 1]?.[0]
-    if (a && b) return (a + b).toUpperCase()
-  }
-  return shortName.slice(0, 2).toUpperCase() || 'KH'
+
+function hasContactValue(value: string): boolean {
+  const t = value.trim()
+  return t.length > 0 && t !== '—'
 }
 
 export function SellerOrderDetailInner({
@@ -199,11 +263,14 @@ export function SellerOrderDetailInner({
   variant: SellerOrderDetailVariant
   orderCode: string
 }) {
+  const { message } = App.useApp()
+  const navigate = useNavigate()
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://be.minhthangerp.space'
   const [searchParams, setSearchParams] = useSearchParams()
   const isUuidParam = Boolean(orderCode && isSellerBackendOrderIdParam(orderCode))
 
   const [apiDetail, setApiDetail] = useState<SellerOrderDetail | null>(null)
+  const [apiOrderDto, setApiOrderDto] = useState<SellerOrderListDto | null>(null)
   const [quotationStatus, setQuotationStatus] = useState<SellerQuotationStatus | null>(null)
   const [orderApiStatus, setOrderApiStatus] = useState<SellerApiOrderStatus | null>(null)
   /** Phải true ngay khi vào URL UUID — nếu false ở frame đầu, `!detail` sẽ redirect về list trước khi fetch chạy. */
@@ -211,13 +278,18 @@ export function SellerOrderDetailInner({
   const [apiError, setApiError] = useState<string | null>(null)
 
   const [draftEditOpen, setDraftEditOpen] = useState(false)
-  const [draftEditForm, setDraftEditForm] = useState<CreateSellerOrderPayload | null>(null)
+  const [draftEditForm, setDraftEditForm] = useState<DraftEditFormState | null>(null)
+  const [catalogListPriceByProductId, setCatalogListPriceByProductId] = useState<
+    Record<string, number>
+  >({})
   const [draftEditSaving, setDraftEditSaving] = useState(false)
   const [draftEditError, setDraftEditError] = useState<string | null>(null)
   const [draftAgencyOptions, setDraftAgencyOptions] = useState<
     { id: string; shortName: string; code: string }[]
   >([])
   const [submitOrderLoading, setSubmitOrderLoading] = useState(false)
+  const [submitOrderOpen, setSubmitOrderOpen] = useState(false)
+  const [submitOrderError, setSubmitOrderError] = useState<string | null>(null)
   const [pushProductionOpen, setPushProductionOpen] = useState(false)
   const [pushProductionLoading, setPushProductionLoading] = useState(false)
   const [pushProductionError, setPushProductionError] = useState<string | null>(null)
@@ -232,13 +304,31 @@ export function SellerOrderDetailInner({
   const [newPayAmount, setNewPayAmount] = useState('')
   const [newPayMethod, setNewPayMethod] = useState('')
   const [newPayNote, setNewPayNote] = useState('')
-  const [newPayImageUrl, setNewPayImageUrl] = useState('')
   const [newPayImageFile, setNewPayImageFile] = useState<File | null>(null)
   const [newPaySubmitting, setNewPaySubmitting] = useState(false)
   const [newPayError, setNewPayError] = useState<string | null>(null)
   const [factoryTasksLoading, setFactoryTasksLoading] = useState(false)
   const [factoryTasksError, setFactoryTasksError] = useState<string | null>(null)
   const [factoryTasks, setFactoryTasks] = useState<SellerOrderProductionTaskDto[]>([])
+  const [selectedFactoryTaskId, setSelectedFactoryTaskId] = useState<string | null>(null)
+  const [fulfillment, setFulfillment] = useState<OrderFulfillmentSummaryDto | null>(null)
+  const [fulfillmentLoading, setFulfillmentLoading] = useState(false)
+  const [fulfillmentError, setFulfillmentError] = useState<string | null>(null)
+  const [fulfillmentRefreshKey, setFulfillmentRefreshKey] = useState(0)
+  const [quotationChildRows, setQuotationChildRows] = useState<AgencyOrderRow[]>([])
+  const [quotationChildTotal, setQuotationChildTotal] = useState(0)
+  const [quotationChildLoading, setQuotationChildLoading] = useState(false)
+  const [quotationChildError, setQuotationChildError] = useState<string | null>(null)
+  const [deliverBatchTask, setDeliverBatchTask] = useState<SellerOrderProductionTaskDto | null>(null)
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [shareExpiresAt, setShareExpiresAt] = useState<string | null>(null)
+  const [shareError, setShareError] = useState<string | null>(null)
+  const [shareLoadingTaskId, setShareLoadingTaskId] = useState<string | null>(null)
+  const [shareBatch, setShareBatch] = useState<SellerOrderProductionTaskDto | null>(null)
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [cancelLoading, setCancelLoading] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
 
   const mockDetail = useMemo(
     () =>
@@ -251,6 +341,7 @@ export function SellerOrderDetailInner({
   useEffect(() => {
     if (!isUuidParam || !orderCode) {
       setApiDetail(null)
+      setApiOrderDto(null)
       setApiError(null)
       setApiLoading(false)
       setOrderApiStatus(null)
@@ -266,6 +357,7 @@ export function SellerOrderDetailInner({
           const d = await fetchSellerQuotationById(orderCode)
           if (!cancelled) {
             setApiDetail(mapSellerOrderDtoToDetail(d))
+            setApiOrderDto(d)
             setOrderApiStatus(d.status)
             setQuotationStatus(d.quotationStatus ?? inferQuotationStatusFromOrder(d))
           }
@@ -273,12 +365,14 @@ export function SellerOrderDetailInner({
           const dto = await fetchSellerOrderById(orderCode)
           if (!cancelled) {
             setApiDetail(mapSellerOrderDtoToDetail(dto))
+            setApiOrderDto(dto)
             setOrderApiStatus(dto.status)
           }
         }
       } catch (e) {
         if (!cancelled) {
           setApiDetail(null)
+          setApiOrderDto(null)
           setOrderApiStatus(null)
           setQuotationStatus(null)
           setApiError(
@@ -324,15 +418,83 @@ export function SellerOrderDetailInner({
     }
   }, [draftEditOpen])
 
+  useEffect(() => {
+    if (variant !== 'quotation' || !apiDetail?.orderDetailSource || apiDetail.orderDetailSource !== 'api') {
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      try {
+        const map: Record<string, number> = {}
+        const std = await fetchSellerProducts({ page: 0, size: 500, is_active: true, is_custom: false })
+        for (const p of std.content) map[p.id] = p.price
+        const agencyId = apiDetail.agencyId
+        if (agencyId) {
+          const custom = await fetchSellerProducts({
+            page: 0,
+            size: 500,
+            is_active: true,
+            is_custom: true,
+            agency_id: agencyId,
+          })
+          for (const p of custom.content) map[p.id] = p.price
+        }
+        if (!cancelled) setCatalogListPriceByProductId(map)
+      } catch {
+        if (!cancelled) setCatalogListPriceByProductId({})
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [variant, apiDetail?.orderDetailSource, apiDetail?.agencyId, apiDetail?.orderCode])
+
   const detail = apiDetail ?? mockDetail
 
-  /** Tiến độ đơn hàng: chỉ 3 bước xưởng → giao → hoàn tất. */
-  const orderFactoryStepIndex = useMemo(() => {
-    if (!detail) return -1
-    const fromMap = ORDER_FACTORY_PIPELINE_STEP_BY_STATUS[detail.status]
-    if (fromMap !== undefined) return fromMap
-    return ORDER_FACTORY_PIPELINE.findIndex((p) => p.status === detail.status)
-  }, [detail])
+  const phaseFlags = useMemo(
+    () =>
+      detail
+        ? derivePhaseFlags({
+            variant,
+            orderApiStatus,
+            detailStatus: detail.status,
+          })
+        : null,
+    [detail, orderApiStatus, variant],
+  )
+
+  const phaseHandoffBanner = useMemo(
+    () => (phaseFlags ? resolvePhaseHandoffBanner(phaseFlags) : null),
+    [phaseFlags],
+  )
+
+  const showOrderOperations = phaseFlags?.showOrderOperations ?? variant === 'order'
+  const showQuotationActions = phaseFlags?.showQuotationActions ?? false
+  const showPhaseHandoffBanner = phaseFlags?.showPhaseHandoffBanner ?? false
+  const showQuotationPaymentSummary = phaseFlags?.showQuotationPaymentSummary ?? true
+  const showOrderQuotationLink = phaseFlags?.showOrderQuotationLink ?? false
+  const hideLineCostColumn = variant === 'quotation'
+  const showLineDeliveryColumns =
+    showOrderOperations &&
+    (detail?.status === 'producing' || detail?.status === 'done') &&
+    detail?.orderDetailSource === 'api'
+
+  const showCopyToOrder = showCopyToOrderAction(
+    variant,
+    orderApiStatus,
+    detail?.quotationValidUntil,
+  )
+
+  const handleCopyToOrder = useCallback(() => {
+    if (!apiOrderDto) return
+    const payload = buildFromOrderDto(apiOrderDto)
+    if (!payload) {
+      message.error('Không thể tạo đơn từ báo giá này')
+      return
+    }
+    writeQuotationOrderCopyPrefill(payload)
+    navigate(sellerPaths.orderNew, { state: { quotationOrderCopyPrefill: payload } })
+  }, [apiOrderDto, message, navigate])
 
   const factoryProgress = useMemo(
     () => (detail ? getSellerFactoryProgress(detail.orderCode, detail.status) : null),
@@ -349,43 +511,231 @@ export function SellerOrderDetailInner({
     [factoryTasks],
   )
 
+  useEffect(() => {
+    if (factoryTasksOrdered.length === 0) {
+      setSelectedFactoryTaskId(null)
+      return
+    }
+    setSelectedFactoryTaskId((prev) =>
+      prev && factoryTasksOrdered.some((t) => t.taskId === prev)
+        ? prev
+        : factoryTasksOrdered[0]!.taskId,
+    )
+  }, [factoryTasksOrdered])
+
+  const canMarkOrderDone = useMemo(
+    () => canMarkOrderDoneFromFulfillment(fulfillment),
+    [fulfillment],
+  )
+
+  const markDoneAllowed = canMarkOrderDone || Boolean(fulfillmentError)
+
+  const hasDeliveryProgress = useMemo(() => {
+    if (factoryTasks.some((t) => t.deliveredAt)) return true
+    if (fulfillment?.lines?.some((l) => l.deliveredQuantity > 0)) return true
+    return false
+  }, [factoryTasks, fulfillment])
+
+  const loadFactoryTasks = useCallback(async () => {
+    if (!isUuidParam || !orderCode) return
+    setFactoryTasksLoading(true)
+    setFactoryTasksError(null)
+    try {
+      const tasks = await fetchSellerOrderProductionTasks(orderCode)
+      setFactoryTasks(tasks)
+    } catch (e) {
+      setFactoryTasks([])
+      setFactoryTasksError(e instanceof Error ? e.message : 'Không tải được tiến độ xưởng')
+    } finally {
+      setFactoryTasksLoading(false)
+    }
+  }, [isUuidParam, orderCode])
+
+  const loadFulfillment = useCallback(async () => {
+    if (!isUuidParam || !orderCode) return
+    setFulfillmentLoading(true)
+    setFulfillmentError(null)
+    try {
+      const data = await fetchSellerOrderFulfillment(orderCode)
+      setFulfillment(data)
+    } catch (e) {
+      setFulfillment(null)
+      setFulfillmentError(e instanceof Error ? e.message : 'Không tải được tiến độ giao hàng')
+    } finally {
+      setFulfillmentLoading(false)
+    }
+  }, [isUuidParam, orderCode])
+
+  const refreshFactoryData = useCallback(() => {
+    setFulfillmentRefreshKey((k) => k + 1)
+    void loadFactoryTasks()
+    void loadFulfillment()
+  }, [loadFactoryTasks, loadFulfillment])
+
+  const handleShareTask = useCallback(
+    async (taskId: string) => {
+      if (!isUuidParam || !orderCode) return
+      const task = factoryTasksOrdered.find((t) => t.taskId === taskId) ?? null
+      setShareBatch(task)
+      setShareDialogOpen(true)
+      setShareUrl(null)
+      setShareExpiresAt(null)
+      setShareError(null)
+      setShareLoadingTaskId(taskId)
+      try {
+        const link = await createSellerTaskShareLink(orderCode, taskId)
+        setShareUrl(link.url)
+        setShareExpiresAt(link.expiresAt)
+      } catch (e) {
+        setShareError(e instanceof Error ? e.message : 'Không tạo được link chia sẻ')
+      } finally {
+        setShareLoadingTaskId(null)
+      }
+    },
+    [factoryTasksOrdered, isUuidParam, orderCode],
+  )
+
   const itemsSumVnd = useMemo(
     () => detail?.items.reduce((s, x) => s + x.lineTotalVnd, 0) ?? 0,
     [detail],
   )
 
+  const quotationPricingByLine = useMemo(() => {
+    if (variant !== 'quotation' || !detail?.items.length) return null
+    return detail.items.map((line, idx) => {
+      const productId = detail.apiOrderLinesForEdit?.[idx]?.productId
+      const stored = line.unitPriceVnd
+      const list = productId ? catalogListPriceByProductId[productId] : undefined
+      if (list == null || list <= 0) {
+        return {
+          listUnitPriceVnd: null as number | null,
+          discountPercent: null as number | null,
+          effectiveUnitVnd: stored,
+          driftVnd: 0,
+        }
+      }
+      const { discountPercent, driftVnd } = resolveDiscountPercentForStored(list, stored)
+      return {
+        listUnitPriceVnd: list,
+        discountPercent,
+        effectiveUnitVnd: stored,
+        driftVnd,
+      }
+    })
+  }, [variant, detail, catalogListPriceByProductId])
+
+  const lineTableFootColSpan = useMemo(() => {
+    let cols = 6 + (hideLineCostColumn ? 0 : 1)
+    if (variant === 'quotation') cols += 2
+    if (showLineDeliveryColumns) cols += 2
+    return cols
+  }, [hideLineCostColumn, variant, showLineDeliveryColumns])
+
   const isProducing = detail?.status === 'producing'
-  const detailTab =
-    isProducing && searchParams.get('tab') === 'factory' ? 'factory' : 'detail'
+  const showFactoryUi = showOrderOperations && isProducing
+  const showQuotationApiTabs =
+    variant === 'quotation' && detail?.orderDetailSource === 'api' && isUuidParam
+
+  const detailTab = useMemo(() => {
+    const tab = searchParams.get('tab')
+    if (showFactoryUi && tab === 'factory') return 'factory' as const
+    if (showQuotationApiTabs && tab === 'orders') return 'orders' as const
+    return 'detail' as const
+  }, [searchParams, showFactoryUi, showQuotationApiTabs])
+
+  /** Bước hiện tại trên pipeline vận hành (0–3). */
+  const orderOperationsStepIndex = useMemo(() => {
+    if (!detail) return -1
+    if (detail.status === 'done') return 3
+    if (detail.status === 'approved') return 0
+    if (detail.status === 'shipping') return 2
+    if (detail.status === 'producing') {
+      if (canMarkOrderDone) return 3
+      if (hasDeliveryProgress) return 2
+      return 1
+    }
+    return -1
+  }, [canMarkOrderDone, detail, hasDeliveryProgress])
+
+  /** Stepper inline trên header đơn hàng (thay pipeline box lớn). */
+  const orderOperationsInlineSteps = useMemo(() => {
+    if (variant !== 'order' || !detail) return null
+    if (detail.status === 'canceled') {
+      return [{ label: 'Đã hủy', state: 'skipped' as const }]
+    }
+    if (orderOperationsStepIndex < 0) return null
+    return ORDER_OPERATIONS_PIPELINE.map((p, i) => ({
+      label: p.label,
+      state:
+        orderOperationsStepIndex > i || detail.status === 'done'
+          ? ('done' as const)
+          : i === orderOperationsStepIndex
+            ? ('current' as const)
+            : ('upcoming' as const),
+    }))
+  }, [detail, orderOperationsStepIndex, variant])
 
   useEffect(() => {
-    if (detail?.status !== 'producing' && searchParams.get('tab')) {
+    if (!showFactoryUi && searchParams.get('tab') === 'factory') {
       setSearchParams({}, { replace: true })
     }
-  }, [detail?.status, searchParams, setSearchParams])
+  }, [searchParams, setSearchParams, showFactoryUi])
 
   useEffect(() => {
-    if (!isProducing || detailTab !== 'factory' || !isUuidParam || !orderCode) return
+    if (!showQuotationApiTabs && searchParams.get('tab') === 'orders') {
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, setSearchParams, showQuotationApiTabs])
+
+  useEffect(() => {
+    if (variant !== 'quotation' || detailTab !== 'orders' || !orderCode) return
     let cancelled = false
-    setFactoryTasksLoading(true)
-    setFactoryTasksError(null)
     void (async () => {
+      setQuotationChildLoading(true)
+      setQuotationChildError(null)
       try {
-        const tasks = await fetchSellerOrderProductionTasks(orderCode)
-        if (!cancelled) setFactoryTasks(tasks)
-      } catch (e) {
-        if (!cancelled) {
-          setFactoryTasks([])
-          setFactoryTasksError(e instanceof Error ? e.message : 'Không tải được tiến độ xưởng')
-        }
+        const data = await fetchSellerQuotationOrders(orderCode, { page: 0, size: 50 })
+        if (cancelled) return
+        setQuotationChildRows(data.content.map(mapApiOrderToAgencyOrderRow))
+        setQuotationChildTotal(data.totalElements)
+      } catch (err) {
+        if (cancelled) return
+        setQuotationChildError(err instanceof Error ? err.message : 'Không tải được danh sách đơn')
+        setQuotationChildRows([])
+        setQuotationChildTotal(0)
       } finally {
-        if (!cancelled) setFactoryTasksLoading(false)
+        if (!cancelled) setQuotationChildLoading(false)
       }
     })()
     return () => {
       cancelled = true
     }
-  }, [detailTab, isProducing, isUuidParam, orderCode])
+  }, [variant, detailTab, orderCode])
+
+  useEffect(() => {
+    if (variant !== 'quotation' || !isUuidParam || !orderCode || detail?.orderDetailSource !== 'api') return
+    let cancelled = false
+    void fetchSellerQuotationOrders(orderCode, { page: 0, size: 1 })
+      .then((data) => {
+        if (!cancelled) setQuotationChildTotal(data.totalElements)
+      })
+      .catch(() => {
+        /* badge optional */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [variant, isUuidParam, orderCode, detail?.orderDetailSource])
+
+  useEffect(() => {
+    if (!showFactoryUi || !isUuidParam || !orderCode) return
+    void loadFulfillment()
+  }, [showFactoryUi, isUuidParam, orderCode, loadFulfillment, fulfillmentRefreshKey])
+
+  useEffect(() => {
+    if (!showFactoryUi || detailTab !== 'factory' || !isUuidParam || !orderCode) return
+    void loadFactoryTasks()
+  }, [detailTab, showFactoryUi, isUuidParam, orderCode, loadFactoryTasks, fulfillmentRefreshKey])
 
   const handlePrintQuotation = useCallback(() => {
     if (!detail) return
@@ -417,6 +767,7 @@ export function SellerOrderDetailInner({
   const mergeDtoIntoState = useCallback(
     (dto: SellerOrderListDto) => {
       setApiDetail(mapSellerOrderDtoToDetail(dto))
+      setApiOrderDto(dto)
       setOrderApiStatus(dto.status)
       if (variant === 'quotation') {
         const q = dto as SellerQuotationListDto
@@ -434,6 +785,8 @@ export function SellerOrderDetailInner({
       const dto = await pushSellerOrderToProduction(orderCode)
       mergeDtoIntoState(dto)
       setPushProductionOpen(false)
+      setSearchParams({ tab: 'factory' }, { replace: true })
+      message.success('Đã đẩy đơn xuống sản xuất — xưởng sẽ tạo lô theo kế hoạch')
     } catch (e) {
       setPushProductionError(
         e instanceof Error ? e.message : 'Không đẩy đơn xuống kho sản xuất được',
@@ -441,7 +794,7 @@ export function SellerOrderDetailInner({
     } finally {
       setPushProductionLoading(false)
     }
-  }, [isUuidParam, mergeDtoIntoState, orderCode])
+  }, [isUuidParam, mergeDtoIntoState, orderCode, setSearchParams, message])
 
   const handleMarkDoneConfirm = useCallback(async () => {
     if (!isUuidParam || !orderCode) return
@@ -451,6 +804,7 @@ export function SellerOrderDetailInner({
       const dto = await markSellerOrderDone(orderCode)
       mergeDtoIntoState(dto)
       setMarkDoneOpen(false)
+      message.success('Đã chốt đơn hàng')
     } catch (e) {
       setMarkDoneError(
         e instanceof Error ? e.message : 'Không thể hoàn thành đơn hàng',
@@ -458,7 +812,23 @@ export function SellerOrderDetailInner({
     } finally {
       setMarkDoneLoading(false)
     }
-  }, [isUuidParam, mergeDtoIntoState, orderCode])
+  }, [isUuidParam, mergeDtoIntoState, orderCode, message])
+
+  const handleCancelConfirm = useCallback(async () => {
+    if (!isUuidParam || !orderCode) return
+    setCancelLoading(true)
+    setCancelError(null)
+    try {
+      const dto = await cancelSellerOrder(orderCode)
+      mergeDtoIntoState(dto)
+      setCancelOpen(false)
+      message.success(variant === 'quotation' ? 'Đã hủy báo giá' : 'Đã hủy đơn hàng')
+    } catch (e) {
+      setCancelError(e instanceof Error ? e.message : variant === 'quotation' ? 'Không hủy được báo giá' : 'Không hủy được đơn hàng')
+    } finally {
+      setCancelLoading(false)
+    }
+  }, [isUuidParam, mergeDtoIntoState, orderCode, message, variant])
 
   const loadPaymentHistory = useCallback(async () => {
     if (!isUuidParam || !orderCode) return
@@ -480,11 +850,46 @@ export function SellerOrderDetailInner({
     void loadPaymentHistory()
   }, [loadPaymentHistory, paymentDialogOpen, paymentTab])
 
+  useEffect(() => {
+    if (!isUuidParam || !orderCode || detail?.status !== 'approved') return
+    void loadPaymentHistory()
+  }, [detail?.status, isUuidParam, loadPaymentHistory, orderCode])
+
+  const hasConfirmedPayment = useMemo(
+    () => hasConfirmedSellerPayment(paymentHistoryRows),
+    [paymentHistoryRows],
+  )
+
+  const showPushProductionAction =
+    showOrderOperations &&
+    detail?.status === 'approved' &&
+    detail.orderDetailSource === 'api' &&
+    isUuidParam &&
+    hasConfirmedPayment
+
+  const showPushProductionPaymentGate =
+    showOrderOperations &&
+    detail?.status === 'approved' &&
+    detail.orderDetailSource === 'api' &&
+    isUuidParam &&
+    !paymentHistoryLoading &&
+    !hasConfirmedPayment
+
   const handleCreatePayment = useCallback(async () => {
     if (!isUuidParam || !orderCode || !detail) return
-    const amount = Number(newPayAmount)
-    if (!Number.isFinite(amount) || amount <= 0) {
+    if (detail.status === 'canceled') {
+      setNewPayError('Không thể tạo thanh toán cho đơn đã hủy.')
+      return
+    }
+    const amount = parseVndInput(newPayAmount)
+    if (amount === null || amount <= 0) {
       setNewPayError('Số tiền thanh toán phải lớn hơn 0.')
+      return
+    }
+    if (amount > detail.balanceDueVnd) {
+      setNewPayError(
+        `Số tiền không được vượt còn phải thu của đơn (${formatVND(detail.balanceDueVnd)}).`,
+      )
       return
     }
     const paymentMethod = newPayMethod.trim()
@@ -492,15 +897,16 @@ export function SellerOrderDetailInner({
       setNewPayError('Vui lòng chọn phương thức thanh toán.')
       return
     }
-    const isCash = paymentMethod === 'Tiền mặt'
+    const isTransfer = paymentMethod === 'Chuyển khoản'
+    if (isTransfer && !newPayImageFile) {
+      setNewPayError('Vui lòng upload ảnh chứng từ chuyển khoản.')
+      return
+    }
     setNewPaySubmitting(true)
     setNewPayError(null)
     try {
       let finalProofImage: string | null = null
-      if (!isCash) {
-        finalProofImage = newPayImageUrl.trim() || null
-      }
-      if (!isCash && newPayImageFile) {
+      if (isTransfer && newPayImageFile) {
         const accessToken = getAccessToken()
         if (!accessToken) {
           throw new Error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.')
@@ -537,7 +943,6 @@ export function SellerOrderDetailInner({
       setNewPayAmount('')
       setNewPayMethod('')
       setNewPayNote('')
-      setNewPayImageUrl('')
       setNewPayImageFile(null)
       setPaymentTab('history')
       await loadPaymentHistory()
@@ -553,7 +958,6 @@ export function SellerOrderDetailInner({
     loadPaymentHistory,
     newPayAmount,
     newPayImageFile,
-    newPayImageUrl,
     newPayMethod,
     newPayNote,
     orderCode,
@@ -573,19 +977,34 @@ export function SellerOrderDetailInner({
       shippingFee: detail.shippingFeeVnd,
       shippingAddress: detail.agencyAddress,
       expectedDeliveryDate: detail.expectedDeliveryDate,
+      quotationValidUntil: detail.quotationValidUntil,
       note: detail.internalNote !== '—' && detail.internalNote?.trim() ? detail.internalNote : null,
-      items: detail.apiOrderLinesForEdit.map((li) => ({
-        productId: li.productId,
-        quantity: li.quantity,
-        unitPrice: li.unitPrice,
-      })),
+      items: detail.apiOrderLinesForEdit.map((li) => {
+        if (variant === 'quotation') {
+          const list =
+            catalogListPriceByProductId[li.productId] ?? Math.max(0, li.unitPrice)
+          const { discountPercent } = resolveDiscountPercentForStored(list, li.unitPrice)
+          return {
+            productId: li.productId,
+            quantity: li.quantity,
+            unitPrice: li.unitPrice,
+            listUnitPriceVnd: list,
+            discountPercent,
+          }
+        }
+        return {
+          productId: li.productId,
+          quantity: li.quantity,
+          unitPrice: li.unitPrice,
+        }
+      }),
     })
     setDraftEditError(null)
     setDraftEditOpen(true)
-  }, [detail])
+  }, [catalogListPriceByProductId, detail, variant])
 
   const patchDraftLine = useCallback(
-    (index: number, patch: Partial<CreateSellerOrderPayload['items'][number]>) => {
+    (index: number, patch: Partial<DraftEditItem>) => {
       setDraftEditForm((prev) => {
         if (!prev) return prev
         const items = prev.items.map((it, i) => (i === index ? { ...it, ...patch } : it))
@@ -599,9 +1018,22 @@ export function SellerOrderDetailInner({
     async (e: React.FormEvent) => {
       e.preventDefault()
       if (!draftEditForm || !isUuidParam || !orderCode) return
-      const bad = draftEditForm.items.some((it) => it.quantity <= 0 || it.unitPrice < 0)
+      if (variant === 'quotation') {
+        const validityError = validateQuotationValidUntilInput(draftEditForm.quotationValidUntil)
+        if (validityError) {
+          setDraftEditError(validityError)
+          return
+        }
+      }
+      const bad = draftEditForm.items.some((it) => {
+        if (it.quantity <= 0) return true
+        if (variant === 'quotation') {
+          return (it.listUnitPriceVnd ?? 0) < 0
+        }
+        return it.unitPrice < 0
+      })
       if (bad) {
-        setDraftEditError('Số lượng và đơn giá phải hợp lệ.')
+        setDraftEditError('Số lượng và giá dòng phải hợp lệ.')
         return
       }
       setDraftEditSaving(true)
@@ -613,11 +1045,18 @@ export function SellerOrderDetailInner({
           shippingFee: draftEditForm.shippingFee,
           shippingAddress: draftEditForm.shippingAddress,
           expectedDeliveryDate: draftEditForm.expectedDeliveryDate,
+          quotationValidUntil: draftEditForm.quotationValidUntil,
           note: draftEditForm.note,
           items: draftEditForm.items.map((it) => ({
             productId: it.productId,
             quantity: it.quantity,
-            unitPrice: it.unitPrice,
+            unitPrice:
+              variant === 'quotation' && it.listUnitPriceVnd != null
+                ? effectiveUnitFromListAndPercent(
+                    it.listUnitPriceVnd,
+                    it.discountPercent ?? 0,
+                  )
+                : it.unitPrice,
           })),
         }
         const dto = await updateSellerOrder(orderCode, payload)
@@ -629,31 +1068,39 @@ export function SellerOrderDetailInner({
         setDraftEditSaving(false)
       }
     },
-    [closeDraftEdit, draftEditForm, isUuidParam, mergeDtoIntoState, orderCode],
+    [closeDraftEdit, draftEditForm, isUuidParam, mergeDtoIntoState, orderCode, variant],
   )
 
-  const handleSubmitOrder = useCallback(async () => {
+  const handleSubmitOrderConfirm = useCallback(async () => {
     if (!isUuidParam || !orderCode) return
-    const confirmed = window.confirm(
-      'Gửi đơn lên để duyệt?\n\nSau khi gửi, đơn chuyển sang trạng thái Chờ duyệt và không thể chỉnh sửa nháp nữa.',
-    )
-    if (!confirmed) return
     setSubmitOrderLoading(true)
+    setSubmitOrderError(null)
     try {
       const dto = await submitSellerOrder(orderCode)
       mergeDtoIntoState(dto)
       closeDraftEdit()
+      setSubmitOrderOpen(false)
+      message.success('Đã gửi đơn lên duyệt')
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : 'Không gửi được đơn duyệt')
+      setSubmitOrderError(err instanceof Error ? err.message : 'Không gửi được đơn duyệt')
     } finally {
       setSubmitOrderLoading(false)
     }
-  }, [closeDraftEdit, isUuidParam, mergeDtoIntoState, orderCode])
+  }, [closeDraftEdit, isUuidParam, mergeDtoIntoState, message, orderCode])
 
   const listPath = variant === 'quotation' ? sellerPaths.quotations : sellerPaths.orders
 
   if (!orderCode) {
     return <Navigate to={listPath} replace />
+  }
+
+  if (isBackendDisplayCode(orderCode)) {
+    if (variant === 'quotation' && orderCode.startsWith('DH-')) {
+      return <Navigate to={sellerPaths.order(orderCode)} replace />
+    }
+    if (variant === 'order' && orderCode.startsWith('BG-')) {
+      return <Navigate to={sellerPaths.quotation(orderCode)} replace />
+    }
   }
 
   if (isUuidParam && apiLoading) {
@@ -685,10 +1132,27 @@ export function SellerOrderDetailInner({
     return <Navigate to={listPath} replace />
   }
 
+  const orderRefShort = shortOrderRef(detail.orderCode)
+  const printLabel = variant === 'quotation' ? 'In báo giá' : 'In phiếu đơn'
+  const showPrintAction =
+    variant !== 'quotation' || !isQuotationExpired(detail.quotationValidUntil)
+
   const quotationPipeline =
     variant === 'quotation' && quotationStatus != null && orderApiStatus != null
       ? resolveQuotationPipeline(quotationStatus, orderApiStatus)
       : null
+
+  const draftQuotationValidUntilError =
+    variant === 'quotation' && draftEditOpen && draftEditForm
+      ? validateQuotationValidUntilInput(draftEditForm.quotationValidUntil)
+      : null
+
+  const submitOrderContextHint = (() => {
+    const base = `${detail.agencyShortName} · ${formatVND(detail.grandTotalVnd)}`
+    if (variant !== 'quotation') return base
+    const validityHint = quotationValidityContextHint(detail.quotationValidUntil)
+    return validityHint ? `${base} — ${validityHint}` : base
+  })()
 
   const formatFactoryLogTime = (iso: string) => {
     const t = Date.parse(iso)
@@ -696,8 +1160,25 @@ export function SellerOrderDetailInner({
     return new Date(t).toLocaleString('vi-VN')
   }
 
+  const paymentNewAllowed = variant === 'order' && detail.status !== 'canceled'
+  const effectivePaymentTab = paymentNewAllowed ? paymentTab : 'history'
+
   return (
     <div className="th-seller-order-detail">
+      <SellerSubmitOrderDialog
+        open={submitOrderOpen}
+        orderCode={detail.orderCode}
+        contextHint={submitOrderContextHint}
+        skipDebtCheckHint={variant === 'quotation'}
+        isSubmitting={submitOrderLoading}
+        submitError={submitOrderError}
+        onClose={() => {
+          if (submitOrderLoading) return
+          setSubmitOrderOpen(false)
+          setSubmitOrderError(null)
+        }}
+        onConfirm={() => void handleSubmitOrderConfirm()}
+      />
       <SellerPushProductionDialog
         open={pushProductionOpen}
         orderCode={detail.orderCode}
@@ -711,64 +1192,66 @@ export function SellerOrderDetailInner({
         }}
         onConfirm={() => void handlePushProductionConfirm()}
       />
-      {markDoneOpen ? (
-        <dialog open className="th-dlg" onClick={() => (!markDoneLoading ? setMarkDoneOpen(false) : null)}>
-          <section
-            className="th-dlg__panel th-admin-users"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Hoàn thành đơn hàng"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <header className="th-dlg__head">
-              <div className="th-dlg__head-icon">
-                <span className="material-symbols-outlined" aria-hidden>
-                  task_alt
-                </span>
-              </div>
-              <h3 className="th-dlg__title">Xác nhận hoàn thành đơn hàng</h3>
-              <button
-                type="button"
-                className="th-dlg__close"
-                onClick={() => (!markDoneLoading ? setMarkDoneOpen(false) : null)}
-                aria-label="Đóng"
-              >
-                <span className="material-symbols-outlined" aria-hidden>
-                  close
-                </span>
-              </button>
-            </header>
-            <div className="th-dlg__body">
-              <p>
-                Đơn <code>{detail.orderCode}</code> đang ở trạng thái xưởng ráp. Xác nhận chuyển sang <strong>Hoàn tất</strong>?
-              </p>
-              {markDoneError ? (
-                <p className="th-admin-users__api-error" role="alert">
-                  {markDoneError}
-                </p>
-              ) : null}
-            </div>
-            <footer className="th-dlg__footer">
-              <button
-                type="button"
-                className="th-admin-users__btn-ghost"
-                disabled={markDoneLoading}
-                onClick={() => setMarkDoneOpen(false)}
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                className="th-admin-users__btn-primary"
-                disabled={markDoneLoading}
-                onClick={() => void handleMarkDoneConfirm()}
-              >
-                {markDoneLoading ? 'Đang cập nhật…' : 'Xác nhận hoàn tất'}
-              </button>
-            </footer>
-          </section>
-        </dialog>
+      <SellerMarkDoneDialog
+        open={markDoneOpen}
+        orderCode={detail.orderCode}
+        isSubmitting={markDoneLoading}
+        submitError={markDoneError}
+        canConfirm={markDoneAllowed}
+        fulfillment={fulfillment}
+        fulfillmentError={fulfillmentError}
+        onClose={() => {
+          if (markDoneLoading) return
+          setMarkDoneOpen(false)
+          setMarkDoneError(null)
+        }}
+        onConfirm={() => void handleMarkDoneConfirm()}
+      />
+      {deliverBatchTask ? (
+        <SellerDeliverBatchDialog
+          open
+          orderId={orderCode}
+          taskId={deliverBatchTask.taskId}
+          taskDisplayCode={deliverBatchTask.displayCode}
+          productName={deliverBatchTask.productName || 'Sản phẩm'}
+          quantity={deliverBatchTask.quantity}
+          defaultDeliveryAddress={detail.agencyAddress}
+          onClose={() => setDeliverBatchTask(null)}
+          onDelivered={() => {
+            message.success('Đã giao lô sản xuất')
+            refreshFactoryData()
+          }}
+        />
       ) : null}
+      <ShareTrackLinkDialog
+        open={shareDialogOpen}
+        url={shareUrl}
+        expiresAt={shareExpiresAt}
+        loading={shareLoadingTaskId != null && !shareUrl && !shareError}
+        error={shareError}
+        subtitle={shareBatch?.productName}
+        onClose={() => {
+          setShareDialogOpen(false)
+          setShareUrl(null)
+          setShareExpiresAt(null)
+          setShareError(null)
+          setShareBatch(null)
+        }}
+      />
+      <SellerCancelOrderDialog
+        open={cancelOpen}
+        variant={variant}
+        orderCode={detail.orderCode}
+        status={detail.status}
+        isSubmitting={cancelLoading}
+        submitError={cancelError}
+        onClose={() => {
+          if (cancelLoading) return
+          setCancelOpen(false)
+          setCancelError(null)
+        }}
+        onConfirm={() => void handleCancelConfirm()}
+      />
       <div className="th-seller-order-detail__hero">
         <nav className="th-seller-order-detail__breadcrumb" aria-label="Breadcrumb">
           <ol className="th-seller-order-detail__breadcrumb-list">
@@ -790,193 +1273,306 @@ export function SellerOrderDetailInner({
             </li>
             <li className="th-seller-order-detail__breadcrumb-item">
               <span className="th-seller-order-detail__breadcrumb-current" aria-current="page">
-                {detail.orderCode}
+                {detail.agencyShortName}
               </span>
             </li>
           </ol>
         </nav>
 
-        <header className="th-seller-order-detail__header">
-          <div className="th-seller-order-detail__header-main">
-            <div className="th-seller-order-detail__title-row">
-              <span className="material-symbols-outlined th-seller-order-detail__title-icon" aria-hidden>
-                {variant === 'quotation' ? 'request_quote' : 'receipt_long'}
-              </span>
-              <div>
-                <p className="th-seller-order-detail__kicker">
-                  {variant === 'quotation' ? 'Báo giá NVBH' : 'Đơn đặt hàng bán sỉ'}
-                </p>
-                <h1 className="th-seller-order-detail__title">
-                  <code className="th-seller-order-detail__order-code">{detail.orderCode}</code>
-                </h1>
-                <ul className="th-seller-order-detail__meta-chips" aria-label="Thông tin nhanh đơn">
-                  <li>
-                    <span className="material-symbols-outlined" aria-hidden>
-                      calendar_today
-                    </span>
-                    Lập {detail.orderedAt}
-                  </li>
-                  <li>
-                    <span className="material-symbols-outlined" aria-hidden>
-                      view_list
-                    </span>
-                    {detail.lineCount} dòng
-                  </li>
-                  <li>
-                    <span className="material-symbols-outlined" aria-hidden>
-                      person
-                    </span>
-                    {detail.createdByName ? `Tạo bởi ${detail.createdByName}` : `NVBH ${SELLER_LOGIN_NAME}`}
-                  </li>
-                </ul>
+        {variant === 'quotation' ? (
+          <header className="th-seller-order-detail__header th-seller-order-detail__header--qt">
+            <div className="th-seller-order-detail__qt-top">
+              <div className="th-seller-order-detail__qt-id">
+                <h1 className="th-seller-order-detail__qt-title">{detail.agencyShortName}</h1>
+                <code className="th-seller-order-detail__order-code" title={detail.orderCode}>{orderRefShort}</code>
+                <span className={`th-seller-order-detail__pill th-seller-order-detail__pill--kind th-seller-order-detail__pill--kind-${detail.orderKind}`}>
+                  {sellerOrderKindLabel(detail.orderKind)}
+                </span>
+                {quotationStatus ? (
+                  <span className={quotationStatusPillClass(quotationStatus)}>
+                    {quotationStatusLabel(quotationStatus)}
+                  </span>
+                ) : null}
               </div>
+              {quotationPipeline ? (
+                <ol className="th-seller-order-detail__qt-stepper" aria-label="Tiến độ báo giá">
+                  {quotationPipeline.steps.map((step, i) => (
+                    <li
+                      key={`qs-${i}`}
+                      className={`th-seller-order-detail__qs${
+                        step.state === 'done' ? ' th-seller-order-detail__qs--done'
+                          : step.state === 'current' ? ' th-seller-order-detail__qs--current'
+                            : step.state === 'skipped' ? ' th-seller-order-detail__qs--skipped'
+                              : ''
+                      }`}
+                    >
+                      <span className="th-seller-order-detail__qs-dot" aria-hidden>
+                        {step.state === 'done' ? (
+                          <span className="material-symbols-outlined">check</span>
+                        ) : step.state === 'skipped' ? '—' : (i + 1)}
+                      </span>
+                      <span className="th-seller-order-detail__qs-label">{step.label}</span>
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
             </div>
-            <div className="th-seller-order-detail__header-right">
-            <div className="th-seller-order-detail__header-badges">
-              <span
-                className={`th-seller-order-detail__pill th-seller-order-detail__pill--kind th-seller-order-detail__pill--kind-${detail.orderKind}`}
-                title={
-                  detail.orderKind === 'ready_made'
-                    ? 'Thành phẩm chuẩn từ catalog'
-                    : 'Đơn theo thiết kế riêng'
-                }
-              >
-                {sellerOrderKindLabel(detail.orderKind)}
+            <div className="th-seller-order-detail__qt-meta">
+              <span>Lập {formatDateVi(detail.orderedAt)}</span>
+            </div>
+            <div className="th-seller-order-detail__qt-contact" aria-label="Liên hệ khách sỉ">
+              {hasContactValue(detail.agencyPhone) ? (
+                <a href={`tel:${detail.agencyPhone.replace(/\s/g, '')}`}>
+                  <span className="material-symbols-outlined" aria-hidden>call</span>
+                  {detail.agencyPhone}
+                </a>
+              ) : null}
+              {hasContactValue(detail.agencyEmail) ? (
+                <a href={`mailto:${detail.agencyEmail}`}>
+                  <span className="material-symbols-outlined" aria-hidden>mail</span>
+                  {detail.agencyEmail}
+                </a>
+              ) : null}
+              <span className="th-seller-order-detail__qt-contact-addr">
+                <span className="material-symbols-outlined" aria-hidden>location_on</span>
+                {detail.agencyAddress}
               </span>
-              <span className={`th-seller-order-detail__pill th-seller-order-detail__pill--${detail.status}`}>
+              <Link to={sellerPaths.agency(detail.agencyId)} className="th-seller-order-detail__qt-contact-link">
+                Hồ sơ khách
+                <span className="material-symbols-outlined" aria-hidden>arrow_forward</span>
+              </Link>
+            </div>
+            <div className="th-seller-order-detail__header-actions th-seller-order-detail__header-actions--qt">
+              {showCopyToOrder && detail.orderDetailSource === 'api' && isUuidParam ? (
+                <button type="button" className="th-seller-order-detail__btn th-seller-order-detail__btn--primary" onClick={handleCopyToOrder}>
+                  <span className="material-symbols-outlined" aria-hidden>post_add</span>
+                  Tạo đơn từ báo giá
+                </button>
+              ) : null}
+              {showQuotationSubmitAction(variant, orderApiStatus) && detail.orderDetailSource === 'api' && isUuidParam ? (
+                <button type="button" className="th-seller-order-detail__btn th-seller-order-detail__btn--primary" onClick={() => { setSubmitOrderError(null); setSubmitOrderOpen(true) }} disabled={submitOrderLoading || draftEditSaving}>
+                  {submitOrderLoading ? 'Đang gửi…' : 'Gửi đơn duyệt'}
+                </button>
+              ) : null}
+              {showQuotationCancelAction(variant, detail.status) && detail.orderDetailSource === 'api' && isUuidParam ? (
+                <button type="button" className="th-seller-order-detail__btn th-seller-order-detail__btn--ghost" style={{ color: '#b91c1c', borderColor: '#fecaca' }} onClick={() => { setCancelError(null); setCancelOpen(true) }} disabled={cancelLoading}>
+                  <span className="material-symbols-outlined" aria-hidden>cancel</span>
+                  Hủy báo giá
+                </button>
+              ) : null}
+              {showQuotationActions && quotationStatus === 'Rejected' ? (
+                <Link to={sellerPaths.quotationNew} className="th-seller-order-detail__btn th-seller-order-detail__btn--ghost">
+                  <span className="material-symbols-outlined" aria-hidden>add</span>
+                  Tạo báo giá mới
+                </Link>
+              ) : null}
+              {showPrintAction ? (
+                <button type="button" className="th-seller-order-detail__btn th-seller-order-detail__btn--ghost" onClick={() => handlePrintQuotation()}>
+                  <span className="material-symbols-outlined" aria-hidden>print</span>
+                  {printLabel}
+                </button>
+              ) : null}
+              <Link to={listPath} className="th-seller-order-detail__btn th-seller-order-detail__btn--muted">
+                Quay lại
+              </Link>
+            </div>
+          </header>
+        ) : (
+          <header className="th-seller-order-detail__header th-seller-order-detail__header--qt">
+            <div className="th-seller-order-detail__qt-top">
+              <div className="th-seller-order-detail__qt-id">
+                <h1 className="th-seller-order-detail__qt-title">{detail.agencyShortName}</h1>
+                <code className="th-seller-order-detail__order-code" title={detail.orderCode}>{orderRefShort}</code>
+                <span className={`th-seller-order-detail__pill th-seller-order-detail__pill--kind th-seller-order-detail__pill--kind-${detail.orderKind}`}>
+                  {sellerOrderKindLabel(detail.orderKind)}
+                </span>
+                <span className={`th-seller-order-detail__pill th-seller-order-detail__pill--${detail.status}`}>
                   {sellerOrderRowStatusLabel(detail.status)}
-              </span>
-              {detail.discountVnd > 0 ? (
-                <span className="th-seller-order-detail__pill th-seller-order-detail__pill--discount">
-                  Tổng chiết khấu {formatVND(detail.discountVnd)}
+                </span>
+                {detail.discountVnd > 0 ? (
+                  <span className="th-seller-order-detail__pill th-seller-order-detail__pill--discount">
+                    CK {formatVND(detail.discountVnd)}
+                  </span>
+                ) : null}
+              </div>
+              {orderOperationsInlineSteps ? (
+                <ol className="th-seller-order-detail__qt-stepper" aria-label="Tiến độ đơn hàng">
+                  {orderOperationsInlineSteps.map((step, i) => (
+                    <li
+                      key={`os-${i}`}
+                      className={`th-seller-order-detail__qs${
+                        step.state === 'done' ? ' th-seller-order-detail__qs--done'
+                          : step.state === 'current' ? ' th-seller-order-detail__qs--current'
+                            : step.state === 'skipped' ? ' th-seller-order-detail__qs--skipped'
+                              : ''
+                      }`}
+                    >
+                      <span className="th-seller-order-detail__qs-dot" aria-hidden>
+                        {step.state === 'done' ? (
+                          <span className="material-symbols-outlined">check</span>
+                        ) : step.state === 'skipped' ? (
+                          <span className="material-symbols-outlined">close</span>
+                        ) : (
+                          i + 1
+                        )}
+                      </span>
+                      <span className="th-seller-order-detail__qs-label">{step.label}</span>
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
+            </div>
+            <div className="th-seller-order-detail__qt-meta">
+              <span>Lập {formatDateVi(detail.orderedAt)}</span>
+              <span>{detail.lineCount} dòng · {formatVND(detail.grandTotalVnd)}</span>
+              <span>{detail.createdByName ? `Tạo bởi ${detail.createdByName}` : `NVBH ${SELLER_LOGIN_NAME}`}</span>
+              {(detail.sourceDisplayCode || detail.sourceOrderId)?.trim() ? (
+                <span>
+                  <Link to={sellerPaths.quotation(detail.sourceDisplayCode?.trim() || detail.sourceOrderId!)}>
+                    Từ báo giá {detail.sourceDisplayCode?.trim() || shortOrderRef(detail.sourceOrderId!)}
+                  </Link>
                 </span>
               ) : null}
-              </div>
-              <div className="th-seller-order-detail__header-actions">
-                {detail.status === 'draft' && detail.orderDetailSource === 'api' && isUuidParam ? (
-                  <button
-                    type="button"
-                    className="th-seller-order-detail__btn th-seller-order-detail__btn--primary"
-                    onClick={() => void handleSubmitOrder()}
-                    disabled={submitOrderLoading || draftEditSaving}
-                  >
-                    {submitOrderLoading ? 'Đang gửi…' : 'Gửi đơn duyệt'}
-                  </button>
-                ) : null}
-                {detail.status !== 'draft' &&
-                detail.status !== 'pending' &&
-                detail.status !== 'pending_approval' &&
-                detail.orderDetailSource === 'api' &&
-                isUuidParam ? (
-                  <button
-                    type="button"
-                    className="th-seller-order-detail__btn th-seller-order-detail__btn--ghost"
-                    onClick={() => {
-                      setPaymentDialogOpen(true)
-                      setPaymentTab('history')
-                      setPaymentHistoryError(null)
-                    }}
-                  >
-                    <span className="material-symbols-outlined" aria-hidden>
-                      payments
-                    </span>
-                    Thanh toán
-                  </button>
-                ) : null}
-                {detail.status === 'approved' && detail.orderDetailSource === 'api' && isUuidParam ? (
-                  <button
-                    type="button"
-                    className="th-seller-order-detail__btn th-seller-order-detail__btn--primary"
-                    onClick={() => {
-                      setPushProductionError(null)
-                      setPushProductionOpen(true)
-                    }}
-                    disabled={pushProductionLoading}
-                  >
-                    <span className="material-symbols-outlined" aria-hidden>
-                      precision_manufacturing
-                    </span>
-                    Đẩy xuống kho sản xuất
-                  </button>
-                ) : null}
-                {detail.status === 'producing' && detail.orderDetailSource === 'api' && isUuidParam ? (
-                  <button
-                    type="button"
-                    className="th-seller-order-detail__btn th-seller-order-detail__btn--primary"
-                    onClick={() => {
-                      setMarkDoneError(null)
-                      setMarkDoneOpen(true)
-                    }}
-                    disabled={markDoneLoading}
-                  >
-                    <span className="material-symbols-outlined" aria-hidden>
-                      task_alt
-                    </span>
-                    Hoàn thành đơn hàng
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="th-seller-order-detail__btn th-seller-order-detail__btn--ghost"
-                  onClick={() => handlePrintQuotation()}
-                >
-                  <span className="material-symbols-outlined" aria-hidden>
-                    print
-                  </span>
-                  In báo giá
-                </button>
-                <Link to={listPath} className="th-seller-order-detail__btn th-seller-order-detail__btn--muted">
-                  Quay lại danh sách
-                </Link>
-              </div>
             </div>
-          </div>
-          <div className="th-seller-order-detail__summary-callout">
-            <span className="material-symbols-outlined th-seller-order-detail__summary-callout-icon" aria-hidden>
-              notes
-            </span>
-            <p className="th-seller-order-detail__summary-line">{detail.summary}</p>
-          </div>
-          {detail.orderKind === 'custom' && detail.requirementDescription ? (
-            <div
-              className="th-seller-order-detail__requirement-callout"
-              aria-labelledby="th-sod-requirement-title"
-            >
-              <span
-                className="material-symbols-outlined th-seller-order-detail__requirement-callout-icon"
-                aria-hidden
-              >
-                engineering
+            <div className="th-seller-order-detail__qt-contact" aria-label="Liên hệ khách sỉ">
+              {hasContactValue(detail.agencyPhone) ? (
+                <a href={`tel:${detail.agencyPhone.replace(/\s/g, '')}`}>
+                  <span className="material-symbols-outlined" aria-hidden>call</span>
+                  {detail.agencyPhone}
+                </a>
+              ) : null}
+              {hasContactValue(detail.agencyEmail) ? (
+                <a href={`mailto:${detail.agencyEmail}`}>
+                  <span className="material-symbols-outlined" aria-hidden>mail</span>
+                  {detail.agencyEmail}
+                </a>
+              ) : null}
+              <span className="th-seller-order-detail__qt-contact-addr">
+                <span className="material-symbols-outlined" aria-hidden>location_on</span>
+                {detail.agencyAddress}
               </span>
-              <div className="th-seller-order-detail__requirement-callout-body">
-                <p id="th-sod-requirement-title" className="th-seller-order-detail__requirement-callout-kicker">
-                  Mô tả yêu cầu (đơn custom)
-                </p>
-                <p className="th-seller-order-detail__requirement-callout-text">{detail.requirementDescription}</p>
-              </div>
+              <Link to={sellerPaths.agency(detail.agencyId)} className="th-seller-order-detail__qt-contact-link">
+                Hồ sơ khách
+                <span className="material-symbols-outlined" aria-hidden>arrow_forward</span>
+              </Link>
             </div>
-          ) : null}
-        </header>
+            {showFactoryUi && detailTab === 'detail' && isUuidParam ? (
+              <SellerOrderFulfillmentStrip summary={fulfillment} loading={fulfillmentLoading} />
+            ) : null}
+            {detail.orderKind === 'custom' && detail.requirementDescription ? (
+              <div className="th-seller-order-detail__requirement-callout" aria-labelledby="th-sod-requirement-title">
+                <span className="material-symbols-outlined th-seller-order-detail__requirement-callout-icon" aria-hidden>engineering</span>
+                <div className="th-seller-order-detail__requirement-callout-body">
+                  <p id="th-sod-requirement-title" className="th-seller-order-detail__requirement-callout-kicker">Mô tả yêu cầu (thiết kế riêng)</p>
+                  <p className="th-seller-order-detail__requirement-callout-text">{detail.requirementDescription}</p>
+                </div>
+              </div>
+            ) : null}
+            <div className="th-seller-order-detail__header-actions th-seller-order-detail__header-actions--qt">
+              {showOrderOperations && detail.status !== 'draft' && detail.status !== 'pending' && detail.status !== 'pending_approval' && detail.orderDetailSource === 'api' && isUuidParam ? (
+                <button type="button" className="th-seller-order-detail__btn th-seller-order-detail__btn--ghost" onClick={() => { setPaymentDialogOpen(true); setPaymentTab('history'); setPaymentHistoryError(null) }}>
+                  <span className="material-symbols-outlined" aria-hidden>payments</span>
+                  Thanh toán
+                </button>
+              ) : null}
+              {showOrderOperations && detail.status !== 'done' && detail.status !== 'canceled' && detail.orderDetailSource === 'api' && isUuidParam ? (
+                <button type="button" className="th-seller-order-detail__btn th-seller-order-detail__btn--ghost" style={{ color: '#b91c1c', borderColor: '#fecaca' }} onClick={() => { setCancelError(null); setCancelOpen(true) }} disabled={cancelLoading}>
+                  <span className="material-symbols-outlined" aria-hidden>cancel</span>
+                  Hủy đơn
+                </button>
+              ) : null}
+              {showPushProductionAction ? (
+                <button type="button" className="th-seller-order-detail__btn th-seller-order-detail__btn--primary" onClick={() => { setPushProductionError(null); setPushProductionOpen(true) }} disabled={pushProductionLoading}>
+                  <span className="material-symbols-outlined" aria-hidden>precision_manufacturing</span>
+                  Đẩy xuống SX
+                </button>
+              ) : null}
+              {showOrderOperations && detail.status === 'producing' && detail.orderDetailSource === 'api' && isUuidParam ? (
+                <button type="button" className="th-seller-order-detail__btn th-seller-order-detail__btn--primary" onClick={() => { setMarkDoneError(null); setMarkDoneOpen(true) }} disabled={markDoneLoading || fulfillmentLoading || !markDoneAllowed} title={fulfillmentLoading ? 'Đang kiểm tra tiến độ giao hàng…' : !markDoneAllowed && !fulfillmentError ? 'Cần lập đủ lô, hoàn tất SX và giao đủ trước khi chốt đơn' : undefined}>
+                  {fulfillmentLoading ? 'Đang kiểm tra…' : (<><span className="material-symbols-outlined" aria-hidden>task_alt</span> Hoàn thành đơn</>)}
+                </button>
+              ) : null}
+              {showOrderQuotationLink ? (
+                <Link to={sellerPaths.quotation(detail.sourceDisplayCode?.trim() || detail.sourceOrderId || detail.orderCode)} className="th-seller-order-detail__btn th-seller-order-detail__btn--ghost">
+                  <span className="material-symbols-outlined" aria-hidden>request_quote</span>
+                  Báo giá gốc
+                </Link>
+              ) : null}
+              {showPrintAction ? (
+                <button type="button" className="th-seller-order-detail__btn th-seller-order-detail__btn--ghost" onClick={() => handlePrintQuotation()}>
+                  <span className="material-symbols-outlined" aria-hidden>print</span>
+                  {printLabel}
+                </button>
+              ) : null}
+              <Link to={listPath} className="th-seller-order-detail__btn th-seller-order-detail__btn--muted">
+                Quay lại
+              </Link>
+            </div>
+          </header>
+        )}
       </div>
 
-      {detail.orderDetailSource === 'api' &&
+      {showPushProductionPaymentGate ? (
+        <section
+          className="th-seller-order-detail__phase-banner th-seller-order-detail__phase-banner--push-pay"
+          role="status"
+          aria-label="Điều kiện đẩy sản xuất"
+        >
+          <div className="th-seller-order-detail__phase-banner-inner">
+            <p className="th-seller-order-detail__phase-banner-text">
+              <span className="material-symbols-outlined" aria-hidden>
+                payments
+              </span>
+              Cần ít nhất một giao dịch thanh toán <strong>Đã duyệt</strong> trước khi đẩy sản xuất.
+            </p>
+          </div>
+        </section>
+      ) : null}
+
+      {showPhaseHandoffBanner && phaseHandoffBanner ? (
+        <section
+          className={
+            phaseHandoffBanner.tone === 'operations'
+              ? 'th-seller-order-detail__phase-banner th-seller-order-detail__phase-banner--operations'
+              : 'th-seller-order-detail__phase-banner'
+          }
+          aria-label="Chuyển giai đoạn đơn hàng"
+        >
+          <div className="th-seller-order-detail__phase-banner-inner">
+            <p className="th-seller-order-detail__phase-banner-text">
+              <span className="material-symbols-outlined" aria-hidden>
+                {phaseHandoffBanner.tone === 'operations' ? 'local_shipping' : 'verified'}
+              </span>
+              {phaseHandoffBanner.message}
+            </p>
+          </div>
+        </section>
+      ) : null}
+
+      {showQuotationActions &&
+      detail.orderDetailSource === 'api' &&
       detail.status === 'draft' &&
       detail.apiOrderLinesForEdit?.length ? (
-        <section className="th-seller-order-detail__draft-banner" aria-label="Sửa đơn nháp">
+        <section
+          className="th-seller-order-detail__draft-banner"
+          aria-label={variant === 'quotation' ? 'Sửa báo giá nháp' : 'Sửa đơn nháp'}
+        >
           {!draftEditOpen ? (
             <div className="th-seller-order-detail__draft-banner-inner">
               <p className="th-seller-order-detail__draft-banner-text">
                 <span className="material-symbols-outlined" aria-hidden>
                   edit_note
                 </span>
-                Đơn Nháp — có thể cập nhật nội dung trước khi chốt gửi duyệt.
+                {variant === 'quotation'
+                  ? 'Báo giá nháp — cập nhật nội dung trước khi gửi duyệt.'
+                  : 'Đơn nháp — có thể cập nhật nội dung trước khi chốt gửi duyệt.'}
               </p>
               <button
                 type="button"
                 className="th-seller-order-detail__btn th-seller-order-detail__btn--primary"
                 onClick={openDraftEdit}
               >
-                Sửa đơn
+                {variant === 'quotation' ? 'Sửa báo giá' : 'Sửa đơn'}
               </button>
             </div>
           ) : draftEditForm ? (
@@ -1047,23 +1643,62 @@ export function SellerOrderDetailInner({
                     required
                   />
                 </label>
-                <label className="th-seller-order-detail__field">
-                  <span>Ngày giao dự kiến</span>
-                  <input
-                    type="date"
-                    value={draftEditForm.expectedDeliveryDate ?? ''}
-                    onChange={(e) =>
-                      setDraftEditForm((f) =>
-                        f
-                          ? {
-                              ...f,
-                              expectedDeliveryDate: e.target.value.trim() || null,
-                            }
-                          : f,
-                      )
-                    }
-                  />
-                </label>
+                {variant !== 'quotation' ? (
+                  <label className="th-seller-order-detail__field">
+                    <span>Ngày giao dự kiến</span>
+                    <input
+                      type="date"
+                      value={draftEditForm.expectedDeliveryDate ?? ''}
+                      onChange={(e) =>
+                        setDraftEditForm((f) =>
+                          f
+                            ? {
+                                ...f,
+                                expectedDeliveryDate: e.target.value.trim() || null,
+                              }
+                            : f,
+                        )
+                      }
+                    />
+                  </label>
+                ) : null}
+                {variant === 'quotation' ? (
+                  <label className="th-seller-order-detail__field th-seller-order-detail__field--validity">
+                    <span>Hạn báo giá</span>
+                    <input
+                      type="date"
+                      min={todayIsoDate()}
+                      value={draftEditForm.quotationValidUntil ?? ''}
+                      onChange={(e) =>
+                        setDraftEditForm((f) =>
+                          f
+                            ? {
+                                ...f,
+                                quotationValidUntil: e.target.value.trim() || null,
+                              }
+                            : f,
+                        )
+                      }
+                      aria-invalid={draftQuotationValidUntilError ? true : undefined}
+                      aria-describedby={
+                        draftQuotationValidUntilError ? 'th-sod-draft-valid-until-error' : undefined
+                      }
+                    />
+                    {draftQuotationValidUntilError ? (
+                      <span
+                        id="th-sod-draft-valid-until-error"
+                        className="th-seller-order-detail__field-error"
+                        role="alert"
+                      >
+                        {draftQuotationValidUntilError}
+                      </span>
+                    ) : (
+                      <span className="th-seller-order-detail__field-hint">
+                        Tùy chọn — để trống nếu không giới hạn hạn hiệu lực.
+                      </span>
+                    )}
+                  </label>
+                ) : null}
                 <label className="th-seller-order-detail__field th-seller-order-detail__field--full">
                   <span>Ghi chú đơn</span>
                   <textarea
@@ -1077,7 +1712,7 @@ export function SellerOrderDetailInner({
                   />
                 </label>
               </div>
-              <div className="th-seller-order-detail__draft-lines">
+                <div className="th-seller-order-detail__draft-lines">
                 <p className="th-seller-order-detail__draft-lines-title">Dòng hàng</p>
                 <div className="th-seller-order-detail__table-wrap">
                   <table className="th-seller-order-detail__table th-seller-order-detail__table--edit">
@@ -1087,49 +1722,103 @@ export function SellerOrderDetailInner({
                         <th>Mã sản phẩm</th>
                         <th>Tên sản phẩm</th>
                         <th className="th-seller-order-detail__th-num">SL</th>
-                        <th className="th-seller-order-detail__th-num">Đơn giá</th>
+                        {variant === 'quotation' ? (
+                          <>
+                            <th className="th-seller-order-detail__th-num">Đơn giá niêm yết</th>
+                            <th className="th-seller-order-detail__th-num">CK %</th>
+                            <th className="th-seller-order-detail__th-num">Đơn giá sau CK</th>
+                          </>
+                        ) : (
+                          <th className="th-seller-order-detail__th-num">Đơn giá</th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
-                      {draftEditForm.items.map((line, idx) => (
-                        <tr key={`${line.productId ?? 'c'}-${idx}`}>
-                          <td className="th-seller-order-detail__td-num">{idx + 1}</td>
-                          <td>
-                            <code className="th-seller-order-detail__sku">
-                              {line.productId ?? '—'}
-                            </code>
-                          </td>
-                          <td>
-                            <span className="th-seller-order-detail__draft-line-name-readonly">
-                              {detail.items[idx]?.productName ?? '—'}
-                            </span>
-                          </td>
-                          <td className="th-seller-order-detail__td-num">
-                            <input
-                              type="number"
-                              min={1}
-                              step={1}
-                              className="th-seller-order-detail__inline-input th-seller-order-detail__inline-input--num"
-                              value={line.quantity}
-                              onChange={(e) =>
-                                patchDraftLine(idx, { quantity: Number(e.target.value) || 0 })
-                              }
-                            />
-                          </td>
-                          <td className="th-seller-order-detail__td-num">
-                            <input
-                              type="number"
-                              min={0}
-                              step={1000}
-                              className="th-seller-order-detail__inline-input th-seller-order-detail__inline-input--num"
-                              value={line.unitPrice}
-                              onChange={(e) =>
-                                patchDraftLine(idx, { unitPrice: Number(e.target.value) || 0 })
-                              }
-                            />
-                          </td>
-                        </tr>
-                      ))}
+                      {draftEditForm.items.map((line, idx) => {
+                        const listVnd = line.listUnitPriceVnd ?? line.unitPrice
+                        const effective =
+                          variant === 'quotation'
+                            ? effectiveUnitFromListAndPercent(listVnd, line.discountPercent ?? 0)
+                            : line.unitPrice
+                        return (
+                          <tr key={`${line.productId ?? 'c'}-${idx}`}>
+                            <td className="th-seller-order-detail__td-num">{idx + 1}</td>
+                            <td>
+                              <code className="th-seller-order-detail__sku">
+                                {line.productId ?? '—'}
+                              </code>
+                            </td>
+                            <td>
+                              <span className="th-seller-order-detail__draft-line-name-readonly">
+                                {detail.items[idx]?.productName ?? '—'}
+                              </span>
+                            </td>
+                            <td className="th-seller-order-detail__td-num">
+                              <input
+                                type="number"
+                                min={1}
+                                step={1}
+                                className="th-seller-order-detail__inline-input th-seller-order-detail__inline-input--num"
+                                value={line.quantity}
+                                onChange={(e) =>
+                                  patchDraftLine(idx, { quantity: Number(e.target.value) || 0 })
+                                }
+                              />
+                            </td>
+                            {variant === 'quotation' ? (
+                              <>
+                                <td className="th-seller-order-detail__td-num">
+                                  <span
+                                    className="th-seller-order-create__money-readonly"
+                                    title="Giá niêm yết catalog — chỉnh qua CK %"
+                                  >
+                                    {formatVND(listVnd)}
+                                  </span>
+                                </td>
+                                <td className="th-seller-order-detail__td-num">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    step={0.01}
+                                    className="th-seller-order-create__input th-seller-order-create__input--num th-seller-order-create__input--pct th-seller-order-detail__inline-input th-seller-order-detail__inline-input--num"
+                                    value={
+                                      (line.discountPercent ?? 0) === 0
+                                        ? ''
+                                        : line.discountPercent
+                                    }
+                                    onChange={(e) =>
+                                      patchDraftLine(idx, {
+                                        discountPercent: parseDiscountPercentField(e.target.value),
+                                      })
+                                    }
+                                    placeholder="0"
+                                    aria-label={`Chiết khấu % dòng ${idx + 1}`}
+                                  />
+                                </td>
+                                <td className="th-seller-order-detail__td-num">
+                                  <span className="th-seller-order-create__money-readonly">
+                                    {formatVND(effective)}
+                                  </span>
+                                </td>
+                              </>
+                            ) : (
+                              <td className="th-seller-order-detail__td-num">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  step={1000}
+                                  className="th-seller-order-detail__inline-input th-seller-order-detail__inline-input--num"
+                                  value={line.unitPrice}
+                                  onChange={(e) =>
+                                    patchDraftLine(idx, { unitPrice: Number(e.target.value) || 0 })
+                                  }
+                                />
+                              </td>
+                            )}
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1138,7 +1827,7 @@ export function SellerOrderDetailInner({
                 <button
                   type="submit"
                   className="th-seller-order-detail__btn th-seller-order-detail__btn--primary"
-                  disabled={draftEditSaving || submitOrderLoading}
+                  disabled={draftEditSaving || submitOrderLoading || Boolean(draftQuotationValidUntilError)}
                 >
                   {draftEditSaving ? 'Đang lưu…' : 'Lưu thay đổi'}
                 </button>
@@ -1156,7 +1845,51 @@ export function SellerOrderDetailInner({
         </section>
       ) : null}
 
-      {isProducing ? (
+      {showQuotationApiTabs ? (
+        <div className="th-seller-order-detail__page-tabs" role="tablist" aria-label="Nội dung báo giá">
+          <button
+            type="button"
+            role="tab"
+            id="th-sod-tab-qt-detail"
+            aria-selected={detailTab === 'detail'}
+            aria-controls="th-sod-panel-detail"
+            className={
+              detailTab === 'detail'
+                ? 'th-seller-order-detail__page-tab th-seller-order-detail__page-tab--active'
+                : 'th-seller-order-detail__page-tab'
+            }
+            onClick={() => setSearchParams({}, { replace: true })}
+          >
+            <span className="material-symbols-outlined" aria-hidden>
+              description
+            </span>
+            Chi tiết báo giá
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="th-sod-tab-qt-orders"
+            aria-selected={detailTab === 'orders'}
+            aria-controls="th-sod-panel-qt-orders"
+            className={
+              detailTab === 'orders'
+                ? 'th-seller-order-detail__page-tab th-seller-order-detail__page-tab--active'
+                : 'th-seller-order-detail__page-tab'
+            }
+            onClick={() => setSearchParams({ tab: 'orders' }, { replace: true })}
+          >
+            <span className="material-symbols-outlined" aria-hidden>
+              receipt_long
+            </span>
+            Đơn đã tạo
+            {quotationChildTotal > 0 ? (
+              <span className="th-seller-order-detail__page-tab-badge">{quotationChildTotal}</span>
+            ) : null}
+          </button>
+        </div>
+      ) : null}
+
+      {showFactoryUi ? (
         <div className="th-seller-order-detail__page-tabs" role="tablist" aria-label="Nội dung chi tiết đơn">
           <button
             type="button"
@@ -1202,7 +1935,7 @@ export function SellerOrderDetailInner({
           id="th-sod-panel-factory"
           role="tabpanel"
           aria-labelledby="th-sod-tab-factory"
-          className="th-seller-order-detail__tab-panel"
+          className="th-seller-order-detail__tab-panel th-seller-order-detail__tab-panel--factory"
         >
           <section className="th-seller-order-detail__card th-seller-order-detail__card--wide">
             <h2 className="th-seller-order-detail__card-title">
@@ -1211,72 +1944,60 @@ export function SellerOrderDetailInner({
               </span>
               Tiến độ xưởng
             </h2>
+            <div className="th-seller-order-detail__factory-body">
             {isUuidParam ? (
-              factoryTasksLoading ? (
-                <p className="th-seller-order-detail__muted">Đang tải nhật ký xưởng…</p>
-              ) : factoryTasksError ? (
-                <p className="th-admin-users__api-error" role="alert">
-                  {factoryTasksError}
-                </p>
-              ) : factoryTasksOrdered.length === 0 ? (
-                <p className="th-seller-order-detail__muted">Chưa có nhật ký tiến độ nào.</p>
-              ) : (
-                <div className="th-seller-order-detail__factory-task-list">
-                  {factoryTasksOrdered.map((task) => (
-                    <article key={task.taskId} className="th-seller-order-detail__factory-task-card">
-                      <div className="th-seller-order-detail__factory-task-head">
-                        <div className="th-seller-order-detail__factory-task-title">
-                          <strong>{task.productName || 'Lệnh sản xuất'}</strong>
-                          <span>SL: {task.quantity}</span>
-                        </div>
-                        <span
-                          className={`th-seller-order-detail__factory-task-pill th-seller-order-detail__factory-task-pill--${task.status.toLowerCase()}`}
-                        >
-                          {task.status === 'Waiting'
-                            ? 'Chờ làm'
-                            : task.status === 'Doing'
-                              ? 'Đang làm'
-                              : 'Hoàn tất'}
-                        </span>
-                      </div>
-                      <div className="th-seller-order-detail__factory-task-meta">
-                        <code>{task.taskId}</code>
-                        <span>Thợ: {task.assignedToName || '—'}</span>
-                        <span>
-                          Hạn: {task.expectedEndDate || '—'}
-                        </span>
-                      </div>
-                      {task.activityLogs?.length ? (
-                        <ol className="th-seller-order-detail__factory-log-list">
-                          {[...task.activityLogs]
-                            .sort(
-                              (a, b) =>
-                                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-                            )
-                            .map((log) => (
-                            <li key={log.id} className="th-seller-order-detail__factory-log-item">
-                              <div className="th-seller-order-detail__factory-log-head">
-                                <div className="th-seller-order-detail__factory-log-meta">
-                                  <strong>{log.userName}</strong>
-                                  <span>{formatFactoryLogTime(log.createdAt)}</span>
-                                </div>
-                              </div>
-                              <p className="th-seller-order-detail__factory-log-desc">{log.description}</p>
-                              {log.imageUrl ? (
-                                <a href={log.imageUrl} target="_blank" rel="noreferrer">
-                                  Xem ảnh minh chứng
-                                </a>
-                              ) : null}
-                            </li>
-                          ))}
-                        </ol>
-                      ) : (
-                        <p className="th-seller-order-detail__muted">Lệnh chưa có nhật ký tiến độ.</p>
-                      )}
-                    </article>
-                  ))}
-                </div>
-              )
+              <>
+                <SellerOrderFulfillmentPanel
+                  summary={fulfillment}
+                  loading={fulfillmentLoading}
+                  error={fulfillmentError}
+                  onRetry={() => void loadFulfillment()}
+                />
+                <SellerOrderDeliverBatchSection
+                  tasks={factoryTasksOrdered}
+                  loading={factoryTasksLoading}
+                  selectedTaskId={selectedFactoryTaskId}
+                  formatDateTime={formatFactoryLogTime}
+                  onDeliver={setDeliverBatchTask}
+                  onShareTask={handleShareTask}
+                  shareLoadingTaskId={shareLoadingTaskId}
+                  onSelectTask={(taskId) => {
+                    setSelectedFactoryTaskId(taskId)
+                    document.getElementById('th-sod-factory-logs')?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'nearest',
+                    })
+                  }}
+                />
+                {factoryTasksLoading ? (
+                  <p className="th-seller-order-detail__muted">Đang tải nhật ký xưởng…</p>
+                ) : factoryTasksError ? (
+                  <p className="th-admin-users__api-error" role="alert">
+                    {factoryTasksError}
+                  </p>
+                ) : factoryTasksOrdered.length === 0 ? (
+                  <p className="th-seller-order-detail__muted">
+                    Đơn đã vào sản xuất. Xưởng cần tạo lô SX trước khi có tiến độ.
+                  </p>
+                ) : (
+                  <OrderProductionTaskTimeline
+                    tasks={factoryTasksOrdered}
+                    selectedTaskId={selectedFactoryTaskId}
+                    onSelectTask={(taskId) => {
+                      setSelectedFactoryTaskId(taskId)
+                      document.getElementById('th-opp-timeline-logs')?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'nearest',
+                      })
+                    }}
+                    readOnly={false}
+                    deliverHintAnchor="#th-sod-deliver-section"
+                    formatDateTime={formatFactoryLogTime}
+                    onShareTask={handleShareTask}
+                    shareLoadingTaskId={shareLoadingTaskId}
+                  />
+                )}
+              </>
             ) : factoryProgress ? (
               <p className="th-seller-order-detail__muted">
                 Đơn mẫu chưa có nhật ký tiến độ xưởng; đang hiển thị luồng minh hoạ.
@@ -1284,261 +2005,48 @@ export function SellerOrderDetailInner({
             ) : (
               <p className="th-seller-order-detail__muted">Không có dữ liệu tiến độ xưởng.</p>
             )}
+            </div>
+          </section>
+        </div>
+      ) : detailTab === 'orders' ? (
+        <div
+          id="th-sod-panel-qt-orders"
+          role="tabpanel"
+          aria-labelledby="th-sod-tab-qt-orders"
+          className="th-seller-order-detail__tab-panel th-seller-order-detail__tab-panel--qt-orders"
+        >
+          <section className="th-seller-order-detail__card th-seller-order-detail__card--wide">
+            <h2 className="th-seller-order-detail__card-title">
+              <span className="material-symbols-outlined" aria-hidden>
+                receipt_long
+              </span>
+              Đơn hàng đã tạo từ báo giá
+            </h2>
+            <AgencyOrderHistoryTable
+              rows={quotationChildRows}
+              loading={quotationChildLoading}
+              error={quotationChildError}
+              orderLink={(ref) => sellerPaths.order(ref)}
+            />
           </section>
         </div>
       ) : (
         <div
           id="th-sod-panel-detail"
           role="tabpanel"
-          aria-labelledby={isProducing ? 'th-sod-tab-detail' : undefined}
-          aria-label={!isProducing ? 'Chi tiết đơn hàng' : undefined}
+          aria-labelledby={
+            showFactoryUi ? 'th-sod-tab-detail' : showQuotationApiTabs ? 'th-sod-tab-qt-detail' : undefined
+          }
+          aria-label={
+            !showFactoryUi && !showQuotationApiTabs
+              ? variant === 'quotation'
+                ? 'Chi tiết báo giá'
+                : 'Chi tiết đơn hàng'
+              : undefined
+          }
           className="th-seller-order-detail__tab-panel"
         >
-      <section
-        className={
-          variant === 'quotation' && quotationPipeline?.isRejectedFlow
-            ? 'th-seller-order-detail__pipeline th-seller-order-detail__pipeline--quotation-rejected'
-            : detail.status === 'canceled' && variant !== 'quotation'
-              ? 'th-seller-order-detail__pipeline th-seller-order-detail__pipeline--canceled'
-              : 'th-seller-order-detail__pipeline'
-        }
-        aria-labelledby="th-sod-pipeline-title"
-      >
-        <div className="th-seller-order-detail__pipeline-head">
-          <h2 id="th-sod-pipeline-title" className="th-seller-order-detail__pipeline-title">
-            {variant === 'quotation' ? 'Tiến độ báo giá' : 'Tiến độ xử lý'}
-          </h2>
-        </div>
-        {variant === 'quotation' && quotationPipeline ? (
-          <ol className="th-seller-order-detail__pipeline-steps">
-            {quotationPipeline.steps.map((step, i) => {
-              const last = i === quotationPipeline.steps.length - 1
-              const done = step.state === 'done'
-              const skipped = step.state === 'skipped'
-              const current = step.state === 'current'
-              const leftLineDone =
-                i > 0 &&
-                (quotationPipeline.steps[i - 1]!.state === 'done' ||
-                  quotationPipeline.steps[i - 1]!.state === 'skipped')
-              const rightLineDone =
-                !last &&
-                (step.state === 'done' ||
-                  (step.state === 'skipped' && quotationPipeline.steps[i + 1]?.state === 'current'))
-              return (
-                <li
-                  key={`qt-${i}-${step.label}`}
-                  className={
-                    skipped
-                      ? 'th-seller-order-detail__pstep th-seller-order-detail__pstep--skipped'
-                      : done
-                        ? 'th-seller-order-detail__pstep th-seller-order-detail__pstep--done'
-                        : current
-                          ? 'th-seller-order-detail__pstep th-seller-order-detail__pstep--current'
-                          : 'th-seller-order-detail__pstep'
-                  }
-                >
-                  <div className="th-seller-order-detail__pstep-rail">
-                    <span
-                      className={
-                        i === 0
-                          ? 'th-seller-order-detail__pstep-seg th-seller-order-detail__pstep-seg--spacer'
-                          : leftLineDone
-                            ? 'th-seller-order-detail__pstep-seg th-seller-order-detail__pstep-seg--done'
-                            : 'th-seller-order-detail__pstep-seg'
-                      }
-                      aria-hidden
-                    />
-                    <span className="th-seller-order-detail__pstep-marker" aria-hidden>
-                      {done ? (
-                        <span className="material-symbols-outlined th-seller-order-detail__pstep-check">
-                          check
-                        </span>
-                      ) : skipped ? (
-                        <span className="th-seller-order-detail__pstep-skip" aria-hidden>
-                          —
-                        </span>
-                      ) : (
-                        <span className="th-seller-order-detail__pstep-num">{i + 1}</span>
-                      )}
-                    </span>
-                    <span
-                      className={
-                        last
-                          ? 'th-seller-order-detail__pstep-seg th-seller-order-detail__pstep-seg--spacer'
-                          : rightLineDone
-                            ? 'th-seller-order-detail__pstep-seg th-seller-order-detail__pstep-seg--done'
-                            : 'th-seller-order-detail__pstep-seg'
-                      }
-                      aria-hidden
-                    />
-                  </div>
-                  <div className="th-seller-order-detail__pstep-body">
-                    <span className="th-seller-order-detail__pstep-label">{step.label}</span>
-                    {step.hint.trim() ? (
-                      <span className="th-seller-order-detail__pstep-hint">{step.hint}</span>
-                    ) : null}
-                  </div>
-                </li>
-              )
-            })}
-          </ol>
-        ) : variant === 'quotation' ? (
-          <p className="th-seller-order-detail__muted" role="status">
-            Không hiển thị được tiến độ báo giá (thiếu trạng thái).
-          </p>
-        ) : detail.status === 'canceled' ? (
-          <div
-            className="th-seller-order-detail__pipeline-canceled"
-            role="status"
-            aria-label={`Trạng thái: ${sellerOrderRowStatusLabel(detail.status)}`}
-          >
-            <span className="th-seller-order-detail__pipeline-canceled-marker" aria-hidden>
-              <span className="material-symbols-outlined th-seller-order-detail__pipeline-canceled-x">
-                close
-              </span>
-            </span>
-            <span className="th-seller-order-detail__pipeline-canceled-label">
-              {sellerOrderRowStatusLabel(detail.status)}
-            </span>
-            <span className="th-seller-order-detail__pipeline-canceled-hint">
-              Đơn đã dừng — không còn các bước xử lý tiếp theo.
-            </span>
-          </div>
-        ) : (
-          <ol className="th-seller-order-detail__pipeline-steps">
-            {ORDER_FACTORY_PIPELINE.map((p, i) => {
-              const done = orderFactoryStepIndex > i || detail.status === 'done'
-              const current = i === orderFactoryStepIndex && detail.status !== 'done'
-              const last = i === ORDER_FACTORY_PIPELINE.length - 1
-              const leftLineDone =
-                i > 0 && (orderFactoryStepIndex > i - 1 || detail.status === 'done')
-              const rightLineDone =
-                !last && (orderFactoryStepIndex > i || detail.status === 'done')
-              return (
-                <li
-                  key={p.status}
-                  className={
-                    done
-                      ? 'th-seller-order-detail__pstep th-seller-order-detail__pstep--done'
-                      : current
-                        ? 'th-seller-order-detail__pstep th-seller-order-detail__pstep--current'
-                        : 'th-seller-order-detail__pstep'
-                  }
-                >
-                  <div className="th-seller-order-detail__pstep-rail">
-                    <span
-                      className={
-                        i === 0
-                          ? 'th-seller-order-detail__pstep-seg th-seller-order-detail__pstep-seg--spacer'
-                          : leftLineDone
-                            ? 'th-seller-order-detail__pstep-seg th-seller-order-detail__pstep-seg--done'
-                            : 'th-seller-order-detail__pstep-seg'
-                      }
-                      aria-hidden
-                    />
-                    <span className="th-seller-order-detail__pstep-marker" aria-hidden>
-                      {done ? (
-                        <span className="material-symbols-outlined th-seller-order-detail__pstep-check">
-                          check
-                        </span>
-                      ) : (
-                        <span className="th-seller-order-detail__pstep-num">{i + 1}</span>
-                      )}
-                    </span>
-                    <span
-                      className={
-                        last
-                          ? 'th-seller-order-detail__pstep-seg th-seller-order-detail__pstep-seg--spacer'
-                          : rightLineDone
-                            ? 'th-seller-order-detail__pstep-seg th-seller-order-detail__pstep-seg--done'
-                            : 'th-seller-order-detail__pstep-seg'
-                      }
-                      aria-hidden
-                    />
-                  </div>
-                  <div className="th-seller-order-detail__pstep-body">
-                    <span className="th-seller-order-detail__pstep-label">{p.label}</span>
-                    <span className="th-seller-order-detail__pstep-hint">{p.hint}</span>
-                  </div>
-                </li>
-              )
-            })}
-          </ol>
-        )}
-      </section>
-
-      <div className="th-seller-order-detail__grid">
-        <section className="th-seller-order-detail__card" aria-labelledby="th-sod-agency">
-          <h2 id="th-sod-agency" className="th-seller-order-detail__card-title">
-            <span className="material-symbols-outlined" aria-hidden>
-              domain
-            </span>
-            Khách sỉ
-          </h2>
-          <div className="th-seller-order-detail__agency">
-            <div className="th-seller-order-detail__agency-top">
-              <div className="th-seller-order-detail__agency-avatar" aria-hidden>
-                {agencyInitials(detail.agencyShortName)}
-              </div>
-              <div className="th-seller-order-detail__agency-id">
-                <div className="th-seller-order-detail__agency-name-row">
-                  <span className="th-seller-order-detail__agency-name">{detail.agencyShortName}</span>
-                  <code className="th-seller-order-detail__agency-code">{detail.agencyCode}</code>
-                </div>
-                <p className="th-seller-order-detail__agency-legal">{detail.agencyLegalName}</p>
-              </div>
-            </div>
-            <ul className="th-seller-order-detail__contact-list">
-              <li className="th-seller-order-detail__contact-row">
-                <span className="th-seller-order-detail__contact-icon" aria-hidden>
-                  <span className="material-symbols-outlined">call</span>
-                </span>
-                <div>
-                  <span className="th-seller-order-detail__contact-label">Điện thoại</span>
-                  <a
-                    className="th-seller-order-detail__contact-value"
-                    href={`tel:${detail.agencyPhone.replace(/\s/g, '')}`}
-                  >
-                    {detail.agencyPhone}
-                  </a>
-                </div>
-              </li>
-              <li className="th-seller-order-detail__contact-row">
-                <span className="th-seller-order-detail__contact-icon" aria-hidden>
-                  <span className="material-symbols-outlined">mail</span>
-                </span>
-                <div>
-                  <span className="th-seller-order-detail__contact-label">Email</span>
-                  <a className="th-seller-order-detail__contact-value" href={`mailto:${detail.agencyEmail}`}>
-                    {detail.agencyEmail}
-                  </a>
-                </div>
-              </li>
-              <li className="th-seller-order-detail__contact-row">
-                <span className="th-seller-order-detail__contact-icon" aria-hidden>
-                  <span className="material-symbols-outlined">location_on</span>
-                </span>
-                <div>
-                  <span className="th-seller-order-detail__contact-label">Địa chỉ giao dự kiến</span>
-                  <span className="th-seller-order-detail__contact-value th-seller-order-detail__contact-value--multiline">
-                    {detail.agencyAddress}
-                    <span className="th-seller-order-detail__muted"> · {detail.agencyCity}</span>
-                  </span>
-                </div>
-              </li>
-            </ul>
-            <Link
-              to={sellerPaths.agency(detail.agencyId)}
-              className="th-seller-order-detail__link-btn"
-            >
-              Mở hồ sơ khách
-              <span className="material-symbols-outlined" aria-hidden>
-                arrow_forward
-              </span>
-            </Link>
-          </div>
-        </section>
-
+      <div className="th-seller-order-detail__grid th-seller-order-detail__grid--qt">
         <section className="th-seller-order-detail__card" aria-labelledby="th-sod-money">
           <h2 id="th-sod-money" className="th-seller-order-detail__card-title">
             <span className="material-symbols-outlined" aria-hidden>
@@ -1563,14 +2071,18 @@ export function SellerOrderDetailInner({
                 <span>Thành tiền hàng</span>
                 <strong>{formatVND(detail.totalVnd)}</strong>
               </li>
-              <li>
-                <span>Phí giao / lắp (ước)</span>
-                <strong>{detail.shippingFeeVnd === 0 ? '—' : formatVND(detail.shippingFeeVnd)}</strong>
-              </li>
-              <li>
-                <span>Phí dịch vụ khác</span>
-                <strong>{detail.serviceFeeVnd === 0 ? '—' : formatVND(detail.serviceFeeVnd)}</strong>
-              </li>
+              {detail.shippingFeeVnd > 0 ? (
+                <li>
+                  <span>Phí giao / lắp (ước)</span>
+                  <strong>{formatVND(detail.shippingFeeVnd)}</strong>
+                </li>
+              ) : null}
+              {detail.serviceFeeVnd > 0 ? (
+                <li>
+                  <span>Phí dịch vụ khác</span>
+                  <strong>{formatVND(detail.serviceFeeVnd)}</strong>
+                </li>
+              ) : null}
             </ul>
             <p className="th-seller-order-detail__money-section-label">Thanh toán</p>
             <ul className="th-seller-order-detail__money-rows th-seller-order-detail__money-rows--tight">
@@ -1578,24 +2090,33 @@ export function SellerOrderDetailInner({
                 <span>Tổng thanh toán</span>
                 <strong>{formatVND(detail.grandTotalVnd)}</strong>
               </li>
-              <li>
-                <span>{detail.orderDetailSource === 'api' ? 'Đã thanh toán' : 'Đã cọc'}</span>
-                <strong className="th-seller-order-detail__money-deposit">{formatVND(detail.depositVnd)}</strong>
-              </li>
-              <li className="th-seller-order-detail__money-rows--due">
-                <span>Còn phải thu</span>
-                <strong>{formatVND(detail.balanceDueVnd)}</strong>
-              </li>
+              {showQuotationPaymentSummary ? (
+                <>
+                  <li>
+                    <span>{detail.orderDetailSource === 'api' ? 'Đã thanh toán' : 'Đã cọc'}</span>
+                    <strong className="th-seller-order-detail__money-deposit">
+                      {formatVND(detail.depositVnd)}
+                    </strong>
+                  </li>
+                  <li className="th-seller-order-detail__money-rows--due">
+                    <span>Còn phải thu</span>
+                    <strong>{formatVND(detail.balanceDueVnd)}</strong>
+                  </li>
+                </>
+              ) : null}
             </ul>
           </div>
         </section>
 
-        <section className="th-seller-order-detail__card th-seller-order-detail__card--wide" aria-labelledby="th-sod-lines">
+        <section
+          className="th-seller-order-detail__card th-seller-order-detail__card--lines-qt"
+          aria-labelledby="th-sod-lines"
+        >
           <h2 id="th-sod-lines" className="th-seller-order-detail__card-title">
             <span className="material-symbols-outlined" aria-hidden>
               inventory_2
             </span>
-            Dòng hàng &amp; BOM ảo
+            {variant === 'quotation' ? 'Sản phẩm báo giá' : 'Sản phẩm đơn hàng'}
           </h2>
           
           <div className="th-seller-order-detail__table-wrap">
@@ -1607,13 +2128,31 @@ export function SellerOrderDetailInner({
                   <th>Mã hàng</th>
                   <th>Tên hạng mục</th>
                   <th className="th-seller-order-detail__th-num">SL</th>
-                  <th className="th-seller-order-detail__th-num">Đơn giá</th>
-                  <th className="th-seller-order-detail__th-num">Giá vốn</th>
+                  {variant === 'quotation' ? (
+                    <>
+                      <th className="th-seller-order-detail__th-num">Đơn giá niêm yết</th>
+                      <th className="th-seller-order-detail__th-num">CK %</th>
+                      <th className="th-seller-order-detail__th-num">Đơn giá sau CK</th>
+                    </>
+                  ) : (
+                    <th className="th-seller-order-detail__th-num">Đơn giá</th>
+                  )}
+                  {hideLineCostColumn ? null : (
+                    <th className="th-seller-order-detail__th-num">Giá vốn</th>
+                  )}
                   <th className="th-seller-order-detail__th-num">Thành tiền</th>
+                  {showLineDeliveryColumns ? (
+                    <>
+                      <th className="th-seller-order-detail__th-num">Đã giao</th>
+                      <th className="th-seller-order-detail__th-num">Còn giao</th>
+                    </>
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
-                {detail.items.map((line) => (
+                {detail.items.map((line, lineIdx) => {
+                  const qtPricing = quotationPricingByLine?.[lineIdx]
+                  return (
                   <tr key={line.lineNo}>
                     <td className="th-seller-order-detail__td-num">{line.lineNo}</td>
                     <td>
@@ -1624,7 +2163,7 @@ export function SellerOrderDetailInner({
                             : 'th-seller-order-detail__kind'
                         }
                       >
-                        {line.kind === 'custom' ? 'Custom' : 'Catalog'}
+                        {sellerOrderLineKindLabel(line.kind)}
                       </span>
                     </td>
                     <td>
@@ -1637,18 +2176,63 @@ export function SellerOrderDetailInner({
                       ) : null}
                     </td>
                     <td className="th-seller-order-detail__td-num">{line.qty}</td>
-                    <td className="th-seller-order-detail__td-num">{formatVND(line.unitPriceVnd)}</td>
-                    <td className="th-seller-order-detail__td-num">
-                      {line.unitCostAtTimeVnd != null ? formatVND(line.unitCostAtTimeVnd) : '—'}
-                    </td>
+                    {variant === 'quotation' ? (
+                      <>
+                        <td className="th-seller-order-detail__td-num">
+                          {qtPricing?.listUnitPriceVnd != null
+                            ? formatVND(qtPricing.listUnitPriceVnd)
+                            : '—'}
+                        </td>
+                        <td className="th-seller-order-detail__td-num">
+                          {qtPricing?.discountPercent != null ? (
+                            <>
+                              {qtPricing.discountPercent}%
+                              {qtPricing.driftVnd > 0 ? (
+                                <span
+                                  className="th-seller-order-detail__pricing-drift"
+                                  title="Đơn giá đã lưu không khớp làm tròn từ giá niêm yết hiện tại — có thể do đổi giá catalog hoặc dòng cũ"
+                                >
+                                  <span className="material-symbols-outlined" aria-hidden>
+                                    warning
+                                  </span>
+                                </span>
+                              ) : null}
+                            </>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td className="th-seller-order-detail__td-num">
+                          {formatVND(qtPricing?.effectiveUnitVnd ?? line.unitPriceVnd)}
+                        </td>
+                      </>
+                    ) : (
+                      <td className="th-seller-order-detail__td-num">{formatVND(line.unitPriceVnd)}</td>
+                    )}
+                    {hideLineCostColumn ? null : (
+                      <td className="th-seller-order-detail__td-num">
+                        {line.unitCostAtTimeVnd != null ? formatVND(line.unitCostAtTimeVnd) : '—'}
+                      </td>
+                    )}
                     <td className="th-seller-order-detail__td-num">{formatVND(line.lineTotalVnd)}</td>
+                    {showLineDeliveryColumns ? (
+                      <>
+                        <td className="th-seller-order-detail__td-num">{line.deliveredQty ?? 0}</td>
+                        <td className="th-seller-order-detail__td-num">
+                          {line.remainingToDeliver ?? line.qty}
+                        </td>
+                      </>
+                    ) : null}
                   </tr>
-                ))}
+                )})}
               </tbody>
               <tfoot>
                 <tr className="th-seller-order-detail__table-foot">
-                  <td colSpan={7} className="th-seller-order-detail__table-foot-label">
-                    Cộng các dòng
+                  <td
+                    colSpan={lineTableFootColSpan}
+                    className="th-seller-order-detail__table-foot-label"
+                  >
+                    TỔNG
                   </td>
                   <td className="th-seller-order-detail__td-num th-seller-order-detail__table-foot-sum">
                     {formatVND(itemsSumVnd)}
@@ -1659,7 +2243,7 @@ export function SellerOrderDetailInner({
           </div>
         </section>
 
-        <section className="th-seller-order-detail__card" aria-labelledby="th-sod-note">
+        <section className="th-seller-order-detail__card th-seller-order-detail__card--wide" aria-labelledby="th-sod-note">
           <h2 id="th-sod-note" className="th-seller-order-detail__card-title">
             <span className="material-symbols-outlined" aria-hidden>
               sticky_note_2
@@ -1704,36 +2288,42 @@ export function SellerOrderDetailInner({
             </header>
 
             <div className="th-dlg__body">
-              <div className="th-seller-order-detail__paytabs" role="tablist" aria-label="Tab thanh toán">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={paymentTab === 'history'}
-                  className={
-                    paymentTab === 'history'
-                      ? 'th-seller-order-detail__paytab th-seller-order-detail__paytab--active'
-                      : 'th-seller-order-detail__paytab'
-                  }
-                  onClick={() => setPaymentTab('history')}
-                >
-                  Lịch sử
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={paymentTab === 'new'}
-                  className={
-                    paymentTab === 'new'
-                      ? 'th-seller-order-detail__paytab th-seller-order-detail__paytab--active'
-                      : 'th-seller-order-detail__paytab'
-                  }
-                  onClick={() => setPaymentTab('new')}
-                >
-                  Thanh toán mới
-                </button>
-              </div>
+              {paymentNewAllowed ? (
+                <div className="th-seller-order-detail__paytabs" role="tablist" aria-label="Tab thanh toán">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={effectivePaymentTab === 'history'}
+                    className={
+                      effectivePaymentTab === 'history'
+                        ? 'th-seller-order-detail__paytab th-seller-order-detail__paytab--active'
+                        : 'th-seller-order-detail__paytab'
+                    }
+                    onClick={() => setPaymentTab('history')}
+                  >
+                    Lịch sử
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={effectivePaymentTab === 'new'}
+                    className={
+                      effectivePaymentTab === 'new'
+                        ? 'th-seller-order-detail__paytab th-seller-order-detail__paytab--active'
+                        : 'th-seller-order-detail__paytab'
+                    }
+                    onClick={() => setPaymentTab('new')}
+                  >
+                    Thanh toán mới
+                  </button>
+                </div>
+              ) : (
+                <p className="th-seller-order-detail__payhist-only-hint">
+                  Đơn đã hủy — chỉ xem lịch sử thanh toán.
+                </p>
+              )}
 
-              {paymentTab === 'history' ? (
+              {effectivePaymentTab === 'history' ? (
                 <div className="th-seller-order-detail__payhist">
                   {paymentHistoryError ? (
                     <p className="th-admin-users__api-error" role="alert">
@@ -1767,17 +2357,19 @@ export function SellerOrderDetailInner({
                             paymentHistoryRows.map((p) => (
                               <tr key={p.id}>
                                 <td>
-                                  <code>{p.id}</code>
+                                  <code title={p.id}>{formatSellerPaymentRef(p.id)}</code>
                                 </td>
                                 <td className="th-seller-order-detail__payhist-num">{formatVND(p.amount)}</td>
-                                <td>{p.paymentMethod}</td>
-                                <td>{p.status}</td>
+                                <td>{sellerPaymentMethodLabel(p.paymentMethod)}</td>
+                                <td>
+                                  <span className={sellerPaymentStatusClass(p.status)}>
+                                    {sellerPaymentStatusLabel(p.status)}
+                                  </span>
+                                </td>
                                 <td>{p.note || '—'}</td>
                                 <td>
                                   {p.proofImage ? (
-                                    <a href={p.proofImage} target="_blank" rel="noreferrer">
-                                      Xem ảnh
-                                    </a>
+                                    <SellerPaymentProofThumb url={p.proofImage} />
                                   ) : (
                                     '—'
                                   )}
@@ -1802,13 +2394,17 @@ export function SellerOrderDetailInner({
                     <label className="th-seller-order-detail__paynew-field">
                       <span>Số tiền</span>
                       <input
-                        type="number"
-                        min={1}
-                        step={1000}
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
                         value={newPayAmount}
-                        onChange={(e) => setNewPayAmount(e.target.value)}
-                        placeholder="1000000"
+                        onChange={(e) => setNewPayAmount(normalizeVndInputTyping(e.target.value))}
+                        placeholder="1.000.000"
+                        aria-describedby="seller-order-pay-remaining"
                       />
+                      <span id="seller-order-pay-remaining" className="th-seller-order-detail__paynew-hint">
+                        Còn phải thu: {formatVND(detail.balanceDueVnd)}
+                      </span>
                     </label>
                     <label className="th-seller-order-detail__paynew-field">
                       <span>Phương thức thanh toán</span>
@@ -1818,7 +2414,6 @@ export function SellerOrderDetailInner({
                           const v = e.target.value
                           setNewPayMethod(v)
                           if (v === 'Tiền mặt') {
-                            setNewPayImageUrl('')
                             setNewPayImageFile(null)
                           }
                         }}
@@ -1829,25 +2424,17 @@ export function SellerOrderDetailInner({
                       </select>
                     </label>
                     {newPayMethod === 'Chuyển khoản' ? (
-                      <>
-                        <label className="th-seller-order-detail__paynew-field th-seller-order-detail__paynew-field--full">
-                          <span>Link ảnh chứng từ (tuỳ chọn)</span>
-                          <input
-                            type="url"
-                            value={newPayImageUrl}
-                            onChange={(e) => setNewPayImageUrl(e.target.value)}
-                            placeholder="https://..."
-                          />
-                        </label>
-                        <label className="th-seller-order-detail__paynew-field th-seller-order-detail__paynew-field--full">
-                          <span>Upload ảnh chứng từ (ưu tiên hơn link)</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => setNewPayImageFile(e.target.files?.[0] ?? null)}
-                          />
-                        </label>
-                      </>
+                      <label className="th-seller-order-detail__paynew-field th-seller-order-detail__paynew-field--full">
+                        <span>Ảnh chứng từ chuyển khoản</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setNewPayImageFile(e.target.files?.[0] ?? null)}
+                        />
+                        {newPayImageFile ? (
+                          <span className="th-seller-order-detail__paynew-hint">{newPayImageFile.name}</span>
+                        ) : null}
+                      </label>
                     ) : null}
                     <label className="th-seller-order-detail__paynew-field th-seller-order-detail__paynew-field--full">
                       <span>Ghi chú</span>

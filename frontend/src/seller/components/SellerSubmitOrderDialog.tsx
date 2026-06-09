@@ -1,25 +1,27 @@
 import { useEffect, useId, useRef } from 'react'
 import '../../admin/pages/AdminUsersPage.css'
 
-export type SellerPushProductionDialogProps = {
+export type SellerSubmitOrderDialogProps = {
   open: boolean
   orderCode: string
   contextHint?: string | null
+  skipDebtCheckHint?: boolean
   isSubmitting: boolean
   submitError: string | null
   onClose: () => void
   onConfirm: () => void
 }
 
-export function SellerPushProductionDialog({
+export function SellerSubmitOrderDialog({
   open,
   orderCode,
   contextHint,
+  skipDebtCheckHint = false,
   isSubmitting,
   submitError,
   onClose,
   onConfirm,
-}: SellerPushProductionDialogProps) {
+}: SellerSubmitOrderDialogProps) {
   const dlgRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
 
@@ -50,18 +52,15 @@ export function SellerPushProductionDialog({
       }}
     >
       {open ? (
-        <div
-          className="th-dlg__panel th-admin-users"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="th-dlg__panel th-admin-users" onClick={(e) => e.stopPropagation()}>
           <div className="th-dlg__head">
             <div className="th-dlg__head-icon">
               <span className="material-symbols-outlined" aria-hidden>
-                precision_manufacturing
+                send
               </span>
             </div>
             <h2 id={titleId} className="th-dlg__title">
-              Đẩy xuống kho sản xuất
+              Gửi đơn duyệt
             </h2>
             <button
               type="button"
@@ -76,12 +75,34 @@ export function SellerPushProductionDialog({
             </button>
           </div>
           <div className="th-dlg__body">
-            <p style={{ margin: 0, fontSize: '0.875rem', color: '#334155', lineHeight: 1.5 }}>
-              Xác nhận đẩy đơn <code style={{ fontSize: '0.8125rem' }}>{orderCode}</code>
-              {contextHint ? <> ({contextHint})</> : null} xuống xưởng?
+            <p
+              style={{
+                margin: 0,
+                fontSize: '0.8125rem',
+                color: '#64748b',
+                lineHeight: 1.45,
+              }}
+            >
+              <strong style={{ color: '#0f172a' }}>Mã đơn:</strong>{' '}
+              <code style={{ fontSize: '0.8rem' }}>{orderCode}</code>
+              {contextHint ? (
+                <>
+                  <br />
+                  <span>{contextHint}</span>
+                </>
+              ) : null}
             </p>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: '#334155', lineHeight: 1.5 }}>
+              Sau khi xác nhận, đơn chuyển sang trạng thái <strong>Chờ duyệt (Pending)</strong> và gửi lên
+              Giám đốc. Bạn sẽ không thể chỉnh sửa nội dung nháp nữa.
+            </p>
+            {!skipDebtCheckHint ? (
+              <p style={{ margin: '0.75rem 0 0', fontSize: '0.8125rem', color: '#64748b' }}>
+                Hệ thống kiểm tra hạn mức công nợ đại lý trước khi chấp nhận gửi duyệt.
+              </p>
+            ) : null}
             {submitError ? (
-              <p className="th-admin-users__api-error" role="alert" style={{ margin: 0 }}>
+              <p className="th-admin-users__api-error" role="alert" style={{ margin: '0.75rem 0 0' }}>
                 {submitError}
               </p>
             ) : null}
@@ -102,9 +123,9 @@ export function SellerPushProductionDialog({
               disabled={isSubmitting}
             >
               <span className="material-symbols-outlined th-admin-users__btn-icon" aria-hidden>
-                play_arrow
+                send
               </span>
-              {isSubmitting ? 'Đang gửi…' : 'Xác nhận đẩy xưởng'}
+              {isSubmitting ? 'Đang gửi…' : 'Xác nhận gửi duyệt'}
             </button>
           </div>
         </div>

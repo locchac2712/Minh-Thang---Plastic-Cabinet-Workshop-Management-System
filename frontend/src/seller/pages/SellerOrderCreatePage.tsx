@@ -9,7 +9,8 @@ import {
   type FormEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, useNavigate } from 'react-router-dom'
+import { App } from 'antd'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { formatVND } from '../../admin/partners/agencyModel'
 import { CATEGORY_OPTIONS } from '../../admin/catalog/productModel'
 import { sellerPaths } from '../config/sellerPaths'
@@ -21,7 +22,18 @@ import {
   createSellerOrder,
   type CreateSellerOrderItemPayload,
 } from '../sellerOrdersApi'
+import { orderCodeFromDto } from '../sellerOrderRef'
 import { fetchSellerProducts } from '../sellerProductsApi'
+import { computeAgencyCreditSnapshot } from '../agencyCreditSnapshot'
+import { sellerOrderLineKindLabel } from '../data/sellerOrdersMock'
+import { bumpProductLineQty, mergeDraftLineIntoDuplicate } from '../sellerOrderDraftLines'
+import {
+  buildCopyPrefillNotePrefix,
+  clearQuotationOrderCopyPrefill,
+  hydrateLinesFromQuotationOrderCopyPrefill,
+  readQuotationOrderCopyPrefill,
+  type QuotationOrderCopyPrefillPayload,
+} from '../quotationOrderCopyPrefill'
 import '../../admin/pages/AdminUsersPage.css'
 import './SellerOrderCreatePage.css'
 
@@ -523,22 +535,68 @@ function AgencyCombo({
 }
 
 /** Tạo đơn NVBH (đơn sẵn). */
+function buildFallbackAgencyFromCopyPrefill(
+  prefill: QuotationOrderCopyPrefillPayload,
+): SellerAgencyRow {
+  return {
+    id: prefill.agencyId,
+    code: prefill.agency.code,
+    legalName: prefill.agency.legalName,
+    shortName: prefill.agency.shortName,
+    taxCode: '',
+    level: 'standard',
+    phone: '',
+    email: '',
+    city: '',
+    address: prefill.shippingAddress !== '—' ? prefill.shippingAddress : '',
+    assignedSellerName: SELLER_LOGIN_NAME,
+    totalDebtVnd: 0,
+    creditLimitVnd: 0,
+    isActive: true,
+    note: '',
+    createdAt: new Date(prefill.createdAt).toISOString().slice(0, 10),
+    recentCabinetOrders90d: 0,
+  }
+}
+
 export function SellerOrderCreatePage() {
+  const { message } = App.useApp()
   const fid = useId()
   const navigate = useNavigate()
-  const [agencyId, setAgencyId] = useState('')
+  const location = useLocation()
+  const copyPrefill = useMemo(
+    () => readQuotationOrderCopyPrefill(location.state),
+    [location.state],
+  )
+  const copyHydrate = useMemo(
+    () => (copyPrefill ? hydrateLinesFromQuotationOrderCopyPrefill(copyPrefill) : null),
+    [copyPrefill],
+  )
+  const isCopyPricingLockedMode = Boolean(copyPrefill)
+  const isAgencyLockedByCopy = Boolean(copyPrefill?.agencyId)
+  const orderLevelDiscountFieldLabel = isCopyPricingLockedMode
+    ? 'Chiết khấu thêm (VND)'
+    : 'Chiết khấu đơn (VND)'
+  const orderLevelDiscountSummaryLabel = isCopyPricingLockedMode ? 'Chiết khấu thêm' : 'Chiết khấu'
+  const [agencyId, setAgencyId] = useState(() => copyPrefill?.agencyId ?? '')
   const [agencyRows, setAgencyRows] = useState<SellerAgencyRow[]>([])
   const [agencyLoading, setAgencyLoading] = useState(false)
   const [agencyLoadError, setAgencyLoadError] = useState<string | null>(null)
   const [agencySearchQuery, setAgencySearchQuery] = useState('')
   const [debouncedAgencySearch, setDebouncedAgencySearch] = useState('')
-  const [agencyPickCache, setAgencyPickCache] = useState<Record<string, SellerAgencyRow>>({})
-  const [expectedDelivery, setExpectedDelivery] = useState(defaultDeliveryDateIso)
-  const [discountVnd, setDiscountVnd] = useState(0)
-  const [shippingFeeVnd, setShippingFeeVnd] = useState(0)
+  const [agencyPickCache, setAgencyPickCache] = useState<Record<string, SellerAgencyRow>>(() => {
+    if (!copyPrefill) return {}
+    const fallback = buildFallbackAgencyFromCopyPrefill(copyPrefill)
+    return { [copyPrefill.agencyId]: fallback }
+  })
+  const [expectedDelivery, setExpectedDelivery] = useState(
+    () => copyPrefill?.expectedDeliveryDate?.trim() || defaultDeliveryDateIso(),
+  )
+  const [discountVnd, setDiscountVnd] = useState(() => copyPrefill?.discountAmountVnd ?? 0)
+  const [shippingFeeVnd, setShippingFeeVnd] = useState(() => copyPrefill?.shippingFeeVnd ?? 0)
   const [internalNote, setInternalNote] = useState('')
   const [deliveryNote, setDeliveryNote] = useState('')
-  const [lines, setLines] = useState<SellerOrderDraftLine[]>([])
+  const [lines, setLines] = useState<SellerOrderDraftLine[]>(() => copyHydrate?.lines ?? [])
   const [catalogProducts, setCatalogProducts] = useState<SellerStoreProduct[]>(() => [
     ...SELLER_STORE_PRODUCTS,
   ])
@@ -598,6 +656,36 @@ export function SellerOrderCreatePage() {
     }
   }, [debouncedAgencySearch])
 
+  const copyAgencyHydrateId = copyPrefill?.agencyId ?? ''
+  useEffect(() => {
+    if (!copyPrefill || !copyAgencyHydrateId) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const data = await fetchSellerAgencies({
+          page: 0,
+          size: 100,
+          search:
+            copyPrefill.agency.code?.trim() ||
+            copyPrefill.agency.shortName?.trim() ||
+            copyPrefill.agency.legalName?.trim() ||
+            undefined,
+          is_active: true,
+        })
+        if (cancelled) return
+        const hit = data.content.find((r) => r.id === copyAgencyHydrateId)
+        if (hit) {
+          setAgencyPickCache((prev) => ({ ...prev, [hit.id]: hit }))
+        }
+      } catch {
+        /* giữ fallback từ prefill */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [copyPrefill, copyAgencyHydrateId])
+
   const handleSelectAgency = useCallback((a: SellerAgencyRow) => {
     setAgencyId(a.id)
     setAgencyPickCache((prev) => ({ ...prev, [a.id]: a }))
@@ -618,24 +706,36 @@ export function SellerOrderCreatePage() {
     return Math.max(0, raw)
   }, [subtotalVnd, discountVnd, shippingFeeVnd])
 
+  const agencyCredit = useMemo(() => {
+    if (!selectedAgency) return null
+    return computeAgencyCreditSnapshot(selectedAgency, grandTotalVnd, 'fulfillment')
+  }, [selectedAgency, grandTotalVnd])
+
   const addFromCatalog = useCallback(
     (productId: string) => {
       const p = catalogProducts.find((x) => x.id === productId)
       if (!p) return
-      setLines((prev) => [
-        ...prev,
-        {
-          id: newLineId(),
-          productId: p.id,
-          sku: p.sku,
-          productName: p.name,
-          qty: 1,
-          unitPriceVnd: p.price,
-          lineNote: '',
-        },
-      ])
+      setLines((prev) => {
+        const bumped = bumpProductLineQty(prev, productId)
+        if (bumped.merged) {
+          message.info(`Đã cộng thêm 1 vào "${bumped.mergedLine!.productName}"`)
+          return bumped.next
+        }
+        return [
+          ...prev,
+          {
+            id: newLineId(),
+            productId: p.id,
+            sku: p.sku,
+            productName: p.name,
+            qty: 1,
+            unitPriceVnd: p.price,
+            lineNote: '',
+          },
+        ]
+      })
     },
-    [catalogProducts],
+    [catalogProducts, message],
   )
 
   const removeLine = useCallback((id: string) => {
@@ -650,14 +750,26 @@ export function SellerOrderCreatePage() {
     (lineId: string, productId: string) => {
       const p = catalogProducts.find((x) => x.id === productId)
       if (!p) return
-      patchLine(lineId, {
-        productId: p.id,
-        sku: p.sku,
-        productName: p.name,
-        unitPriceVnd: p.price,
+      setLines((prev) => {
+        const merged = mergeDraftLineIntoDuplicate(prev, lineId, productId)
+        if (merged) {
+          message.info(`Sản phẩm đã có trên đơn — đã gộp số lượng vào "${merged.targetLine.productName}"`)
+          return merged.next
+        }
+        return prev.map((ln) =>
+          ln.id === lineId
+            ? {
+                ...ln,
+                productId: p.id,
+                sku: p.sku,
+                productName: p.name,
+                unitPriceVnd: p.price,
+              }
+            : ln,
+        )
       })
     },
-    [catalogProducts, patchLine],
+    [catalogProducts, message],
   )
 
   const linesMatchingKind = useMemo(
@@ -685,6 +797,11 @@ export function SellerOrderCreatePage() {
         const noteRaw = buildSellerOrderConcatenatedNote(linesMatchingKind, {
           internalNote,
         }).trim()
+        const copyNotePrefix = copyPrefill
+          ? buildCopyPrefillNotePrefix(copyPrefill.sourceQuotationRef)
+          : ''
+        const noteParts = [copyNotePrefix, noteRaw].filter((p) => p.length > 0)
+        const noteCombined = noteParts.length > 0 ? noteParts.join('\n') : null
         const shippingAddressParts = [selectedAgency.address?.trim(), selectedAgency.city?.trim()].filter(
           Boolean,
         ) as string[]
@@ -697,10 +814,17 @@ export function SellerOrderCreatePage() {
           shippingFee: Math.max(0, shippingFeeVnd),
           shippingAddress,
           expectedDeliveryDate: expectedDelivery.trim() || null,
-          note: noteRaw.length > 0 ? noteRaw : null,
+          sourceOrderId: copyPrefill?.sourceQuotationId ?? null,
+          note: noteCombined,
           items,
         })
-        navigate(sellerPaths.order(data.id))
+        clearQuotationOrderCopyPrefill()
+        if (data.status === 'Approved') {
+          message.success('Đơn đã sẵn sàng đẩy sản xuất')
+        } else {
+          message.warning('Đơn cần gửi duyệt lại do thay đổi đơn giá dòng hoặc danh sách hàng')
+        }
+        navigate(sellerPaths.order(orderCodeFromDto(data)))
       } catch (err) {
         setSubmitError(err instanceof Error ? err.message : 'Không lưu được đơn nháp')
       } finally {
@@ -716,11 +840,17 @@ export function SellerOrderCreatePage() {
       shippingFeeVnd,
       expectedDelivery,
       internalNote,
+      copyPrefill,
       navigate,
+      message,
     ],
   )
 
   const firstCatalogId = catalogProducts[0]?.id
+
+  if (!copyPrefill) {
+    return <Navigate to={sellerPaths.quotations} replace />
+  }
 
   return (
     <div className="th-seller-order-create">
@@ -776,6 +906,16 @@ export function SellerOrderCreatePage() {
         </p>
       </header>
 
+      {copyPrefill ? (
+        <p className="th-seller-order-create__quick-quote-note" role="status">
+          Tạo đơn mới từ báo giá{' '}
+          <Link to={sellerPaths.quotation(copyPrefill.sourceQuotationId)}>
+            <strong>{copyPrefill.sourceQuotationRef}</strong>
+          </Link>
+          . Giá đã duyệt — chỉnh số lượng. Lưu xong có thể đẩy sản xuất.
+        </p>
+      ) : null}
+
       <form className="th-seller-order-create__form" onSubmit={saveDraftOrder} noValidate>
         <div className="th-seller-order-create__layout">
           <div className="th-seller-order-create__main">
@@ -802,6 +942,7 @@ export function SellerOrderCreatePage() {
                         searchQuery={agencySearchQuery}
                         onSearchQueryChange={setAgencySearchQuery}
                         onSelectAgency={handleSelectAgency}
+                        disabled={isAgencyLockedByCopy}
                       />
                     </div>
                     {agencyLoadError ? (
@@ -834,34 +975,36 @@ export function SellerOrderCreatePage() {
                 Sản phẩm trong đơn
               </h2>
 
-              <div className="th-seller-order-create__line-toolbar">
-                <div className="th-seller-order-create__quick-add">
-                  <span className="th-seller-order-create__label" id={`${fid}-quick-cat-label`}>
-                    Chọn sản phẩm
-                  </span>
-                  <div className="th-seller-order-create__quick-add-combo">
-                    <CatalogProductCombo
-                      instanceId={`${fid}-quick-cat`}
-                      products={catalogProducts}
-                      variant="toolbar"
-                      onSelect={(productId) => addFromCatalog(productId)}
-                    />
+              {!isCopyPricingLockedMode ? (
+                <div className="th-seller-order-create__line-toolbar">
+                  <div className="th-seller-order-create__quick-add">
+                    <span className="th-seller-order-create__label" id={`${fid}-quick-cat-label`}>
+                      Chọn sản phẩm
+                    </span>
+                    <div className="th-seller-order-create__quick-add-combo">
+                      <CatalogProductCombo
+                        instanceId={`${fid}-quick-cat`}
+                        products={catalogProducts}
+                        variant="toolbar"
+                        onSelect={(productId) => addFromCatalog(productId)}
+                      />
+                    </div>
+                  </div>
+                  <div className="th-seller-order-create__line-actions">
+                    <button
+                      type="button"
+                      className="th-seller-order-create__btn-ghost"
+                      disabled={!firstCatalogId}
+                      onClick={() => firstCatalogId && addFromCatalog(firstCatalogId)}
+                    >
+                      <span className="material-symbols-outlined" aria-hidden>
+                        add_shopping_cart
+                      </span>
+                      Thêm dòng đầu tiên
+                    </button>
                   </div>
                 </div>
-                <div className="th-seller-order-create__line-actions">
-                  <button
-                    type="button"
-                    className="th-seller-order-create__btn-ghost"
-                    disabled={!firstCatalogId}
-                    onClick={() => firstCatalogId && addFromCatalog(firstCatalogId)}
-                  >
-                    <span className="material-symbols-outlined" aria-hidden>
-                      add_shopping_cart
-                    </span>
-                    Thêm dòng đầu tiên
-                  </button>
-                </div>
-              </div>
+              ) : null}
 
               <div className="th-seller-order-create__table-wrap">
                 <table className="th-seller-order-create__table">
@@ -888,7 +1031,7 @@ export function SellerOrderCreatePage() {
                     {lines.length === 0 ? (
                       <tr>
                         <td colSpan={9} className="th-seller-order-create__empty">
-                          Chưa có sản phẩm. Chọn ở ô trên hoặc bấm Thêm dòng đầu tiên.
+                          Chưa có sản phẩm từ báo giá.
                         </td>
                       </tr>
                     ) : (
@@ -899,17 +1042,21 @@ export function SellerOrderCreatePage() {
                             <td>{idx + 1}</td>
                             <td>
                               <span className="th-seller-order-create__badge th-seller-order-create__badge--cat">
-                                Catalog
+                                {sellerOrderLineKindLabel('catalog')}
                               </span>
                             </td>
                             <td className="th-seller-order-create__cell-name">
-                              <CatalogProductCombo
-                                instanceId={`${fid}-line-${ln.id}`}
-                                products={catalogProducts}
-                                variant="table"
-                                selectedProductId={ln.productId}
-                                onSelect={(productId) => onChangeCatalogProduct(ln.id, productId)}
-                              />
+                              {isCopyPricingLockedMode ? (
+                                <span>{ln.productName}</span>
+                              ) : (
+                                <CatalogProductCombo
+                                  instanceId={`${fid}-line-${ln.id}`}
+                                  products={catalogProducts}
+                                  variant="table"
+                                  selectedProductId={ln.productId}
+                                  onSelect={(productId) => onChangeCatalogProduct(ln.id, productId)}
+                                />
+                              )}
                             </td>
                             <td>
                               <code className="th-seller-order-create__sku">{ln.sku}</code>
@@ -934,6 +1081,7 @@ export function SellerOrderCreatePage() {
                                 min={0}
                                 step={1000}
                                 value={ln.unitPriceVnd}
+                                readOnly={isCopyPricingLockedMode}
                                 onChange={(e) =>
                                   patchLine(ln.id, {
                                     unitPriceVnd: Math.max(0, Number(e.target.value) || 0),
@@ -985,7 +1133,7 @@ export function SellerOrderCreatePage() {
               <div className="th-seller-order-create__grid">
                 <div className="th-seller-order-create__field">
                   <label className="th-seller-order-create__label" htmlFor={`${fid}-disc`}>
-                    Chiết khấu đơn (VND)
+                    {orderLevelDiscountFieldLabel}
                   </label>
                   <input
                     id={`${fid}-disc`}
@@ -1071,18 +1219,87 @@ export function SellerOrderCreatePage() {
                 </span>
               </p>
               {selectedAgency ? (
-                <dl className="th-seller-order-create__agency-dl">
-                  <dt>Khách</dt>
-                  <dd>{selectedAgency.shortName}</dd>
-                  <dt>Mã</dt>
-                  <dd>
-                    <code>{selectedAgency.code}</code>
-                  </dd>
-                  <dt>Hạn mức</dt>
-                  <dd>{formatVND(selectedAgency.creditLimitVnd)}</dd>
-                  <dt>Công nợ hiện tại</dt>
-                  <dd>{formatVND(selectedAgency.totalDebtVnd)}</dd>
-                </dl>
+                <>
+                  <dl className="th-seller-order-create__agency-dl">
+                    <dt>Khách</dt>
+                    <dd>{selectedAgency.shortName}</dd>
+                    <dt>Mã</dt>
+                    <dd>
+                      <code>{selectedAgency.code}</code>
+                    </dd>
+                  </dl>
+                  {agencyCredit ? (
+                    <div
+                      className={`th-seller-order-create__credit-snapshot th-seller-order-create__credit-snapshot--${agencyCredit.tone}`}
+                      role="status"
+                    >
+                      <div className="th-seller-order-create__credit-snapshot-kpis">
+                        <div>
+                          <span className="th-seller-order-create__credit-snapshot-kpi-label">
+                            Công nợ hiện tại
+                          </span>
+                          <strong className="th-seller-order-create__credit-snapshot-kpi-val">
+                            {formatVND(selectedAgency.totalDebtVnd)}
+                          </strong>
+                        </div>
+                        <div>
+                          <span className="th-seller-order-create__credit-snapshot-kpi-label">
+                            Hạn mức
+                          </span>
+                          <strong className="th-seller-order-create__credit-snapshot-kpi-val">
+                            {formatVND(selectedAgency.creditLimitVnd)}
+                          </strong>
+                        </div>
+                      </div>
+                      <div className="th-seller-order-create__credit-snapshot-head">
+                        <span className="th-seller-order-create__credit-snapshot-label">
+                          Dùng hạn mức
+                        </span>
+                        <span className="th-seller-order-create__credit-snapshot-pct">
+                          {(agencyCredit.ratio * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div
+                        className="th-seller-order-create__credit-snapshot-track"
+                        aria-hidden
+                        role="presentation"
+                      >
+                        <span style={{ width: `${Math.min(100, agencyCredit.ratio * 100)}%` }} />
+                      </div>
+                      <p className="th-seller-order-create__credit-snapshot-hint">
+                        {agencyCredit.hintCurrent}
+                      </p>
+                      {agencyCredit.showProj ? (
+                        <>
+                          <div className="th-seller-order-create__credit-snapshot-head th-seller-order-create__credit-snapshot-head--proj">
+                            <span className="th-seller-order-create__credit-snapshot-label">
+                              Ước sau đơn (+{formatVND(grandTotalVnd)})
+                            </span>
+                            <span className="th-seller-order-create__credit-snapshot-pct">
+                              {(agencyCredit.projRatio * 100).toFixed(1)}% HM
+                              {' · '}
+                              {formatVND(agencyCredit.projDebt)}
+                            </span>
+                          </div>
+                          <div
+                            className="th-seller-order-create__credit-snapshot-track th-seller-order-create__credit-snapshot-track--proj"
+                            aria-hidden
+                            role="presentation"
+                          >
+                            <span
+                              style={{ width: `${Math.min(100, agencyCredit.projRatio * 100)}%` }}
+                            />
+                          </div>
+                          {agencyCredit.hintProj ? (
+                            <p className="th-seller-order-create__credit-snapshot-hint th-seller-order-create__credit-snapshot-hint--proj">
+                              {agencyCredit.hintProj}
+                            </p>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </>
               ) : (
                 <p className="th-seller-order-create__summary-muted">Chọn khách sỉ để xem hạn mức.</p>
               )}
@@ -1092,7 +1309,7 @@ export function SellerOrderCreatePage() {
                   <strong>{formatVND(subtotalVnd)}</strong>
                 </li>
                 <li>
-                  <span>Chiết khấu</span>
+                  <span>{orderLevelDiscountSummaryLabel}</span>
                   <strong>−{formatVND(discountVnd)}</strong>
                 </li>
                 <li>

@@ -358,25 +358,6 @@
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
 }
 
-.th-seller-store__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.75rem;
-  border-radius: 999px;
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  background: rgba(255, 255, 255, 0.95);
-  font-size: var(--th-text-sm);
-  font-weight: var(--th-weight-semibold);
-  color: #047857;
-  cursor: pointer;
-  user-select: none;
-}
-
-.th-seller-store__chip input {
-  accent-color: #059669;
-}
-
 /* Cùng component CategorySearchSelect như admin — chỉnh nhẹ độ rộng trigger */
 .th-seller-store__field .th-cat-search-select--toolbar {
   min-width: 11rem;
@@ -435,11 +416,19 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 1rem;
+  align-items: stretch;
+}
+
+.th-seller-store__grid > li {
+  display: flex;
+  min-height: 100%;
 }
 
 .th-seller-store__card {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  flex: 1;
   border-radius: 14px;
   border: 1px solid #e2e8f0;
   background: #fff;
@@ -487,29 +476,6 @@
   background: linear-gradient(135deg, #7c3aed, #5b21b6);
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.th-seller-store__stock {
-  position: absolute;
-  left: 0.65rem;
-  bottom: 0.65rem;
-  padding: 0.28rem 0.55rem;
-  border-radius: 8px;
-  font-size: var(--th-text-xs);
-  font-weight: var(--th-weight-extrabold);
-  letter-spacing: 0.02em;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.15);
-}
-
-.th-seller-store__stock--ok {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-}
-
-.th-seller-store__stock--zero {
-  background: rgba(15, 23, 42, 0.75);
-  color: #e2e8f0;
 }
 
 .th-seller-store__card-body {
@@ -583,7 +549,7 @@
 }
 
 .th-seller-store__btn {
-  margin-top: 0.35rem;
+  margin-top: auto;
   padding: 0.5rem 0.85rem;
   border: none;
   border-radius: 10px;

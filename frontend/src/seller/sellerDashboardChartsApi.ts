@@ -22,6 +22,13 @@ export async function fetchSellerMyOrderStatusBreakdown(fromDate: string, toDate
   })
 }
 
+export async function fetchSellerMyOpenOrdersCount() {
+  return fetchChartJsonGet<{ count: number; approvedCount: number; producingCount: number }>(
+    `${P}/my-open-orders-count`,
+    {},
+  )
+}
+
 export async function fetchSellerMyPipelineFunnel() {
   return fetchChartJsonGet<NamedValuePoint[]>(`${P}/my-pipeline-funnel`, {})
 }

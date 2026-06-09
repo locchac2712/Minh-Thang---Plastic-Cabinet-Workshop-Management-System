@@ -7,12 +7,9 @@ import type { SellerAgencyRow } from '../data/sellerAgenciesMock'
 import { fetchSellerAgencies } from '../sellerAgenciesApi'
 import { getAccessToken } from '../../auth/storage'
 import {
-  AppFilterActions,
   AppFilterBar,
-  AppFilterClearButton,
   AppFilterField,
   AppFilterInput,
-  AppFilterSelect,
   AppPagination,
 } from '../../shared/ui/listing'
 import '../../admin/pages/AdminUsersPage.css'
@@ -27,7 +24,6 @@ export function SellerAgenciesPage() {
 
   const [searchInput, setSearchInput] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [filterActive, setFilterActive] = useState<'' | 'active' | 'inactive'>('')
 
   const [pageIndex, setPageIndex] = useState(0)
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(10)
@@ -45,7 +41,7 @@ export function SellerAgenciesPage() {
 
   useEffect(() => {
     setPageIndex(0)
-  }, [debouncedSearch, filterActive])
+  }, [debouncedSearch])
 
   const fetchAgencies = useCallback(async () => {
     const accessToken = getAccessToken()
@@ -64,7 +60,6 @@ export function SellerAgenciesPage() {
         page: pageIndex,
         size: pageSize,
         search: debouncedSearch || undefined,
-        is_active: filterActive === 'active' ? true : filterActive === 'inactive' ? false : undefined,
       })
       setRows(data.content)
       setPageIndex(data.page)
@@ -78,17 +73,11 @@ export function SellerAgenciesPage() {
     } finally {
       setLoading(false)
     }
-  }, [pageIndex, pageSize, debouncedSearch, filterActive])
+  }, [pageIndex, pageSize, debouncedSearch])
 
   useEffect(() => {
     void fetchAgencies()
   }, [fetchAgencies])
-
-  const filtersApplied = !!filterActive
-
-  const clearFilters = useCallback(() => {
-    setFilterActive('')
-  }, [])
 
   const debtRatio = useCallback((a: SellerAgencyRow) => {
     if (a.creditLimitVnd <= 0) return a.totalDebtVnd > 0 ? 1 : 0
@@ -99,7 +88,7 @@ export function SellerAgenciesPage() {
 
   const goToOrderHistory = useCallback(
     (a: SellerAgencyRow) => {
-      navigate(sellerPaths.agency(a.id))
+      navigate(`${sellerPaths.agency(a.id)}?tab=orders`)
     },
     [navigate],
   )
@@ -107,21 +96,11 @@ export function SellerAgenciesPage() {
   return (
     <div className="th-seller-agency">
       <header className="th-seller-agency__header">
-        <div className="th-seller-agency__heading">
-          <div className="th-seller-agency__title-row">
-            <span className="material-symbols-outlined th-seller-agency__title-icon" aria-hidden>
-              domain
-            </span>
-            <div>
-              <h1 className="th-seller-agency__title">Khách sỉ trực thuộc</h1>
-            </div>
-          </div>
-          <Link to={sellerPaths.agencyNew} className="th-seller-agency__btn-primary">
-            <span className="material-symbols-outlined" aria-hidden>
-              add
-            </span>
-            Thêm đại lý mới
-          </Link>
+        <div className="th-seller-agency__title-row">
+          <span className="material-symbols-outlined th-seller-agency__title-icon" aria-hidden>
+            domain
+          </span>
+          <h1 className="th-seller-agency__title">Khách sỉ trực thuộc</h1>
         </div>
       </header>
 
@@ -143,22 +122,15 @@ export function SellerAgenciesPage() {
                 autoComplete="off"
               />
             </AppFilterField>
-            <AppFilterField label="Trạng thái" className="th-seller-agency-toolbar__filter">
-              <AppFilterSelect
-                value={filterActive}
-                onChangeValue={(value) => setFilterActive(value as '' | 'active' | 'inactive')}
-                options={[
-                  { value: '', label: 'Tất cả' },
-                  { value: 'active', label: 'Đang hoạt động' },
-                  { value: 'inactive', label: 'Tạm khóa' },
-                ]}
-              />
-            </AppFilterField>
-            {filtersApplied ? (
-              <AppFilterActions>
-                <AppFilterClearButton onClick={clearFilters} />
-              </AppFilterActions>
-            ) : null}
+            <Link
+              to={sellerPaths.agencyNew}
+              className="th-seller-agency__btn-primary th-seller-agency-toolbar__create"
+            >
+              <span className="material-symbols-outlined" aria-hidden>
+                add
+              </span>
+              Thêm đại lý mới
+            </Link>
           </AppFilterBar>
         </div>
 
@@ -188,7 +160,7 @@ export function SellerAgenciesPage() {
               {!loading && rows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="th-seller-agency-table__empty">
-                    Không có khách sỉ khớp bộ lọc.
+                    Không có khách sỉ.
                   </td>
                 </tr>
               ) : null}

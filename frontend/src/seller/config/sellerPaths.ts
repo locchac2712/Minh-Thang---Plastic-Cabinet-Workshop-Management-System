@@ -2,6 +2,7 @@
 export const sellerPaths = {
   root: '/seller',
   dashboard: '/seller',
+  account: '/seller/account',
   agencies: '/seller/agencies',
   /** Form tạo khách hàng / đại lý mới */
   agencyNew: '/seller/agencies/new',

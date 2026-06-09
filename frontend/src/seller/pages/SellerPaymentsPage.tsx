@@ -10,6 +10,13 @@ import {
   type SellerOrderListDto,
   type SellerOrderPaymentDto,
 } from '../sellerOrdersApi'
+import {
+  formatSellerPaymentRef,
+  SellerPaymentProofThumb,
+  sellerPaymentMethodLabel,
+  sellerPaymentStatusClass,
+  sellerPaymentStatusLabel,
+} from '../sellerPaymentDisplay'
 import { AppFilterBar, AppFilterField, AppFilterSelect, AppPagination } from '../../shared/ui/listing'
 import '../../admin/pages/AdminUsersPage.css'
 import './SellerPaymentsPage.css'
@@ -274,11 +281,15 @@ export function SellerPaymentsPage() {
                         <tbody>
                           {historyRows.length === 0 ? <tr><td colSpan={7} className="th-seller-pay__hist-empty">Chưa có thanh toán.</td></tr> : historyRows.map((p) => (
                             <tr key={p.id}>
-                              <td><code>{p.id}</code></td>
+                              <td><code title={p.id}>{formatSellerPaymentRef(p.id)}</code></td>
                               <td className="th-seller-pay__num">{formatVND(p.amount)}</td>
-                              <td>{p.paymentMethod}</td>
-                              <td>{p.status}</td>
-                              <td>{p.proofImage ? <a href={p.proofImage} target="_blank" rel="noreferrer">Xem ảnh</a> : '—'}</td>
+                              <td>{sellerPaymentMethodLabel(p.paymentMethod)}</td>
+                              <td>
+                                <span className={sellerPaymentStatusClass(p.status)}>
+                                  {sellerPaymentStatusLabel(p.status)}
+                                </span>
+                              </td>
+                              <td>{p.proofImage ? <SellerPaymentProofThumb url={p.proofImage} /> : '—'}</td>
                               <td>{p.note || '—'}</td>
                               <td>{new Date(p.createdAt).toLocaleString('vi-VN')}</td>
                             </tr>

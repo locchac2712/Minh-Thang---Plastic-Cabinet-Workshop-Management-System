@@ -132,8 +132,64 @@
   color: #059669;
 }
 
+.th-seller-order-detail__page-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: #059669;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.th-seller-order-detail__tab-panel--qt-orders .th-admin-product-detail__table-wrap {
+  margin-top: 0.75rem;
+}
+
 .th-seller-order-detail__tab-panel {
   min-width: 0;
+}
+
+.th-seller-order-detail__tab-panel--factory > .th-seller-order-detail__card {
+  overflow: hidden;
+}
+
+.th-seller-order-detail__factory-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.35rem 1.15rem 1.15rem;
+  min-width: 0;
+}
+
+.th-seller-order-detail__factory-body .th-sod-fulfill {
+  margin-bottom: 0;
+}
+
+.th-seller-order-detail__factory-body .th-sod-deliver {
+  margin: 0;
+}
+
+.th-seller-order-detail__factory-body .th-opp-timeline__section-title:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.th-seller-order-detail__factory-body > .th-seller-order-detail__muted,
+.th-seller-order-detail__factory-body > .th-admin-users__api-error {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .th-seller-order-detail__factory-body {
+    padding: 0 0.85rem 1rem;
+  }
 }
 
 .th-seller-order-detail__factory-log-list {
@@ -144,9 +200,154 @@
   gap: 0.65rem;
 }
 
-.th-seller-order-detail__factory-task-list {
+.th-seller-order-detail__factory-split {
   display: grid;
-  gap: 0.8rem;
+  grid-template-columns: minmax(14rem, 22rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+  min-height: 20rem;
+}
+
+.th-seller-order-detail__factory-tasks {
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 0.75rem;
+}
+
+.th-seller-order-detail__factory-logs {
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.85rem 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: min(70vh, 42rem);
+  overflow: auto;
+}
+
+.th-seller-order-detail__factory-split-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.65rem;
+  font-size: var(--th-text-sm);
+  font-weight: var(--th-weight-bold);
+  color: #334155;
+}
+
+.th-seller-order-detail__factory-split-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: var(--th-weight-bold);
+  color: #475569;
+  background: #e2e8f0;
+}
+
+.th-seller-order-detail__factory-log-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.th-seller-order-detail__factory-log-panel-head .th-seller-order-detail__factory-split-title {
+  margin-bottom: 0.35rem;
+}
+
+.th-seller-order-detail__factory-log-panel-head .th-seller-order-detail__factory-task-actions {
+  margin-top: 0;
+}
+
+.th-seller-order-detail__factory-log-empty {
+  margin: auto 0;
+  padding: 1.5rem 0.5rem;
+  text-align: center;
+}
+
+.th-seller-order-detail__factory-task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  max-height: min(65vh, 38rem);
+  overflow: auto;
+}
+
+.th-seller-order-detail__factory-task-pick {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.6rem 0.65rem;
+  cursor: pointer;
+  font-family: inherit;
+  display: grid;
+  gap: 0.35rem;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.th-seller-order-detail__factory-task-pick:hover {
+  border-color: #94a3b8;
+  background: #fff;
+}
+
+.th-seller-order-detail__factory-task-pick--active {
+  border-color: rgba(5, 150, 105, 0.55);
+  background: #ecfdf5;
+  box-shadow: 0 0 0 1px rgba(5, 150, 105, 0.18);
+}
+
+.th-seller-order-detail__factory-task-pick-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.th-seller-order-detail__factory-task-pick-top strong {
+  color: #0f172a;
+  font-size: var(--th-text-sm);
+  line-height: 1.35;
+}
+
+.th-seller-order-detail__factory-task-pick-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  color: #64748b;
+  font-size: var(--th-text-xs);
+}
+
+@media (max-width: 900px) {
+  .th-seller-order-detail__factory-split {
+    grid-template-columns: 1fr;
+  }
+
+  .th-seller-order-detail__factory-logs {
+    max-height: none;
+  }
+
+  .th-seller-order-detail__factory-task-list {
+    max-height: none;
+  }
 }
 
 .th-seller-order-detail__factory-task-card {
@@ -210,6 +411,155 @@
 .th-seller-order-detail__factory-task-pill--done {
   background: #dcfce7;
   color: #166534;
+}
+
+.th-seller-order-detail__factory-task-pill--delivered {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.th-seller-order-detail__factory-task-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.th-seller-order-detail__factory-task-actions {
+  margin-top: 0.65rem;
+}
+
+.th-seller-order-detail__fulfillment {
+  margin-bottom: 1rem;
+}
+
+.th-seller-order-detail__fulfillment-title {
+  margin: 0 0 0.5rem;
+  font-size: var(--th-text-sm);
+  font-weight: var(--th-weight-bold);
+  color: #334155;
+}
+
+.th-seller-order-detail__num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.th-seller-order-detail__fulfillment-error {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.th-seller-order-detail__fulfillment-strip {
+  margin: 0.75rem 0 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: var(--th-text-sm);
+  color: #475569;
+}
+
+.th-seller-order-detail__fulfillment-strip--ok {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.th-seller-order-detail__factory-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 1.25rem 0 0.75rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: #334155;
+}
+
+.th-seller-order-detail__factory-section-title .material-symbols-outlined {
+  font-size: 1.15rem;
+  color: #64748b;
+}
+
+.th-seller-order-detail__factory-task-pick-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  max-width: 55%;
+}
+
+.th-seller-order-detail__factory-task-pill--pending-deliver {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid rgba(234, 88, 12, 0.35);
+}
+
+.th-seller-order-detail__factory-deliver-hint {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  font-size: var(--th-text-xs);
+  color: #9a3412;
+  background: #fff7ed;
+  border: 1px solid rgba(251, 146, 60, 0.35);
+  line-height: 1.45;
+  flex: 1 1 100%;
+}
+
+.th-seller-order-detail__factory-deliver-hint a {
+  color: #c2410c;
+  font-weight: var(--th-weight-bold);
+}
+
+.th-seller-order-detail__factory-delivery-proof {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px dashed #e2e8f0;
+  flex: 1 1 100%;
+}
+
+.th-seller-order-detail__factory-delivery-addr {
+  margin: 0 0 0.5rem;
+  font-size: var(--th-text-sm);
+  color: #334155;
+  line-height: 1.45;
+}
+
+.th-seller-order-detail__factory-log-image-link {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 0.35rem;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  text-decoration: none;
+  background: #f8fafc;
+}
+
+.th-seller-order-detail__factory-log-image-link img {
+  display: block;
+  max-width: min(100%, 16rem);
+  max-height: 10rem;
+  object-fit: cover;
+}
+
+.th-seller-order-detail__factory-log-image-link span {
+  display: block;
+  padding: 0.35rem 0.5rem;
+  font-size: var(--th-text-xs);
+  font-weight: var(--th-weight-semibold);
+  color: #0284c7;
+  text-align: center;
+}
+
+.th-seller-order-detail__factory-log-image-link:hover span {
+  text-decoration: underline;
 }
 
 .th-seller-order-detail__factory-log-item {
@@ -315,6 +665,19 @@
   font-weight: 800;
 }
 
+.th-seller-order-detail__title--agency-first {
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+.th-seller-order-detail__title-sub {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
 .th-seller-order-detail__order-code {
   font-size: 1.1rem;
   font-family: ui-monospace, monospace;
@@ -350,6 +713,212 @@
 .th-seller-order-detail__meta-chips .material-symbols-outlined {
   font-size: 0.95rem;
   color: var(--th-sod-accent);
+}
+
+/* Quotation header — compact flat layout */
+.th-seller-order-detail__header--qt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.th-seller-order-detail__qt-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.th-seller-order-detail__qt-id {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.th-seller-order-detail__qt-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+.th-seller-order-detail__qt-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.65rem;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.th-seller-order-detail__qt-meta span {
+  white-space: nowrap;
+}
+
+.th-seller-order-detail__qt-meta a {
+  color: #0369a1;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.th-seller-order-detail__qt-meta a:hover {
+  text-decoration: underline;
+}
+
+.th-seller-order-detail__header-actions--qt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding-top: 0.25rem;
+}
+
+/* Inline quotation stepper (3 dots in header) */
+.th-seller-order-detail__qt-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.th-seller-order-detail__qs {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  position: relative;
+}
+
+.th-seller-order-detail__qs + .th-seller-order-detail__qs::before {
+  content: '';
+  display: block;
+  width: 1.5rem;
+  height: 2px;
+  background: #cbd5e1;
+  margin-right: 0.35rem;
+  flex-shrink: 0;
+}
+
+.th-seller-order-detail__qs--done + .th-seller-order-detail__qs::before,
+.th-seller-order-detail__qs--skipped + .th-seller-order-detail__qs--current::before {
+  background: #059669;
+}
+
+.th-seller-order-detail__qs-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 2px solid #e2e8f0;
+}
+
+.th-seller-order-detail__qs--done .th-seller-order-detail__qs-dot {
+  background: #059669;
+  border-color: #059669;
+  color: #fff;
+}
+
+.th-seller-order-detail__qs--done .th-seller-order-detail__qs-dot .material-symbols-outlined {
+  font-size: 0.85rem;
+}
+
+.th-seller-order-detail__qs--current .th-seller-order-detail__qs-dot {
+  background: #fff;
+  border-color: #059669;
+  color: #059669;
+}
+
+.th-seller-order-detail__qs--skipped .th-seller-order-detail__qs-dot {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+  font-size: 0.7rem;
+}
+
+.th-seller-order-detail__qs-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.th-seller-order-detail__qs--done .th-seller-order-detail__qs-label {
+  color: #047857;
+}
+
+.th-seller-order-detail__qs--current .th-seller-order-detail__qs-label {
+  color: #059669;
+}
+
+.th-seller-order-detail__qs--skipped .th-seller-order-detail__qs-label {
+  color: #b91c1c;
+}
+
+/* Compact contact row in header (quotation + order) */
+.th-seller-order-detail__qt-contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.85rem;
+  margin: 0.55rem 0 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  font-size: 0.78rem;
+  color: #475569;
+}
+
+.th-seller-order-detail__qt-contact a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: #0369a1;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.th-seller-order-detail__qt-contact a:hover {
+  text-decoration: underline;
+}
+
+.th-seller-order-detail__qt-contact .material-symbols-outlined {
+  font-size: 0.9rem;
+}
+
+.th-seller-order-detail__qt-contact-addr {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: #64748b;
+}
+
+.th-seller-order-detail__qt-contact-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  color: #047857;
+  font-weight: 700;
+  text-decoration: none;
+  margin-left: auto;
+}
+
+.th-seller-order-detail__qt-contact-link:hover {
+  text-decoration: underline;
+}
+
+.th-seller-order-detail__qt-contact-link .material-symbols-outlined {
+  font-size: 0.85rem;
 }
 
 .th-seller-order-detail__header-right {
@@ -453,6 +1022,32 @@
   background: #fff7ed;
   color: #c2410c;
   border: 1px dashed rgba(251, 146, 60, 0.5);
+}
+
+.th-seller-order-detail__pill--quotation-draft {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.th-seller-order-detail__pill--quotation-pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.th-seller-order-detail__pill--quotation-approved {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.th-seller-order-detail__pill--quotation-rejected {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.th-seller-order-detail__pill--quotation-canceled {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px dashed rgba(100, 116, 139, 0.45);
 }
 
 .th-seller-order-detail__pill--kind {
@@ -825,6 +1420,21 @@
 
 .th-seller-order-detail__card--wide {
   grid-column: 1 / -1;
+}
+
+/* Quotation + order detail: money sidebar + products table on one row */
+.th-seller-order-detail__grid--qt {
+  grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+}
+
+.th-seller-order-detail__grid--qt .th-seller-order-detail__card--lines-qt {
+  min-width: 0;
+}
+
+@media (max-width: 960px) {
+  .th-seller-order-detail__grid--qt {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1482,6 +2092,189 @@ a.th-seller-order-detail__contact-value:hover {
   color: #0f172a;
 }
 
+/* Chuyển giai đoạn báo giá → đơn hàng; điều kiện đẩy SX (thanh toán) */
+.th-seller-order-detail__phase-banner {
+  padding: 1rem 1.15rem;
+  border-radius: 14px;
+  border: 1px solid rgba(5, 150, 105, 0.28);
+  background: linear-gradient(135deg, #ecfdf5 0%, #fff 60%);
+  box-shadow: var(--th-sod-card-shadow);
+}
+
+.th-seller-order-detail__phase-banner--operations {
+  border-color: rgba(37, 99, 235, 0.28);
+  background: linear-gradient(135deg, #eff6ff 0%, #fff 60%);
+}
+
+.th-seller-order-detail__phase-banner--push-pay {
+  border-color: rgba(5, 150, 105, 0.28);
+  background: linear-gradient(135deg, #ecfdf5 0%, #fff 60%);
+}
+
+.th-seller-order-detail__phase-banner--push-pay .th-seller-order-detail__phase-banner-text {
+  color: #065f46;
+}
+
+.th-seller-order-detail__phase-banner--push-pay .th-seller-order-detail__phase-banner-text .material-symbols-outlined {
+  color: #059669;
+}
+
+.th-seller-order-detail__phase-banner-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.th-seller-order-detail__phase-banner-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  flex: 1;
+  min-width: min(100%, 16rem);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #065f46;
+}
+
+.th-seller-order-detail__phase-banner--operations .th-seller-order-detail__phase-banner-text {
+  color: #1e40af;
+}
+
+.th-seller-order-detail__phase-banner-text .material-symbols-outlined {
+  font-size: 1.35rem;
+  flex-shrink: 0;
+  color: #059669;
+}
+
+.th-seller-order-detail__phase-banner--operations .th-seller-order-detail__phase-banner-text .material-symbols-outlined {
+  color: #2563eb;
+}
+
+.th-seller-order-detail__validity-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.95rem;
+  border-radius: 12px;
+  border: 1px solid #fde68a;
+  border-left-width: 4px;
+  background: #fffdf5;
+}
+
+.th-seller-order-detail__validity-banner--expired {
+  border-color: #fecaca;
+  border-left-color: #ef4444;
+  background: #fffafa;
+}
+
+.th-seller-order-detail__validity-banner--soon {
+  border-color: #fde68a;
+  border-left-color: #f59e0b;
+  background: #fffdf5;
+}
+
+.th-seller-order-detail__validity-banner-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+.th-seller-order-detail__validity-banner--expired .th-seller-order-detail__validity-banner-icon {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.th-seller-order-detail__validity-banner-icon .material-symbols-outlined {
+  font-size: 1.125rem;
+}
+
+.th-seller-order-detail__validity-banner-body {
+  min-width: 0;
+}
+
+.th-seller-order-detail__validity-banner-title {
+  margin: 0 0 0.15rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #92400e;
+  line-height: 1.35;
+}
+
+.th-seller-order-detail__validity-banner--expired .th-seller-order-detail__validity-banner-title {
+  color: #991b1b;
+}
+
+.th-seller-order-detail__validity-banner-text {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #a16207;
+  line-height: 1.45;
+}
+
+.th-seller-order-detail__validity-banner--expired .th-seller-order-detail__validity-banner-text {
+  color: #b91c1c;
+}
+
+.th-seller-order-detail__meta-validity {
+  align-items: flex-start !important;
+  border-radius: 10px !important;
+  padding: 0.4rem 0.65rem !important;
+}
+
+.th-seller-order-detail__meta-validity--expiring_soon {
+  background: #fffbeb !important;
+  border-color: #fde68a !important;
+}
+
+.th-seller-order-detail__meta-validity--expired {
+  background: #fef2f2 !important;
+  border-color: #fecaca !important;
+}
+
+.th-seller-order-detail__meta-validity-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.th-seller-order-detail__meta-validity-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+}
+
+.th-seller-order-detail__field-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.th-seller-order-detail__field-error {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: #dc2626;
+  line-height: 1.4;
+}
+
+.th-seller-order-detail__field--validity input[type='date'] {
+  max-width: 14rem;
+}
+
 /* Sửa đơn nháp (PUT Draft) — :root dùng color-scheme: dark nên cần ép light cho control gốc */
 .th-seller-order-detail__draft-banner {
   color-scheme: light;
@@ -1644,6 +2437,15 @@ a.th-seller-order-detail__contact-value:hover {
   line-height: 1.35;
 }
 
+.th-seller-order-detail__draft-line-price-readonly {
+  display: block;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  text-align: right;
+}
+
 .th-seller-order-detail__draft-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1677,6 +2479,12 @@ a.th-seller-order-detail__contact-value:hover {
   border-color: rgba(5, 150, 105, 0.45);
   background: #ecfdf5;
   color: #065f46;
+}
+
+.th-seller-order-detail__payhist-only-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: #64748b;
 }
 
 .th-seller-order-detail__payhist-wrap {
@@ -1740,6 +2548,17 @@ a.th-seller-order-detail__contact-value:hover {
   font-weight: 600;
 }
 
+.th-seller-order-detail__paynew-hint {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.th-seller-order-detail__paynew-field input[type='text'] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .th-seller-order-detail__paynew-field input,
 .th-seller-order-detail__paynew-field select,
 .th-seller-order-detail__paynew-field textarea {
@@ -1771,4 +2590,15 @@ a.th-seller-order-detail__contact-value:hover {
   .th-seller-order-detail__paynew-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.th-seller-order-detail__pricing-drift {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 0.2rem;
+  color: #b45309;
+}
+
+.th-seller-order-detail__pricing-drift .material-symbols-outlined {
+  font-size: 1.05rem;
 }
