@@ -174,6 +174,11 @@ public class ProductService {
         if (request.getSuggestedPrice() != null) {
             product.setSuggestedPrice(request.getSuggestedPrice());
         }
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Danh mục", "id", request.getCategoryId()));
+            product.setCategory(category);
+        }
 
         return productMapper.toResponse(productRepository.save(product));
     }

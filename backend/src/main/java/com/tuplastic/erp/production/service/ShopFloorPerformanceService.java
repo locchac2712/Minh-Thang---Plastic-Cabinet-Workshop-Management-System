@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,7 @@ public class ShopFloorPerformanceService {
 
     @SuppressWarnings("unchecked")
     private ShopFloorKpiSummary loadKpi(LocalDate fromDate, LocalDate toDate) {
+        DateFilter completedFilter = completedAtDateFilter(fromDate, toDate);
         String sql = """
                 WITH d AS (
                     SELECT t.id,
@@ -56,8 +58,7 @@ public class ShopFloorPerformanceService {
                     FROM production_tasks t
                     WHERE t.status = 'Done'
                       AND t.completed_at IS NOT NULL
-                      AND (:fromDate IS NULL OR CAST(t.completed_at AS date) >= :fromDate)
-                      AND (:toDate IS NULL OR CAST(t.completed_at AS date) <= :toDate)
+                """ + completedFilter.sqlSuffix() + """
                 )
                 SELECT COUNT(*)::bigint AS done_total,
                        COUNT(*) FILTER (WHERE expected_end_date IS NOT NULL)::bigint AS with_expected,
@@ -74,8 +75,7 @@ public class ShopFloorPerformanceService {
                 """;
 
         Query q = em.createNativeQuery(sql);
-        q.setParameter("fromDate", fromDate);
-        q.setParameter("toDate", toDate);
+        completedFilter.bind(q);
         Object[] r = (Object[]) q.getSingleResult();
 
         long withExpected = toLong(r[1]);
@@ -133,6 +133,7 @@ public class ShopFloorPerformanceService {
 
     @SuppressWarnings("unchecked")
     private List<ShopFloorThroughputItem> loadThroughputByMonth(LocalDate fromDate, LocalDate toDate) {
+        DateFilter completedFilter = completedAtDateFilter(fromDate, toDate);
         String sql = """
                 SELECT TO_CHAR(t.completed_at, 'YYYY-MM') AS period,
                        COUNT(*)::bigint AS done_cnt,
@@ -140,14 +141,12 @@ public class ShopFloorPerformanceService {
                 FROM production_tasks t
                 WHERE t.status = 'Done'
                   AND t.completed_at IS NOT NULL
-                  AND (:fromDate IS NULL OR CAST(t.completed_at AS date) >= :fromDate)
-                  AND (:toDate IS NULL OR CAST(t.completed_at AS date) <= :toDate)
+                """ + completedFilter.sqlSuffix() + """
                 GROUP BY TO_CHAR(t.completed_at, 'YYYY-MM')
                 ORDER BY period
                 """;
         Query q = em.createNativeQuery(sql);
-        q.setParameter("fromDate", fromDate);
-        q.setParameter("toDate", toDate);
+        completedFilter.bind(q);
         List<Object[]> rows = q.getResultList();
         return rows.stream()
                 .map(r -> ShopFloorThroughputItem.builder()
@@ -160,6 +159,7 @@ public class ShopFloorPerformanceService {
 
     @SuppressWarnings("unchecked")
     private List<ShopFloorAssigneeStats> loadByAssignee(LocalDate fromDate, LocalDate toDate) {
+        DateFilter completedFilter = completedAtDateFilter(fromDate, toDate);
         String sql = """
                 SELECT u.id, u.full_name,
                        COUNT(*)::bigint,
@@ -171,14 +171,12 @@ public class ShopFloorPerformanceService {
                 LEFT JOIN users u ON u.id = t.assigned_to
                 WHERE t.status = 'Done'
                   AND t.completed_at IS NOT NULL
-                  AND (:fromDate IS NULL OR CAST(t.completed_at AS date) >= :fromDate)
-                  AND (:toDate IS NULL OR CAST(t.completed_at AS date) <= :toDate)
+                """ + completedFilter.sqlSuffix() + """
                 GROUP BY u.id, u.full_name
                 ORDER BY COUNT(*) DESC
                 """;
         Query q = em.createNativeQuery(sql);
-        q.setParameter("fromDate", fromDate);
-        q.setParameter("toDate", toDate);
+        completedFilter.bind(q);
         List<Object[]> rows = q.getResultList();
         return rows.stream().map(this::toAssigneeStats).toList();
     }
@@ -220,4 +218,28 @@ public class ShopFloorPerformanceService {
     }
 
     private record WipQuantity(int waitingQty, int doingQty) {}
+
+    /**
+     * Chỉ bind param ngày khi non-null — tránh Postgres
+     * {@code could not determine data type of parameter} với {@code :x IS NULL OR ...}.
+     */
+    private DateFilter completedAtDateFilter(LocalDate fromDate, LocalDate toDate) {
+        StringBuilder sql = new StringBuilder();
+        Map<String, Object> params = new HashMap<>();
+        if (fromDate != null) {
+            sql.append(" AND CAST(t.completed_at AS date) >= CAST(:fromDate AS date)");
+            params.put("fromDate", fromDate);
+        }
+        if (toDate != null) {
+            sql.append(" AND CAST(t.completed_at AS date) <= CAST(:toDate AS date)");
+            params.put("toDate", toDate);
+        }
+        return new DateFilter(sql.toString(), params);
+    }
+
+    private record DateFilter(String sqlSuffix, Map<String, Object> params) {
+        void bind(Query query) {
+            params.forEach(query::setParameter);
+        }
+    }
 }

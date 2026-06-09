@@ -15,13 +15,13 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin/materials")
-@PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 public class MaterialController {
 
     private final MaterialService materialService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR')")
     public PageResponse<MaterialResponse> getAllMaterials(
             @RequestParam(required = false) String search,
             @RequestParam(name = "is_active", required = false) Boolean isActive,
@@ -31,17 +31,20 @@ public class MaterialController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR')")
     public MaterialResponse getMaterial(@PathVariable UUID id) {
         return materialService.getMaterialById(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN')")
     public MaterialResponse createMaterial(@Valid @RequestBody CreateMaterialRequest request) {
         return materialService.createMaterial(request);
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public MaterialResponse updateMaterial(@PathVariable UUID id,
                                            @Valid @RequestBody UpdateMaterialRequest request) {
         return materialService.updateMaterial(id, request);
@@ -49,6 +52,7 @@ public class MaterialController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
     public void deactivateMaterial(@PathVariable UUID id) {
         materialService.deactivateMaterial(id);
     }

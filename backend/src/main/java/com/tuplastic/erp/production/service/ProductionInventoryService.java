@@ -5,6 +5,7 @@ import com.tuplastic.erp.common.exception.BadRequestException;
 import com.tuplastic.erp.common.exception.BusinessLogicException;
 import com.tuplastic.erp.common.exception.ResourceNotFoundException;
 import com.tuplastic.erp.inventory.entity.InventoryLog;
+import com.tuplastic.erp.inventory.enums.TransactionType;
 import com.tuplastic.erp.inventory.repository.InventoryLogRepository;
 import com.tuplastic.erp.material.entity.Material;
 import com.tuplastic.erp.material.repository.MaterialRepository;
@@ -36,10 +37,11 @@ public class ProductionInventoryService {
     private final MaterialRepository materialRepository;
     private final InventoryLogRepository inventoryLogRepository;
     private final ProductionTaskRepository productionTaskRepository;
+    private final ProductionTaskService productionTaskService;
 
     @Transactional(readOnly = true)
     public PageResponse<InventoryLogResponse> listMaterialInventoryLogs(
-            UUID materialId, UUID taskId, String transactionType, int page, int size) {
+            UUID materialId, String taskIdOrCode, String transactionType, int page, int size) {
         String typeFilter = null;
         if (StringUtils.hasText(transactionType)) {
             String upper = transactionType.trim().toUpperCase();
@@ -48,6 +50,11 @@ public class ProductionInventoryService {
                         "transaction_type không hợp lệ. Chỉ chấp nhận: IMPORT, EXPORT, WASTE");
             }
             typeFilter = upper;
+        }
+
+        UUID taskId = null;
+        if (StringUtils.hasText(taskIdOrCode)) {
+            taskId = productionTaskService.resolveTaskId(taskIdOrCode.trim());
         }
 
         Pageable pageable = PageRequest.of(page, size);
@@ -70,9 +77,11 @@ public class ProductionInventoryService {
                 .materialId(l.getMaterial().getId())
                 .materialName(l.getMaterial().getName())
                 .taskId(l.getTask() != null ? l.getTask().getId() : null)
+                .taskDisplayCode(l.getTask() != null ? l.getTask().getDisplayCode() : null)
                 .purchaseId(l.getPurchaseId())
                 .createdByName(l.getCreatedBy() != null ? l.getCreatedBy().getFullName() : null)
                 .transactionType(l.getTransactionType())
+                .transactionTypeLabel(TransactionType.labelOf(l.getTransactionType()))
                 .quantityChange(l.getQuantityChange())
                 .unitPriceAtTime(l.getUnitPriceAtTime())
                 .note(l.getNote())
@@ -143,9 +152,11 @@ public class ProductionInventoryService {
                 .materialId(material.getId())
                 .materialName(material.getName())
                 .taskId(task != null ? task.getId() : null)
+                .taskDisplayCode(task != null ? task.getDisplayCode() : null)
                 .purchaseId(saved.getPurchaseId())
                 .createdByName(currentUser.getFullName())
                 .transactionType(saved.getTransactionType())
+                .transactionTypeLabel(TransactionType.labelOf(saved.getTransactionType()))
                 .quantityChange(saved.getQuantityChange())
                 .unitPriceAtTime(saved.getUnitPriceAtTime())
                 .note(saved.getNote())
@@ -196,9 +207,11 @@ public class ProductionInventoryService {
                 .materialId(material.getId())
                 .materialName(material.getName())
                 .taskId(task != null ? task.getId() : null)
+                .taskDisplayCode(task != null ? task.getDisplayCode() : null)
                 .purchaseId(saved.getPurchaseId())
                 .createdByName(currentUser.getFullName())
                 .transactionType(saved.getTransactionType())
+                .transactionTypeLabel(TransactionType.labelOf(saved.getTransactionType()))
                 .quantityChange(saved.getQuantityChange())
                 .unitPriceAtTime(saved.getUnitPriceAtTime())
                 .note(saved.getNote())

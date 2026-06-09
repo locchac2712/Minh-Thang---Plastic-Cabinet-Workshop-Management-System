@@ -39,6 +39,9 @@ public interface MaterialRepository extends JpaRepository<Material, UUID> {
     @Query("SELECT m FROM Material m WHERE m.isActive = true AND m.stockQuantity <= m.minStockLevel ORDER BY m.stockQuantity ASC")
     List<Material> findLowStock();
 
+    @Query("SELECT DISTINCT m FROM Material m LEFT JOIN FETCH m.suppliers WHERE m.isActive = true AND m.stockQuantity <= m.minStockLevel")
+    List<Material> findLowStockWithSuppliers();
+
     @Query("SELECT COUNT(m) FROM Material m WHERE m.isActive = true AND m.stockQuantity <= m.minStockLevel")
     long countLowStockActive();
 
@@ -84,4 +87,14 @@ public interface MaterialRepository extends JpaRepository<Material, UUID> {
             WHERE ms.supplier_id = :supplierId
             """, nativeQuery = true)
     List<UUID> findMaterialIdsBySupplierId(@Param("supplierId") UUID supplierId);
+
+    @Query(value = """
+            SELECT EXISTS (
+                SELECT 1 FROM material_supplier ms
+                WHERE ms.supplier_id = :supplierId AND ms.material_id = :materialId
+            )
+            """, nativeQuery = true)
+    boolean existsSupplierMaterialLink(
+            @Param("supplierId") UUID supplierId,
+            @Param("materialId") UUID materialId);
 }

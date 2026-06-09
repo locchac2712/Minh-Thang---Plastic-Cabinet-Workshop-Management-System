@@ -16,7 +16,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/production/tasks")
@@ -36,39 +35,39 @@ public class ProductionTaskController {
         return taskService.getTasks(taskService.parseStatuses(status), page, size);
     }
 
-    @GetMapping("/{id}/details")
-    public TaskResponse getTaskDetail(@PathVariable UUID id) {
-        return taskService.getTaskDetail(id);
+    @GetMapping("/{idOrCode}/details")
+    public TaskResponse getTaskDetail(@PathVariable String idOrCode) {
+        return taskService.getTaskDetail(idOrCode);
     }
 
-    @PatchMapping("/{id}/assign")
-    public TaskResponse assignTask(@PathVariable UUID id,
+    @PatchMapping("/{idOrCode}/assign")
+    public TaskResponse assignTask(@PathVariable String idOrCode,
                                    @Valid @RequestBody AssignTaskRequest request) {
-        return taskService.assignTask(id, request);
+        return taskService.assignTask(idOrCode, request);
     }
 
-    @PatchMapping("/{id}/start")
-    public TaskResponse startTask(@PathVariable UUID id) {
+    @PatchMapping("/{idOrCode}/start")
+    public TaskResponse startTask(@PathVariable String idOrCode) {
         User worker = securityUtils.getCurrentUser();
-        return taskService.startTask(id, worker);
+        return taskService.startTask(idOrCode, worker);
     }
 
-    @PatchMapping("/{id}/complete")
-    public TaskResponse completeTask(@PathVariable UUID id) {
+    @PatchMapping("/{idOrCode}/complete")
+    public TaskResponse completeTask(@PathVariable String idOrCode) {
         User worker = securityUtils.getCurrentUser();
-        return taskService.completeTask(id, worker);
+        return taskService.completeTask(idOrCode, worker);
     }
 
-    @GetMapping("/{id}/logs")
-    public List<ActivityLogResponse> getTaskLogs(@PathVariable UUID id) {
-        return activityLogService.getLogsByTask(id);
+    @GetMapping("/{idOrCode}/logs")
+    public List<ActivityLogResponse> getTaskLogs(@PathVariable String idOrCode) {
+        return activityLogService.getLogsByTask(idOrCode);
     }
 
-    @PostMapping("/{id}/logs")
+    @PostMapping("/{idOrCode}/logs")
     @ResponseStatus(HttpStatus.CREATED)
-    public ActivityLogResponse createTaskLog(@PathVariable UUID id,
+    public ActivityLogResponse createTaskLog(@PathVariable String idOrCode,
                                              @RequestBody CreateActivityLogRequest request) {
         User worker = securityUtils.getCurrentUser();
-        return activityLogService.createLog(id, request, worker);
+        return activityLogService.createLog(idOrCode, request, worker);
     }
 }

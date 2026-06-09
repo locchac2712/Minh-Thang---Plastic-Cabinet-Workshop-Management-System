@@ -11,6 +11,7 @@ import com.tuplastic.erp.order.repository.OrderRepository;
 import com.tuplastic.erp.product.entity.Product;
 import com.tuplastic.erp.production.entity.ProductionTask;
 import com.tuplastic.erp.production.repository.ProductionTaskRepository;
+import com.tuplastic.erp.production.service.ProductionTaskService;
 import com.tuplastic.erp.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class ActivityLogService {
     private final ActivityLogRepository activityLogRepository;
     private final OrderRepository orderRepository;
     private final ProductionTaskRepository productionTaskRepository;
+    private final ProductionTaskService productionTaskService;
     private final ActivityLogMapper activityLogMapper;
 
     @Transactional(readOnly = true)
@@ -47,12 +49,20 @@ public class ActivityLogService {
         orderRepository.findByIdAndCreatedById(orderId, seller.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng", "id", orderId));
 
+        return getProductionTasksWithLogsByOrderId(orderId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SellerOrderTaskTimelineResponse> getProductionTasksWithLogsByOrderId(UUID orderId) {
+        orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng", "id", orderId));
+
         return productionTaskRepository.findByOrder_IdOrderByCreatedAtAsc(orderId).stream()
-                .map(this::toSellerTaskTimeline)
+                .map(this::buildTaskTimeline)
                 .toList();
     }
 
-    private SellerOrderTaskTimelineResponse toSellerTaskTimeline(ProductionTask task) {
+    private SellerOrderTaskTimelineResponse buildTaskTimeline(ProductionTask task) {
         List<ActivityLogResponse> logs = activityLogRepository.findByTaskIdOrderByCreatedAtAsc(task.getId())
                 .stream()
                 .map(activityLogMapper::toResponse)
@@ -63,6 +73,8 @@ public class ActivityLogService {
 
         return SellerOrderTaskTimelineResponse.builder()
                 .taskId(task.getId())
+                .displayCode(task.getDisplayCode())
+                .orderItemId(task.getOrderItem() != null ? task.getOrderItem().getId() : null)
                 .orderId(task.getOrder() != null ? task.getOrder().getId() : null)
                 .productId(product != null ? product.getId() : null)
                 .productName(product != null ? product.getName() : null)
@@ -73,15 +85,18 @@ public class ActivityLogService {
                 .startDate(task.getStartDate())
                 .expectedEndDate(task.getExpectedEndDate())
                 .completedAt(task.getCompletedAt())
+                .deliveredAt(task.getDeliveredAt())
+                .deliveryAddress(task.getDeliveryAddress())
+                .deliveryProofImageUrl(task.getDeliveryProofImageUrl())
+                .deliverable("Done".equals(task.getStatus()) && task.getDeliveredAt() == null)
                 .taskCreatedAt(task.getCreatedAt())
                 .activityLogs(logs)
                 .build();
     }
 
     @Transactional(readOnly = true)
-    public List<ActivityLogResponse> getLogsByTask(UUID taskId) {
-        productionTaskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Lệnh sản xuất", "id", taskId));
+    public List<ActivityLogResponse> getLogsByTask(String idOrCode) {
+        UUID taskId = productionTaskService.resolveTaskId(idOrCode);
 
         return activityLogRepository.findByTaskIdOrderByCreatedAtDesc(taskId)
                 .stream()
@@ -90,9 +105,8 @@ public class ActivityLogService {
     }
 
     @Transactional
-    public ActivityLogResponse createLog(UUID taskId, CreateActivityLogRequest request, User worker) {
-        ProductionTask task = productionTaskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Lệnh sản xuất", "id", taskId));
+    public ActivityLogResponse createLog(String idOrCode, CreateActivityLogRequest request, User worker) {
+        ProductionTask task = productionTaskService.resolveTaskOrThrow(idOrCode);
 
         ActivityLog log = ActivityLog.builder()
                 .task(task)

@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +24,10 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, UUID> 
     List<ActivityLog> findByTaskIdOrderByCreatedAtDesc(UUID taskId);
 
     List<ActivityLog> findByTaskIdOrderByCreatedAtAsc(UUID taskId);
+
+    long countByTaskId(UUID taskId);
+
+    boolean existsByTaskIdAndCreatedAtBetween(UUID taskId, LocalDateTime from, LocalDateTime to);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM ActivityLog a WHERE a.task.id IN :taskIds")

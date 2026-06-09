@@ -1,5 +1,6 @@
 package com.tuplastic.erp.production.service;
 
+import com.tuplastic.erp.activitylog.repository.ActivityLogRepository;
 import com.tuplastic.erp.bom.entity.BomItem;
 import com.tuplastic.erp.bom.repository.BomItemRepository;
 import com.tuplastic.erp.common.dto.PageResponse;
@@ -11,6 +12,7 @@ import com.tuplastic.erp.inventory.repository.InventoryLogRepository;
 import com.tuplastic.erp.material.entity.Material;
 import com.tuplastic.erp.order.entity.Order;
 import com.tuplastic.erp.order.mapper.OrderMapper;
+import com.tuplastic.erp.order.util.OrderDisplayCodeUtils;
 import com.tuplastic.erp.product.entity.Product;
 import com.tuplastic.erp.productinventory.entity.ProductInventoryLog;
 import com.tuplastic.erp.productinventory.repository.ProductInventoryLogRepository;
@@ -18,8 +20,10 @@ import com.tuplastic.erp.production.dto.AssignTaskRequest;
 import com.tuplastic.erp.production.dto.TaskResponse;
 import com.tuplastic.erp.production.entity.ProductionTask;
 import com.tuplastic.erp.production.repository.ProductionTaskRepository;
+import com.tuplastic.erp.production.util.ProductionTaskDisplayCodeUtils;
 import com.tuplastic.erp.product.repository.ProductRepository;
 import com.tuplastic.erp.material.repository.MaterialRepository;
+import com.tuplastic.erp.notification.service.NotificationService;
 import com.tuplastic.erp.user.entity.User;
 import com.tuplastic.erp.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -39,6 +44,7 @@ import java.util.*;
 public class ProductionTaskService {
 
     private final ProductionTaskRepository taskRepository;
+    private final ActivityLogRepository activityLogRepository;
     private final BomItemRepository bomItemRepository;
     private final InventoryLogRepository inventoryLogRepository;
     private final ProductInventoryLogRepository productInventoryLogRepository;
@@ -46,6 +52,7 @@ public class ProductionTaskService {
     private final MaterialRepository materialRepository;
     private final UserRepository userRepository;
     private final OrderMapper orderMapper;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public PageResponse<TaskResponse> getTasks(List<String> statuses, int page, int size) {
@@ -70,8 +77,8 @@ public class ProductionTaskService {
     }
 
     @Transactional(readOnly = true)
-    public TaskResponse getTaskDetail(UUID taskId) {
-        ProductionTask task = findTaskOrThrow(taskId);
+    public TaskResponse getTaskDetail(String idOrCode) {
+        ProductionTask task = resolveTaskOrThrow(idOrCode);
         TaskResponse response = toBasicResponse(task);
 
         if (task.getOrder() != null) {
@@ -96,8 +103,8 @@ public class ProductionTaskService {
     }
 
     @Transactional
-    public TaskResponse assignTask(UUID taskId, AssignTaskRequest request) {
-        ProductionTask task = findTaskOrThrow(taskId);
+    public TaskResponse assignTask(String idOrCode, AssignTaskRequest request) {
+        ProductionTask task = resolveTaskOrThrow(idOrCode);
 
         User worker = userRepository.findById(request.getAssignedTo())
                 .orElseThrow(() -> new ResourceNotFoundException("Nhân viên", "id", request.getAssignedTo()));
@@ -110,8 +117,8 @@ public class ProductionTaskService {
      * Waiting → Doing. AUTO-BOM: trừ kho NVL theo công thức BOM của {@link ProductionTask#getProduct()}.
      */
     @Transactional
-    public TaskResponse startTask(UUID taskId, User currentUser) {
-        ProductionTask task = findTaskOrThrow(taskId);
+    public TaskResponse startTask(String idOrCode, User currentUser) {
+        ProductionTask task = resolveTaskOrThrow(idOrCode);
         assertTaskStatus(task, "Waiting", "bắt đầu thi công");
 
         deductBomMaterials(task, currentUser);
@@ -125,9 +132,14 @@ public class ProductionTaskService {
      * Doing → Done. Nhập kho thành phẩm (MTO và make-to-stock); Seller {@code markDone} sẽ xuất kho khi giao đơn MTO.
      */
     @Transactional
-    public TaskResponse completeTask(UUID taskId, User currentUser) {
-        ProductionTask task = findTaskOrThrow(taskId);
+    public TaskResponse completeTask(String idOrCode, User currentUser) {
+        ProductionTask task = resolveTaskOrThrow(idOrCode);
         assertTaskStatus(task, "Doing", "hoàn tất");
+
+        if (activityLogRepository.countByTaskId(task.getId()) < 1) {
+            throw new BadRequestException(
+                    "Cần ít nhất một nhật ký làm việc của lệnh trước khi hoàn tất.");
+        }
 
         task.setStatus("Done");
         task.setCompletedAt(LocalDateTime.now());
@@ -136,7 +148,29 @@ public class ProductionTaskService {
             importFinishedGoods(task, currentUser);
         }
 
-        return toBasicResponse(taskRepository.save(task));
+        ProductionTask saved = taskRepository.save(task);
+
+        Order order = saved.getOrder();
+        if (order != null && order.getCreatedBy() != null) {
+            String orderRef = OrderDisplayCodeUtils.displayRef(order.getDisplayCode(), order.getId());
+            String batchRef = ProductionTaskDisplayCodeUtils.displayRef(
+                    saved.getDisplayCode(), saved.getId());
+            notificationService.notifyUser(
+                    order.getCreatedBy(),
+                    "PRODUCTION_BATCH_COMPLETED",
+                    "Lô sản xuất đã hoàn thành",
+                    String.format(
+                            "Lô %s (SL %d) của đơn %s đã xong xưởng. Có thể giao lô qua deliver-batch.",
+                            batchRef,
+                            saved.getQuantity(),
+                            orderRef),
+                    "/seller/orders/" + orderRef,
+                    "production-batch-completed:" + saved.getId(),
+                    currentUser,
+                    null);
+        }
+
+        return toBasicResponse(saved);
     }
 
     // ========== AUTO-BOM logic ==========
@@ -173,7 +207,7 @@ public class ProductionTaskService {
                     .transactionType("EXPORT")
                     .quantityChange(needed.negate())
                     .unitPriceAtTime(material.getUnitCost())
-                    .note("AUTO-BOM: Xuất kho cho lệnh SX #" + task.getId().toString().substring(0, 8))
+                    .note("AUTO-BOM: Xuất kho cho lệnh SX " + ProductionTaskDisplayCodeUtils.displayRef(task.getDisplayCode(), task.getId()))
                     .build();
             inventoryLogRepository.save(log);
         }
@@ -214,6 +248,25 @@ public class ProductionTaskService {
 
     // ========== Helpers ==========
 
+    @Transactional(readOnly = true)
+    public ProductionTask resolveTaskOrThrow(String idOrCode) {
+        if (idOrCode == null || idOrCode.isBlank()) {
+            throw new BadRequestException("Mã lệnh không được để trống.");
+        }
+        String trimmed = idOrCode.trim();
+        UUID uuid = ProductionTaskDisplayCodeUtils.parseUuid(trimmed);
+        if (uuid != null) {
+            return findTaskOrThrow(uuid);
+        }
+        return taskRepository.findByDisplayCode(trimmed)
+                .orElseThrow(() -> new ResourceNotFoundException("Lệnh sản xuất", "mã", trimmed));
+    }
+
+    @Transactional(readOnly = true)
+    public UUID resolveTaskId(String idOrCode) {
+        return resolveTaskOrThrow(idOrCode).getId();
+    }
+
     private ProductionTask findTaskOrThrow(UUID id) {
         return taskRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lệnh sản xuất", "id", id));
@@ -238,8 +291,14 @@ public class ProductionTaskService {
     }
 
     private TaskResponse toBasicResponse(ProductionTask task) {
+        return toTaskResponse(task);
+    }
+
+    public TaskResponse toTaskResponse(ProductionTask task) {
         TaskResponse.TaskResponseBuilder builder = TaskResponse.builder()
                 .id(task.getId())
+                .displayCode(task.getDisplayCode())
+                .orderItemId(task.getOrderItem() != null ? task.getOrderItem().getId() : null)
                 .productId(task.getProduct() != null ? task.getProduct().getId() : null)
                 .productName(task.getProduct() != null ? task.getProduct().getName() : null)
                 .quantity(task.getQuantity())
@@ -249,10 +308,18 @@ public class ProductionTaskService {
                 .startDate(task.getStartDate())
                 .expectedEndDate(task.getExpectedEndDate())
                 .completedAt(task.getCompletedAt())
+                .deliveredAt(task.getDeliveredAt())
+                .deliveryAddress(task.getDeliveryAddress())
+                .deliveryProofImageUrl(task.getDeliveryProofImageUrl())
+                .deliverable("Done".equals(task.getStatus()) && task.getDeliveredAt() == null)
                 .createdAt(task.getCreatedAt());
+
+        applyOverdueFields(builder, task);
 
         if (task.getOrder() != null) {
             builder.orderId(task.getOrder().getId())
+                    .orderDisplayCode(OrderDisplayCodeUtils.productionOrderDisplayCode(
+                            task.getOrder().getDisplayCode()))
                     .orderAgencyName(task.getOrder().getAgency() != null ? task.getOrder().getAgency().getName() : null);
         }
 
@@ -262,6 +329,36 @@ public class ProductionTaskService {
         }
 
         return builder.build();
+    }
+
+    private void applyOverdueFields(TaskResponse.TaskResponseBuilder builder, ProductionTask task) {
+        LocalDate expected = task.getExpectedEndDate();
+        if (expected == null) {
+            builder.overdue(false).overdueDays(null);
+            return;
+        }
+        if ("Done".equals(task.getStatus())) {
+            LocalDateTime completedAt = task.getCompletedAt();
+            if (completedAt == null) {
+                builder.overdue(false).overdueDays(null);
+                return;
+            }
+            LocalDate completed = completedAt.toLocalDate();
+            if (completed.isAfter(expected)) {
+                int days = (int) ChronoUnit.DAYS.between(expected, completed);
+                builder.overdue(true).overdueDays(days);
+            } else {
+                builder.overdue(false).overdueDays(0);
+            }
+            return;
+        }
+        LocalDate today = LocalDate.now();
+        if (expected.isBefore(today)) {
+            int days = (int) ChronoUnit.DAYS.between(expected, today);
+            builder.overdue(true).overdueDays(days);
+        } else {
+            builder.overdue(false).overdueDays(0);
+        }
     }
 
     @Transactional(readOnly = true)

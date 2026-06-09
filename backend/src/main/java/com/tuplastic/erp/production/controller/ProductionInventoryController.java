@@ -56,11 +56,11 @@ public class ProductionInventoryController {
     @GetMapping("/inventory/logs")
     public PageResponse<InventoryLogResponse> listMaterialInventoryLogs(
             @RequestParam(name = "material_id", required = false) UUID materialId,
-            @RequestParam(name = "task_id", required = false) UUID taskId,
+            @RequestParam(name = "task_id", required = false) String taskIdOrCode,
             @RequestParam(name = "transaction_type", required = false) String transactionType,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return inventoryService.listMaterialInventoryLogs(materialId, taskId, transactionType, page, size);
+        return inventoryService.listMaterialInventoryLogs(materialId, taskIdOrCode, transactionType, page, size);
     }
 
     @PostMapping("/inventory")

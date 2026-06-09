@@ -20,4 +20,10 @@ public class UploadController {
     public UploadResponse uploadImage(@RequestParam("file") MultipartFile file) {
         return cloudinaryService.uploadImage(file);
     }
+
+    @PostMapping(value = "/document", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public UploadResponse uploadDocument(@RequestParam("file") MultipartFile file) {
+        return cloudinaryService.uploadDocument(file);
+    }
 }

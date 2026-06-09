@@ -18,7 +18,11 @@ import java.util.UUID;
 public class TaskResponse {
 
     private UUID id;
+    private String displayCode;
+    private UUID orderItemId;
     private UUID orderId;
+    /** Mã hiển thị đơn (DH-… / BG-…) — null khi lệnh MTS. */
+    private String orderDisplayCode;
     private String orderAgencyName;
     private Boolean productIsCustom;
     private String productResourceUrl;
@@ -30,7 +34,15 @@ public class TaskResponse {
     private String status;
     private LocalDate startDate;
     private LocalDate expectedEndDate;
+    /** WIP quá hạn hoặc Done hoàn tất sau hạn (có expectedEndDate). */
+    private Boolean overdue;
+    /** Số ngày trễ so với expectedEndDate (0 nếu đúng hạn / chưa trễ). */
+    private Integer overdueDays;
     private LocalDateTime completedAt;
+    private LocalDateTime deliveredAt;
+    private Boolean deliverable;
+    private String deliveryAddress;
+    private String deliveryProofImageUrl;
     private LocalDateTime createdAt;
     private List<OrderItemResponse> orderItems;
     private List<BomItemDetail> bomItems;

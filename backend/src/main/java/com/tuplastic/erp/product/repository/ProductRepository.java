@@ -95,4 +95,26 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
                                                @Param("agencyId") UUID agencyId,
                                                @Param("isCustom") Boolean isCustom,
                                                Pageable pageable);
+
+    @Query(value = """
+            SELECT p.* FROM products p
+            WHERE p.is_custom = TRUE
+              AND (:agencyId IS NULL OR p.agency_id = CAST(:agencyId AS UUID))
+              AND (:search IS NULL OR
+                   LOWER(unaccent(p.name)) LIKE LOWER(unaccent(CONCAT('%', :search, '%')))
+                   OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))
+            ORDER BY p.created_at DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*) FROM products p
+            WHERE p.is_custom = TRUE
+              AND (:agencyId IS NULL OR p.agency_id = CAST(:agencyId AS UUID))
+              AND (:search IS NULL OR
+                   LOWER(unaccent(p.name)) LIKE LOWER(unaccent(CONCAT('%', :search, '%')))
+                   OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))
+            """,
+            nativeQuery = true)
+    Page<Product> findCustomProducts(@Param("agencyId") UUID agencyId,
+                                     @Param("search") String search,
+                                     Pageable pageable);
 }

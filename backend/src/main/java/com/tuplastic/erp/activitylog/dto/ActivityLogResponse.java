@@ -16,6 +16,8 @@ public class ActivityLogResponse {
 
     private UUID id;
     private UUID taskId;
+    /** Mã hiển thị lệnh SX (LSX-…) */
+    private String taskDisplayCode;
     private UUID userId;
     private String userName;
     private String imageUrl;
