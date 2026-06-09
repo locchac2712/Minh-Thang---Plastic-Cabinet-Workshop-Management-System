@@ -32,12 +32,19 @@ import { SellerPanelLayout } from './layouts/SellerPanelLayout'
 import { LoginPage } from './pages/LoginPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
+import { PublicOrderTrackPage } from './pages/PublicOrderTrackPage'
+import { AccountSettingsPage } from './pages/AccountSettingsPage'
 import { DirectorDashboardPage } from './director/pages/DirectorDashboardPage'
 import { DirectorPricingApprovalPage } from './director/pages/DirectorPricingApprovalPage'
 import { DirectorPricingOrderDetailPage } from './director/pages/DirectorPricingOrderDetailPage'
 import { DirectorDebtApprovalPage } from './director/pages/DirectorDebtApprovalPage'
 import { DirectorReceivablesRiskPage } from './director/pages/DirectorReceivablesRiskPage'
 import { DirectorWastagePage } from './director/pages/DirectorWastagePage'
+import { DirectorProductionPerformancePage } from './director/pages/DirectorProductionPerformancePage'
+import { DirectorOrdersPipelinePage } from './director/pages/DirectorOrdersPipelinePage'
+import { DirectorOrderOperationsDetailPage } from './director/pages/DirectorOrderOperationsDetailPage'
+import { DirectorOperationsTasksPage } from './director/pages/DirectorOperationsTasksPage'
+import { DirectorOperationTaskDetailPage } from './director/pages/DirectorOperationTaskDetailPage'
 import { DirectorMtsPage } from './director/pages/DirectorMtsPage'
 import { PartnersLayout } from './director/layouts/PartnersLayout'
 import { DirectorAgenciesPage } from './director/pages/partners/DirectorAgenciesPage'
@@ -69,6 +76,8 @@ import { ProductionInventoryWastagePage } from './production/pages/ProductionInv
 import { ProductionInventoryStockPage } from './production/pages/ProductionInventoryStockPage'
 import { ProductionInventoryLogsPage } from './production/pages/ProductionInventoryLogsPage'
 import { ProductionCustomProductCreatePage } from './production/pages/ProductionCustomProductCreatePage'
+import { ProductionCustomProductDetailPage } from './production/pages/ProductionCustomProductDetailPage'
+import { ProductionCustomProductsListPage } from './production/pages/ProductionCustomProductsListPage'
 import { ProductionDashboardPage } from './production/pages/ProductionDashboardPage'
 import { AccountantDashboardPage } from './accountant/pages/AccountantDashboardPage'
 import { AccountantPurchasingAlertsPage } from './accountant/pages/AccountantPurchasingAlertsPage'
@@ -79,12 +88,14 @@ import { AccountantInvoiceHistoryPage } from './accountant/pages/AccountantInvoi
 import { AccountantPlaceholderPage } from './accountant/pages/AccountantPlaceholderPage'
 import { AccountantPaymentsPage } from './accountant/pages/AccountantPaymentsPage'
 import { AccountantSuppliersPage } from './accountant/pages/AccountantSuppliersPage'
+import { AccountantSupplierDetailPage } from './accountant/pages/AccountantSupplierDetailPage'
 import { AccountantMaterialsPage } from './accountant/pages/AccountantMaterialsPage'
 import {
   ACCOUNTANT_PAYABLES_BILLS_ENABLED,
   ACCOUNTANT_RECEIVABLES_VAT_PAGES_ENABLED,
   accountantPaths,
 } from './accountant/config/accountantPaths'
+import { NotificationsProvider } from './notifications/NotificationsProvider'
 import './App.css'
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -172,10 +183,12 @@ function AuthBootstrapGate({ children }: { children: ReactNode }) {
 function App() {
   return (
     <AuthBootstrapGate>
+      <NotificationsProvider>
       <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/track/:token" element={<PublicOrderTrackPage />} />
       <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
       <Route
         path="/admin"
@@ -202,6 +215,7 @@ function App() {
           <Route path="materials/:materialId" element={<AdminMaterialDetailPage />} />
           <Route path="materials" element={<AdminMaterialsPage />} />
         </Route>
+        <Route path="account" element={<AccountSettingsPage />} />
       </Route>
       <Route
         path="/seller"
@@ -226,6 +240,7 @@ function App() {
         <Route path="quotations/new" element={<SellerQuotationCreatePage />} />
         <Route path="quotations/:quotationId" element={<SellerQuotationDetailPage />} />
         <Route path="quotations" element={<SellerQuotationsPage />} />
+        <Route path="account" element={<AccountSettingsPage />} />
       </Route>
       <Route
         path="/director"
@@ -249,6 +264,14 @@ function App() {
           <Route path="receivables" element={<DirectorReceivablesRiskPage />} />
           <Route path="wastage" element={<DirectorWastagePage />} />
         </Route>
+        <Route path="operations">
+          <Route index element={<Navigate to="performance" replace />} />
+          <Route path="performance" element={<DirectorProductionPerformancePage />} />
+          <Route path="orders" element={<DirectorOrdersPipelinePage />} />
+          <Route path="orders/:orderId" element={<DirectorOrderOperationsDetailPage />} />
+          <Route path="tasks" element={<DirectorOperationsTasksPage />} />
+          <Route path="tasks/:taskId" element={<DirectorOperationTaskDetailPage />} />
+        </Route>
         <Route path="mts" element={<DirectorMtsPage />} />
         <Route path="partners" element={<PartnersLayout />}>
           <Route index element={<Navigate to="agencies" replace />} />
@@ -259,6 +282,7 @@ function App() {
           <Route path="suppliers/:supplierId" element={<DirectorSupplierDetailPage />} />
           <Route path="suppliers" element={<DirectorSuppliersPage />} />
         </Route>
+        <Route path="account" element={<AccountSettingsPage />} />
       </Route>
       <Route
         path="/production"
@@ -286,7 +310,13 @@ function App() {
           <Route path="stock" element={<ProductionInventoryStockPage />} />
           <Route path="logs" element={<ProductionInventoryLogsPage />} />
         </Route>
-        <Route path="products/custom" element={<ProductionCustomProductCreatePage />} />
+        <Route path="custom-products">
+          <Route index element={<ProductionCustomProductsListPage />} />
+          <Route path="new" element={<ProductionCustomProductCreatePage />} />
+          <Route path=":productId" element={<ProductionCustomProductDetailPage />} />
+        </Route>
+        <Route path="products/custom" element={<Navigate to="/production/custom-products/new" replace />} />
+        <Route path="account" element={<AccountSettingsPage />} />
       </Route>
       <Route
         path="/accountant"
@@ -339,8 +369,10 @@ function App() {
             )
           }
         />
+        <Route path="masters/suppliers/:supplierId" element={<AccountantSupplierDetailPage />} />
         <Route path="masters/suppliers" element={<AccountantSuppliersPage />} />
         <Route path="masters/materials" element={<AccountantMaterialsPage />} />
+        <Route path="account" element={<AccountSettingsPage />} />
       </Route>
       <Route
         path="/"
@@ -354,6 +386,7 @@ function App() {
       />
       <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </NotificationsProvider>
     </AuthBootstrapGate>
   )
 }

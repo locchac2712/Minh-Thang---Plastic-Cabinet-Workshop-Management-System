@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { formatVND } from '../../admin/partners/agencyModel'
 import { getAccessToken, getTokenType } from '../../auth/storage'
+import {
+  formatVndInputAmount,
+  normalizeVndInputTyping,
+  parseQuantityInput,
+  parseVndInput,
+} from '../../shared/money/vndInput'
+import {
+  fetchAccountantSupplierMaterials,
+  fetchMaterialSupplierPrices,
+} from '../accountantPurchasesApi'
 import { accountantPaths } from '../config/accountantPaths'
 import { AppFilterBar, AppFilterField, AppFilterSelect, AppPagination } from '../../shared/ui/listing'
 import './AccountantPurchasingOrdersPage.css'
@@ -109,9 +119,20 @@ function paymentLabel(s: PaymentStatus): string {
   return 'Đã thanh toán'
 }
 
+function usedMaterialIds(items: CreatePoItemDraft[], exceptIdx?: number): Set<string> {
+  const set = new Set<string>()
+  items.forEach((it, i) => {
+    if (exceptIdx !== undefined && i === exceptIdx) return
+    const id = it.materialId.trim()
+    if (id) set.add(id)
+  })
+  return set
+}
+
 export function AccountantPurchasingOrdersPage() {
   const fid = useId()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [statusFilter, setStatusFilter] = useState<PurchaseStatusFilter>('all')
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<PaymentStatusFilter>('all')
   const [supplierIdFilter, setSupplierIdFilter] = useState('all')
@@ -129,8 +150,10 @@ export function AccountantPurchasingOrdersPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [createSupplierId, setCreateSupplierId] = useState('')
   const [materialOptions, setMaterialOptions] = useState<MaterialOption[]>([])
+  const [materialsLoading, setMaterialsLoading] = useState(false)
+  const [priceByMaterialId, setPriceByMaterialId] = useState<Record<string, number>>({})
   const [createItems, setCreateItems] = useState<CreatePoItemDraft[]>([
-    { materialId: '', quantity: '1', unitPrice: '0' },
+    { materialId: '', quantity: '1', unitPrice: '' },
   ])
   const [createSubmitting, setCreateSubmitting] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
@@ -160,32 +183,41 @@ export function AccountantPurchasingOrdersPage() {
     }
   }, [])
 
-  const loadMaterials = useCallback(async () => {
-    const accessToken = getAccessToken()
-    if (!accessToken) return
+  const loadMaterialsForSupplier = useCallback(async (supplierId: string) => {
+    if (!supplierId) {
+      setMaterialOptions([])
+      setPriceByMaterialId({})
+      return
+    }
+    setMaterialsLoading(true)
     try {
-      const endpoints = ['/api/accountants/materials', '/api/accountant/materials']
-      let loaded = false
-      for (const ep of endpoints) {
-        const res = await fetch(`${API_BASE_URL}${ep}?page=0&size=200&is_active=true`, {
-          headers: {
-            accept: '*/*',
-            Authorization: `${getTokenType()} ${accessToken}`,
-          },
+      const all: MaterialOption[] = []
+      let page = 0
+      for (;;) {
+        const p = await fetchAccountantSupplierMaterials(supplierId, {
+          page,
+          size: 100,
+          isActive: true,
         })
-        const envelope = (await res.json()) as ApiEnvelope<{
-          content: Array<{ id: string; code: string; name: string }>
-        }>
-        if (!res.ok || !envelope.success || !envelope.data) continue
-        setMaterialOptions(
-          envelope.data.content.map((m) => ({ id: m.id, code: m.code, name: m.name })),
-        )
-        loaded = true
-        break
+        all.push(...p.content.map((m) => ({ id: m.id, code: m.code, name: m.name })))
+        if (p.last || p.content.length === 0) break
+        page += 1
+        if (page > 20) break
       }
-      if (!loaded) setMaterialOptions([])
+      setMaterialOptions(all)
+      const hints = await fetchMaterialSupplierPrices()
+      const map: Record<string, number> = {}
+      for (const h of hints) {
+        if (h.supplierId === supplierId && h.lastPurchaseUnitPrice != null) {
+          map[h.materialId] = h.lastPurchaseUnitPrice
+        }
+      }
+      setPriceByMaterialId(map)
     } catch {
       setMaterialOptions([])
+      setPriceByMaterialId({})
+    } finally {
+      setMaterialsLoading(false)
     }
   }, [])
 
@@ -237,8 +269,23 @@ export function AccountantPurchasingOrdersPage() {
   }, [loadOrders])
 
   useEffect(() => {
-    void loadMaterials()
-  }, [loadMaterials])
+    if (!createSupplierId) {
+      setMaterialOptions([])
+      setPriceByMaterialId({})
+      return
+    }
+    void loadMaterialsForSupplier(createSupplierId)
+  }, [createSupplierId, loadMaterialsForSupplier])
+
+  useEffect(() => {
+    const sid = searchParams.get('supplierId')
+    const openCreate = searchParams.get('create') === '1'
+    if (sid) {
+      setCreateSupplierId(sid)
+      if (openCreate) setCreateOpen(true)
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const filteredSupplierOptions = useMemo(() => {
     const q = supplierQuery.trim().toLowerCase()
@@ -254,18 +301,48 @@ export function AccountantPurchasingOrdersPage() {
   const createTotal = useMemo(
     () =>
       createItems.reduce((sum, it) => {
-        const q = Number(it.quantity)
-        const p = Number(it.unitPrice)
-        if (!Number.isFinite(q) || !Number.isFinite(p) || q <= 0 || p < 0) return sum
+        const q = parseQuantityInput(it.quantity)
+        const p = parseVndInput(it.unitPrice)
+        if (q == null || p == null || p < 0) return sum
         return sum + q * p
       }, 0),
     [createItems],
   )
 
+  const canAddCreateLine =
+    materialOptions.length > 0 && createItems.length < materialOptions.length
+
   const resetCreateForm = () => {
     setCreateSupplierId('')
-    setCreateItems([{ materialId: '', quantity: '1', unitPrice: '0' }])
+    setMaterialOptions([])
+    setPriceByMaterialId({})
+    setCreateItems([{ materialId: '', quantity: '1', unitPrice: '' }])
     setCreateError(null)
+  }
+
+  const onCreateSupplierChange = (supplierId: string) => {
+    setCreateSupplierId(supplierId)
+    setCreateItems([{ materialId: '', quantity: '1', unitPrice: '' }])
+  }
+
+  const onCreateMaterialChange = (idx: number, materialId: string) => {
+    if (materialId && usedMaterialIds(createItems, idx).has(materialId)) {
+      setCreateError('Vật tư này đã có trong đơn — mỗi mã NVL chỉ một dòng.')
+      return
+    }
+    setCreateError(null)
+    const suggested = materialId ? priceByMaterialId[materialId] : undefined
+    setCreateItems((prev) =>
+      prev.map((x, i) =>
+        i === idx
+          ? {
+              ...x,
+              materialId,
+              unitPrice: suggested != null ? formatVndInputAmount(suggested) : x.unitPrice,
+            }
+          : x,
+      ),
+    )
   }
 
   const submitCreatePurchase = useCallback(async () => {
@@ -280,14 +357,26 @@ export function AccountantPurchasingOrdersPage() {
     }
     const mappedItems = createItems.map((it) => ({
       materialId: it.materialId.trim(),
-      quantity: Number(it.quantity),
-      unitPrice: Number(it.unitPrice),
+      quantity: parseQuantityInput(it.quantity) ?? NaN,
+      unitPrice: parseVndInput(it.unitPrice) ?? NaN,
     }))
+    const materialIds = mappedItems.map((it) => it.materialId).filter(Boolean)
+    if (materialIds.length !== new Set(materialIds).size) {
+      setCreateError('Không được chọn trùng vật tư trong cùng đơn mua.')
+      return
+    }
     if (
       mappedItems.length === 0 ||
-      mappedItems.some((it) => !it.materialId || !Number.isFinite(it.quantity) || it.quantity <= 0 || !Number.isFinite(it.unitPrice) || it.unitPrice < 0)
+      mappedItems.some(
+        (it) =>
+          !it.materialId ||
+          !Number.isFinite(it.quantity) ||
+          it.quantity <= 0 ||
+          !Number.isFinite(it.unitPrice) ||
+          it.unitPrice < 0,
+      )
     ) {
-      setCreateError('Vui lòng nhập hợp lệ vật tư, số lượng (>0) và đơn giá (>=0).')
+      setCreateError('Vui lòng chọn vật tư, nhập số lượng (>0) và đơn giá (≥0).')
       return
     }
     const payload: CreatePurchasePayload = {
@@ -322,7 +411,7 @@ export function AccountantPurchasingOrdersPage() {
     } finally {
       setCreateSubmitting(false)
     }
-  }, [API_BASE_URL, createItems, createSupplierId, loadOrders, navigate])
+  }, [createItems, createSupplierId, loadOrders, navigate])
 
   const submitReceivePurchase = useCallback(async () => {
     if (!receiveTarget) return
@@ -366,9 +455,14 @@ export function AccountantPurchasingOrdersPage() {
       setPayError('Thiếu access token. Vui lòng đăng nhập lại.')
       return
     }
-    const paidAmount = Number(payAmountInput)
-    if (!Number.isFinite(paidAmount) || paidAmount <= 0) {
+    const paidAmount = parseVndInput(payAmountInput)
+    if (paidAmount === null || paidAmount <= 0) {
       setPayError('Số tiền thanh toán phải lớn hơn 0.')
+      return
+    }
+    const remaining = Math.max(0, payTarget.totalAmount - payTarget.paidAmount)
+    if (paidAmount > remaining) {
+      setPayError(`Số tiền không được vượt còn lại (${formatVND(remaining)}).`)
       return
     }
     setPaySubmitting(true)
@@ -665,7 +759,7 @@ export function AccountantPurchasingOrdersPage() {
                 <span>Nhà cung cấp</span>
                 <select
                   value={createSupplierId}
-                  onChange={(e) => setCreateSupplierId(e.target.value)}
+                  onChange={(e) => onCreateSupplierChange(e.target.value)}
                   disabled={createSubmitting}
                 >
                   <option value="">Chọn nhà cung cấp</option>
@@ -677,74 +771,111 @@ export function AccountantPurchasingOrdersPage() {
                 </select>
               </label>
 
+              {createSupplierId && materialsLoading ? (
+                <p className="th-acc-orders__catalog-hint">Đang tải vật tư trong danh mục NCC…</p>
+              ) : null}
+              {createSupplierId && !materialsLoading && materialOptions.length === 0 ? (
+                <p className="th-acc-orders__catalog-warn" role="alert">
+                  NCC chưa có vật tư trong danh mục. Liên hệ Admin/Director để gán trước khi lập PO.
+                </p>
+              ) : null}
+
               <div className="th-acc-orders__create-items">
                 <div className="th-acc-orders__create-items-head">
                   <strong>Dòng vật tư</strong>
                   <button
                     type="button"
                     className="th-acc-orders__add-line-btn"
-                    disabled={createSubmitting}
+                    disabled={createSubmitting || !canAddCreateLine}
+                    title={
+                      !canAddCreateLine
+                        ? 'Đã thêm hết vật tư trong danh mục NCC'
+                        : 'Thêm dòng vật tư khác'
+                    }
                     onClick={() =>
-                      setCreateItems((prev) => [...prev, { materialId: '', quantity: '1', unitPrice: '0' }])
+                      setCreateItems((prev) => [...prev, { materialId: '', quantity: '1', unitPrice: '' }])
                     }
                   >
                     + Thêm dòng
                   </button>
                 </div>
-                {createItems.map((it, idx) => (
-                  <div key={`line-${idx}`} className="th-acc-orders__create-line">
-                    <select
-                      value={it.materialId}
-                      disabled={createSubmitting}
-                      onChange={(e) =>
-                        setCreateItems((prev) =>
-                          prev.map((x, i) => (i === idx ? { ...x, materialId: e.target.value } : x)),
-                        )
-                      }
-                    >
-                      <option value="">Chọn vật tư</option>
-                      {materialOptions.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.code} · {m.name}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      min={1}
-                      step={1}
-                      value={it.quantity}
-                      disabled={createSubmitting}
-                      onChange={(e) =>
-                        setCreateItems((prev) =>
-                          prev.map((x, i) => (i === idx ? { ...x, quantity: e.target.value } : x)),
-                        )
-                      }
-                      placeholder="SL"
-                    />
-                    <input
-                      type="number"
-                      min={0}
-                      step={100}
-                      value={it.unitPrice}
-                      disabled={createSubmitting}
-                      onChange={(e) =>
-                        setCreateItems((prev) =>
-                          prev.map((x, i) => (i === idx ? { ...x, unitPrice: e.target.value } : x)),
-                        )
-                      }
-                      placeholder="Đơn giá"
-                    />
-                    <button
-                      type="button"
-                      className="th-acc-orders__remove-line-btn"
-                      disabled={createSubmitting || createItems.length <= 1}
-                      onClick={() => setCreateItems((prev) => prev.filter((_, i) => i !== idx))}
-                    >
-                      Xóa
-                    </button>
-                  </div>
-                ))}
+                <div className="th-acc-orders__create-colhead" aria-hidden="true">
+                  <span>Vật tư</span>
+                  <span>SL</span>
+                  <span>Đơn giá (₫)</span>
+                  <span />
+                </div>
+                {createItems.map((it, idx) => {
+                  const taken = usedMaterialIds(createItems, idx)
+                  const availableMaterials = materialOptions.filter(
+                    (m) => m.id === it.materialId || !taken.has(m.id),
+                  )
+                  const price = parseVndInput(it.unitPrice)
+                  const priceInvalid = it.unitPrice.trim() !== '' && price == null
+
+                  return (
+                    <div key={`line-${idx}`} className="th-acc-orders__create-line">
+                      <select
+                        value={it.materialId}
+                        disabled={createSubmitting || materialsLoading || !createSupplierId}
+                        aria-label="Vật tư"
+                        onChange={(e) => onCreateMaterialChange(idx, e.target.value)}
+                      >
+                        <option value="">Chọn vật tư</option>
+                        {availableMaterials.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.code} · {m.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        value={it.quantity}
+                        disabled={createSubmitting}
+                        aria-label="Số lượng"
+                        className="th-acc-orders__create-line-input th-acc-orders__create-line-input--qty"
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, '')
+                          setCreateItems((prev) =>
+                            prev.map((x, i) => (i === idx ? { ...x, quantity: digits } : x)),
+                          )
+                        }}
+                        placeholder="100"
+                      />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        value={it.unitPrice}
+                        disabled={createSubmitting}
+                        aria-label="Đơn giá"
+                        aria-invalid={priceInvalid}
+                        className={
+                          priceInvalid
+                            ? 'th-acc-orders__create-line-input th-acc-orders__create-line-input--price th-acc-orders__create-line-input--invalid'
+                            : 'th-acc-orders__create-line-input th-acc-orders__create-line-input--price'
+                        }
+                        onChange={(e) => {
+                          const formatted = normalizeVndInputTyping(e.target.value)
+                          setCreateItems((prev) =>
+                            prev.map((x, i) => (i === idx ? { ...x, unitPrice: formatted } : x)),
+                          )
+                        }}
+                        placeholder="25.000"
+                      />
+                      <button
+                        type="button"
+                        className="th-acc-orders__remove-line-btn"
+                        disabled={createSubmitting || createItems.length <= 1}
+                        onClick={() => setCreateItems((prev) => prev.filter((_, i) => i !== idx))}
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
               <p className="th-acc-orders__create-total">Tổng tiền tạm tính: {formatVND(createTotal)}</p>
             </div>
@@ -866,16 +997,17 @@ export function AccountantPurchasingOrdersPage() {
               <p>
                 Còn lại hiện tại: <strong>{formatVND(Math.max(0, payTarget.totalAmount - payTarget.paidAmount))}</strong>
               </p>
-              <label className="th-acc-orders__field">
+              <label className="th-acc-orders__field th-acc-orders__field--pay">
                 <span>Số tiền thanh toán thêm</span>
                 <input
-                  type="number"
-                  min={1}
-                  step={1000}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  className="th-acc-orders__money-input"
                   value={payAmountInput}
-                  onChange={(e) => setPayAmountInput(e.target.value)}
+                  onChange={(e) => setPayAmountInput(normalizeVndInputTyping(e.target.value))}
                   disabled={paySubmitting}
-                  placeholder="Ví dụ: 5000"
+                  placeholder="Nhập số tiền"
                 />
               </label>
               {payError ? (

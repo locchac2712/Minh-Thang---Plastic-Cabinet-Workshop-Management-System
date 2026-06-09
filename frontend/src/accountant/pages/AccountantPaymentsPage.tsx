@@ -11,6 +11,7 @@ type PaymentStatus = 'Pending' | 'Completed' | 'Failed'
 type PaymentRow = {
   id: string
   orderId: string | null
+  orderDisplayCode?: string | null
   agencyId: string
   agencyName: string
   amount: number
@@ -37,19 +38,22 @@ type PaymentPage = {
   last: boolean
 }
 
-async function approvePayment(paymentId: string): Promise<PaymentRow> {
+async function approvePayment(paymentId: string, note?: string): Promise<PaymentRow> {
   const accessToken = getAccessToken()
   if (!accessToken) {
     throw new Error('Thiếu access token. Vui lòng đăng nhập lại.')
   }
+  const trimmed = note?.trim()
   const res = await fetch(
     `${API_BASE_URL}/api/accountant/payments/${encodeURIComponent(paymentId)}/approve`,
     {
       method: 'PATCH',
       headers: {
         accept: '*/*',
+        'Content-Type': 'application/json',
         Authorization: `${getTokenType()} ${accessToken}`,
       },
+      body: trimmed ? JSON.stringify({ note: trimmed }) : undefined,
     },
   )
   const envelope = (await res.json()) as ApiEnvelope<PaymentRow>
@@ -89,6 +93,30 @@ function statusClass(s: PaymentStatus): string {
   return 'th-acc-pay__pill th-acc-pay__pill--wait'
 }
 
+function paymentStatusLabel(s: PaymentStatus): string {
+  if (s === 'Pending') return 'Chờ duyệt'
+  if (s === 'Completed') return 'Đã duyệt'
+  return 'Từ chối'
+}
+
+function paymentMethodLabel(method: string): string {
+  const m = method.trim()
+  const known: Record<string, string> = {
+    CK: 'Chuyển khoản',
+    'Chuyển khoản': 'Chuyển khoản',
+    'Tiền mặt': 'Tiền mặt',
+    BankTransfer: 'Chuyển khoản',
+    Cash: 'Tiền mặt',
+  }
+  return known[m] ?? m
+}
+
+function paymentOrderLabel(row: Pick<PaymentRow, 'orderId' | 'orderDisplayCode'>): string | null {
+  if (!row.orderId) return null
+  const code = row.orderDisplayCode?.trim()
+  return code || row.orderId
+}
+
 export function AccountantPaymentsPage() {
   const fid = useId()
   const [status, setStatus] = useState<'' | PaymentStatus>('Pending')
@@ -102,7 +130,7 @@ export function AccountantPaymentsPage() {
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [activeRow, setActiveRow] = useState<PaymentRow | null>(null)
-  const [rejectNote, setRejectNote] = useState('')
+  const [accountantNote, setAccountantNote] = useState('')
   const [dialogError, setDialogError] = useState<string | null>(null)
   const [confirmAction, setConfirmAction] = useState<null | {
     type: 'approve' | 'reject'
@@ -152,10 +180,10 @@ export function AccountantPaymentsPage() {
   }, [load])
 
   const handleApprove = useCallback(
-    async (row: PaymentRow) => {
+    async (row: PaymentRow, note?: string) => {
       setApprovingId(row.id)
       try {
-        const updated = await approvePayment(row.id)
+        const updated = await approvePayment(row.id, note)
         setRows((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
         setActiveRow(updated)
         setDialogError(null)
@@ -210,9 +238,9 @@ export function AccountantPaymentsPage() {
               }}
               options={[
                 { value: '', label: 'Tất cả' },
-                { value: 'Pending', label: 'Pending' },
-                { value: 'Completed', label: 'Completed' },
-                { value: 'Failed', label: 'Failed' },
+                { value: 'Pending', label: 'Chờ duyệt' },
+                { value: 'Completed', label: 'Đã duyệt' },
+                { value: 'Failed', label: 'Từ chối' },
               ]}
             />
           </AppFilterField>
@@ -245,7 +273,9 @@ export function AccountantPaymentsPage() {
                 </td>
               </tr>
             ) : (
-              rows.map((r) => (
+              rows.map((r) => {
+                const orderLabel = paymentOrderLabel(r)
+                return (
                 <tr
                   key={r.id}
                   className="th-acc-data-table__row"
@@ -253,32 +283,33 @@ export function AccountantPaymentsPage() {
                   tabIndex={0}
                   onClick={() => {
                     setActiveRow(r)
-                    setRejectNote(r.note ?? '')
-                      setDialogError(null)
+                    setAccountantNote('')
+                    setDialogError(null)
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
                       setActiveRow(r)
-                      setRejectNote(r.note ?? '')
-                        setDialogError(null)
+                      setAccountantNote('')
+                      setDialogError(null)
                     }
                   }}
                 >
                   <td>
                     <code>{r.id}</code>
                   </td>
-                  <td>{r.orderId ? <code>{r.orderId}</code> : '—'}</td>
+                  <td>{orderLabel ? <code>{orderLabel}</code> : '—'}</td>
                   <td>{r.agencyName}</td>
                   <td className="th-acc-data-table__num">{formatVND(r.amount)}</td>
-                  <td>{r.paymentMethod}</td>
+                  <td>{paymentMethodLabel(r.paymentMethod)}</td>
                   <td>
-                    <span className={statusClass(r.status)}>{r.status}</span>
+                    <span className={statusClass(r.status)}>{paymentStatusLabel(r.status)}</span>
                   </td>
                   <td className="th-acc-pay__note">{r.note ?? '—'}</td>
                   <td>{new Date(r.createdAt).toLocaleString('vi-VN')}</td>
                 </tr>
-              ))
+                )
+              })
             )}
           </tbody>
         </table>
@@ -332,14 +363,16 @@ export function AccountantPaymentsPage() {
               <dt>Đại lý</dt>
               <dd>{activeRow.agencyName}</dd>
               <dt>Đơn hàng</dt>
-              <dd>{activeRow.orderId ? <code>{activeRow.orderId}</code> : '—'}</dd>
+              <dd>
+                {paymentOrderLabel(activeRow) ? <code>{paymentOrderLabel(activeRow)}</code> : '—'}
+              </dd>
               <dt>Số tiền</dt>
               <dd>{formatVND(activeRow.amount)}</dd>
               <dt>Phương thức</dt>
-              <dd>{activeRow.paymentMethod}</dd>
+              <dd>{paymentMethodLabel(activeRow.paymentMethod)}</dd>
               <dt>Trạng thái</dt>
               <dd>
-                <span className={statusClass(activeRow.status)}>{activeRow.status}</span>
+                <span className={statusClass(activeRow.status)}>{paymentStatusLabel(activeRow.status)}</span>
               </dd>
               <dt>Thời gian</dt>
               <dd>{new Date(activeRow.createdAt).toLocaleString('vi-VN')}</dd>
@@ -353,14 +386,19 @@ export function AccountantPaymentsPage() {
               )}
             </div>
             <div className="th-acc-pay__modal-note">
-              <label htmlFor={`${fid}-reject-note`}>Ghi chú / Lý do từ chối</label>
+              <label htmlFor={`${fid}-accountant-note`}>Ghi chú kế toán</label>
               <textarea
-                id={`${fid}-reject-note`}
+                id={`${fid}-accountant-note`}
                 rows={3}
-                value={rejectNote}
-                onChange={(e) => setRejectNote(e.target.value)}
-                placeholder="Nhập lý do khi từ chối..."
+                value={accountantNote}
+                onChange={(e) => setAccountantNote(e.target.value)}
+                placeholder="Tùy chọn khi duyệt; bắt buộc khi từ chối."
               />
+              {activeRow.note ? (
+                <p className="th-acc-pay__muted" style={{ marginTop: '0.5rem' }}>
+                  Ghi chú trên phiếu: {activeRow.note}
+                </p>
+              ) : null}
             </div>
             </div>
             <footer className="th-dlg__footer th-acc-pay__modal-actions">
@@ -373,7 +411,7 @@ export function AccountantPaymentsPage() {
                   setConfirmAction({
                     type: 'reject',
                     row: activeRow,
-                    note: rejectNote.trim(),
+                    note: accountantNote.trim(),
                   })
                 }
               >
@@ -383,7 +421,13 @@ export function AccountantPaymentsPage() {
                 type="button"
                 className="th-admin-users__btn-primary th-acc-pay__approve-btn"
                 disabled={activeRow.status !== 'Pending' || approvingId === activeRow.id || rejectingId === activeRow.id}
-                onClick={() => setConfirmAction({ type: 'approve', row: activeRow })}
+                onClick={() =>
+                  setConfirmAction({
+                    type: 'approve',
+                    row: activeRow,
+                    note: accountantNote.trim(),
+                  })
+                }
               >
                 {approvingId === activeRow.id ? 'Đang duyệt…' : 'Duyệt'}
               </button>
@@ -430,6 +474,10 @@ export function AccountantPaymentsPage() {
               <p>
                 Lý do: <strong>{confirmAction.note || '(trống)'}</strong>
               </p>
+            ) : confirmAction.note ? (
+              <p>
+                Ghi chú: <strong>{confirmAction.note}</strong>
+              </p>
             ) : null}
             </div>
             <div className="th-acc-pay__confirm-actions">
@@ -447,7 +495,7 @@ export function AccountantPaymentsPage() {
                   const action = confirmAction
                   setConfirmAction(null)
                   if (action.type === 'approve') {
-                    void handleApprove(action.row)
+                    void handleApprove(action.row, action.note)
                   } else {
                     void handleReject(action.row, action.note ?? '')
                   }

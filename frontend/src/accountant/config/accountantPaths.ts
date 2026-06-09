@@ -9,6 +9,7 @@ export const ACCOUNTANT_RECEIVABLES_VAT_PAGES_ENABLED = false
 export const accountantPaths = {
   root: '/accountant',
   dashboard: '/accountant',
+  account: '/accountant/account',
   receivables: {
     root: '/accountant/receivables',
     deposits: '/accountant/receivables/deposits',
@@ -27,6 +28,7 @@ export const accountantPaths = {
   },
   masters: {
     suppliers: '/accountant/masters/suppliers',
+    supplierDetail: (id: string) => `/accountant/masters/suppliers/${encodeURIComponent(id)}`,
     materials: '/accountant/masters/materials',
   },
 } as const

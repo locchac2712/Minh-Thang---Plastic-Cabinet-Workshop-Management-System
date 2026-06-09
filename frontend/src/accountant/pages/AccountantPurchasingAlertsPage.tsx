@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { getAccessToken, getTokenType } from '../../auth/storage'
 import './AccountantPurchasingAlertsPage.css'
 
@@ -8,6 +7,11 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://be.minhthange
 type Severity = 'critical' | 'low'
 type SeverityFilter = 'all' | Severity
 
+type MaterialSupplierItem = {
+  id: string
+  name: string
+}
+
 type AlertRow = {
   id: string
   code: string
@@ -15,6 +19,7 @@ type AlertRow = {
   unit: string
   stockQuantity: number
   minStockLevel: number
+  suppliers?: MaterialSupplierItem[]
 }
 
 type ApiEnvelope<T> = {
@@ -84,10 +89,12 @@ export function AccountantPurchasingAlertsPage() {
       const sev = alertSeverity(a)
       if (severity !== 'all' && sev !== severity) return false
       if (!q) return true
+      const supplierHit = (a.suppliers ?? []).some((s) => s.name.toLowerCase().includes(q))
       return (
         a.code.toLowerCase().includes(q) ||
         a.name.toLowerCase().includes(q) ||
-        a.id.toLowerCase().includes(q)
+        a.id.toLowerCase().includes(q) ||
+        supplierHit
       )
     })
   }, [rows, severity, search])
@@ -144,6 +151,7 @@ export function AccountantPurchasingAlertsPage() {
             <tr>
               <th scope="col">Mức độ</th>
               <th scope="col">Mã hàng / tên</th>
+              <th scope="col">Nhà cung cấp</th>
               <th scope="col">Material ID</th>
               <th scope="col" className="th-acc-data-table__num">
                 Tồn
@@ -159,7 +167,7 @@ export function AccountantPurchasingAlertsPage() {
           <tbody>
             {!loading && filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="th-acc-data-table__empty">
+                <td colSpan={7} className="th-acc-data-table__empty">
                   Không có cảnh báo khớp bộ lọc.
                 </td>
               </tr>
@@ -172,6 +180,19 @@ export function AccountantPurchasingAlertsPage() {
                   <td>
                     <code className="th-acc-alerts__sku">{a.code}</code>
                     <div className="th-acc-alerts__name">{a.name}</div>
+                  </td>
+                  <td>
+                    {(a.suppliers ?? []).length === 0 ? (
+                      <span className="th-acc-alerts__sup-empty">Chưa gán NCC</span>
+                    ) : (
+                      <ul className="th-acc-alerts__sup-list">
+                        {(a.suppliers ?? []).map((s) => (
+                          <li key={s.id} className="th-acc-alerts__sup">
+                            {s.name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </td>
                   <td className="th-acc-data-table__zone">
                     <code>{a.id}</code>
@@ -189,15 +210,6 @@ export function AccountantPurchasingAlertsPage() {
           </tbody>
         </table>
       </div>
-
-      <footer className="th-acc-alerts__footer">
-        <Link className="th-acc-alerts__link" to="/admin/materials">
-          Chi tiết vật tư (Admin)
-          <span className="material-symbols-outlined" aria-hidden>
-            open_in_new
-          </span>
-        </Link>
-      </footer>
     </div>
   )
 }

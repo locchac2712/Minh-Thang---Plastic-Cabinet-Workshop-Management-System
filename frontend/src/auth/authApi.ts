@@ -169,3 +169,70 @@ export async function fetchMeProfile(params: {
 
   return envelope.data
 }
+
+function authHeaders(accessToken: string, tokenType?: string): HeadersInit {
+  const type = tokenType?.trim() || 'Bearer'
+  return {
+    Accept: '*/*',
+    'Content-Type': 'application/json',
+    Authorization: `${type} ${accessToken}`,
+  }
+}
+
+export async function updateMeProfile(params: {
+  accessToken: string
+  tokenType?: string
+  fullName: string
+}): Promise<MeData> {
+  const res = await fetch(`${API_BASE_URL}/api/me`, {
+    method: 'PATCH',
+    headers: authHeaders(params.accessToken, params.tokenType),
+    body: JSON.stringify({ fullName: params.fullName.trim() }),
+  })
+
+  let envelope: ApiEnvelope<MeData> | null = null
+  try {
+    envelope = (await res.json()) as ApiEnvelope<MeData>
+  } catch {
+    /* empty */
+  }
+
+  if (!res.ok || !envelope?.success || !envelope.data) {
+    const message = envelope?.message?.trim() || 'Cập nhật hồ sơ thất bại'
+    const statusCode = envelope?.statusCode ?? res.status
+    throw new AuthApiError(message, statusCode, envelope?.errors ?? undefined)
+  }
+
+  return envelope.data
+}
+
+export async function changeMyPassword(params: {
+  accessToken: string
+  tokenType?: string
+  currentPassword: string
+  newPassword: string
+}): Promise<string> {
+  const res = await fetch(`${API_BASE_URL}/api/me/password`, {
+    method: 'PATCH',
+    headers: authHeaders(params.accessToken, params.tokenType),
+    body: JSON.stringify({
+      currentPassword: params.currentPassword,
+      newPassword: params.newPassword,
+    }),
+  })
+
+  let envelope: ApiEnvelope<null> | null = null
+  try {
+    envelope = (await res.json()) as ApiEnvelope<null>
+  } catch {
+    /* empty */
+  }
+
+  if (!res.ok || !envelope?.success) {
+    const message = envelope?.message?.trim() || 'Đổi mật khẩu thất bại'
+    const statusCode = envelope?.statusCode ?? res.status
+    throw new AuthApiError(message, statusCode, envelope?.errors ?? undefined)
+  }
+
+  return envelope.message?.trim() || 'Đổi mật khẩu thành công.'
+}

@@ -17,6 +17,7 @@ type MaterialRow = {
   minStockLevel: number
   isActive: boolean
   createdAt: string
+  linkedSupplierCount?: number
 }
 
 type MaterialPage = {
@@ -148,6 +149,7 @@ export function AccountantMaterialsPage() {
               <th className="th-acc-data-table__num">Đơn giá</th>
               <th className="th-acc-data-table__num">Tồn kho</th>
               <th className="th-acc-data-table__num">Min</th>
+              <th className="th-acc-data-table__num">NCC</th>
               <th>Trạng thái</th>
               <th>Tạo lúc</th>
             </tr>
@@ -155,7 +157,7 @@ export function AccountantMaterialsPage() {
           <tbody>
             {!loading && rows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="th-acc-data-table__empty">Không có vật tư khớp bộ lọc.</td>
+                <td colSpan={9} className="th-acc-data-table__empty">Không có vật tư khớp bộ lọc.</td>
               </tr>
             ) : (
               rows.map((r) => (
@@ -166,6 +168,15 @@ export function AccountantMaterialsPage() {
                   <td className="th-acc-data-table__num">{formatVND(r.unitCost)}</td>
                   <td className="th-acc-data-table__num">{r.stockQuantity}</td>
                   <td className="th-acc-data-table__num">{r.minStockLevel}</td>
+                  <td className="th-acc-data-table__num">
+                    {(r.linkedSupplierCount ?? 0) === 0 && r.isActive ? (
+                      <span className="th-acc-mat__warn" title="Chưa gán NCC — không lập PO được">
+                        0
+                      </span>
+                    ) : (
+                      (r.linkedSupplierCount ?? '—')
+                    )}
+                  </td>
                   <td>
                     <span className={r.isActive ? 'th-acc-mat__pill th-acc-mat__pill--ok' : 'th-acc-mat__pill'}>
                       {r.isActive ? 'Active' : 'Inactive'}

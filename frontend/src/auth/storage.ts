@@ -33,6 +33,10 @@ export function homePathForActor(actor: AppActor): string {
   return ACTOR_HOME[actor]
 }
 
+export function accountPathForActor(actor: AppActor): string {
+  return `${ACTOR_HOME[actor]}/account`
+}
+
 export function getStoredActor(): AppActor | null {
   const raw = localStorage.getItem(AUTH_ACTOR_KEY) ?? sessionStorage.getItem(AUTH_ACTOR_KEY)
   if (

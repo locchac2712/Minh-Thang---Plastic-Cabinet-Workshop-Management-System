@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom'
+import { accountantPaths } from '../../config/accountantPaths'
 import { clearAuthStorage } from '../../../auth/storage'
+import { AccountantNavItemLink } from '../AccountantNav/AccountantNavItemLink'
 
 type Props = {
   narrow: boolean
@@ -16,6 +18,12 @@ export function AccountantSidebarFooter({ narrow }: Props) {
   return (
     <div className="th-accountant-sidebar-footer">
       <p className="th-accountant-nav-label th-accountant-nav-label--footer">Phiên làm việc</p>
+      <AccountantNavItemLink
+        to={accountantPaths.account}
+        icon="manage_accounts"
+        label="Tài khoản"
+        narrow={narrow}
+      />
       <button
         type="button"
         className="th-accountant-nav-link th-accountant-nav-link--logout"

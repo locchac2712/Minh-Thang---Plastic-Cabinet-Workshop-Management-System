@@ -1,0 +1,4 @@
+/* Dropdown trong native <dialog> — cùng top layer với popup, không bị che. */
+dialog.th-dlg .th-iso-date-picker-popup {
+  z-index: 2;
+}

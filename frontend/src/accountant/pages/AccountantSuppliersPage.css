@@ -15,12 +15,78 @@
   color: #0f172a;
 }
 
-.th-acc-sup__lead {
-  margin: 0.25rem 0 0;
-  font-size: 0.875rem;
-  line-height: 1.5;
+.th-acc-sup__name-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.th-acc-sup__name-link:hover .th-acc-sup__name {
+  text-decoration: underline;
+}
+
+.th-acc-sup__back,
+.th-acc-sup__actions,
+.th-acc-sup__tabs,
+.th-acc-sup__panel,
+.th-acc-sup__dl,
+.th-acc-sup__hint,
+.th-acc-sup__btn-primary {
+  margin-top: 0.5rem;
+}
+
+.th-acc-sup__tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.th-acc-sup__tabs button {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+.th-acc-sup__tabs button.is-active {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+.th-acc-sup__dl {
+  display: grid;
+  gap: 0.5rem 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.th-acc-sup__dl dt {
+  font-size: 0.75rem;
   color: #64748b;
-  max-width: 44rem;
+}
+
+.th-acc-sup__btn-primary {
+  display: inline-block;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  text-decoration: none;
+}
+
+.th-acc-mat__warn {
+  color: #c2410c;
+  font-weight: 600;
+}
+
+.th-acc-orders__catalog-hint {
+  margin: 0.5rem 0;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.th-acc-orders__catalog-warn {
+  margin: 0.5rem 0;
+  color: #c2410c;
+  font-size: 0.875rem;
 }
 
 .th-acc-sup__error {

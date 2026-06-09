@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useId, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { formatVND } from '../../admin/partners/agencyModel'
 import { PAGE_SIZE_OPTIONS } from '../../admin/catalog/productModel'
 import { getAccessToken, getTokenType } from '../../auth/storage'
+import { accountantPaths } from '../config/accountantPaths'
 import '../../admin/styles/adminListToolbar.css'
 import './AccountantSuppliersPage.css'
 
@@ -189,7 +191,7 @@ export function AccountantSuppliersPage() {
               className="th-admin-list-toolbar__search-input"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Tìm theo tên (LIKE, có debounce)…"
+              placeholder="Tìm theo tên…"
               autoComplete="off"
               disabled={loading}
             />
@@ -222,19 +224,6 @@ export function AccountantSuppliersPage() {
               Xóa lọc
             </button>
           ) : null}
-
-          <button
-            type="button"
-            className="th-admin-list-toolbar__clear"
-            onClick={() => void load()}
-            disabled={loading}
-            title="Tải lại"
-          >
-            <span className="material-symbols-outlined" aria-hidden>
-              refresh
-            </span>
-            Làm mới
-          </button>
         </div>
       </div>
 
@@ -272,7 +261,9 @@ export function AccountantSuppliersPage() {
               rows.map((r) => (
                 <tr key={r.id}>
                   <td>
-                    <div className="th-acc-sup__name">{r.name}</div>
+                    <Link to={accountantPaths.masters.supplierDetail(r.id)} className="th-acc-sup__name-link">
+                      <div className="th-acc-sup__name">{r.name}</div>
+                    </Link>
                     <code className="th-acc-sup__id">{r.id}</code>
                   </td>
                   <td>{r.taxCode || '—'}</td>
