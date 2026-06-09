@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { appLogoUrl } from '../../../branding/appLogo'
 import { adminPaths } from '../../config/adminPaths'
-import { AdminCatalogAccordion } from '../AdminNav/AdminNavAccordion'
 import { AdminNavGroup } from '../AdminNav/AdminNavGroup'
 import { AdminNavItemLink } from '../AdminNav/AdminNavItemLink'
 import { AdminSidebarFooter } from './AdminSidebarFooter'
@@ -72,7 +71,22 @@ export function AdminSidebar({ narrow: isNarrow, onToggle: toggle }: Props) {
         </AdminNavGroup>
 
         <AdminNavGroup label="Danh mục thành phẩm">
-          <AdminCatalogAccordion narrow={isNarrow} />
+          <div className="th-admin-nav-sub" role="group">
+            <AdminNavItemLink
+              to={adminPaths.catalog.categories}
+              icon="category"
+              label="Ngành hàng"
+              narrow={isNarrow}
+              className="th-admin-nav-sublink"
+            />
+            <AdminNavItemLink
+              to={adminPaths.catalog.products}
+              icon="inventory_2"
+              label="Sản phẩm"
+              narrow={isNarrow}
+              className="th-admin-nav-sublink"
+            />
+          </div>
         </AdminNavGroup>
 
         <AdminNavGroup label="Định mức sản xuất">

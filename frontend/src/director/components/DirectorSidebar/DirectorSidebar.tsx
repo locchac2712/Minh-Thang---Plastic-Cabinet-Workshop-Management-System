@@ -45,7 +45,7 @@ export function DirectorSidebar({ narrow: isNarrow, onToggle: toggle }: Props) {
         </div>
         <div className="th-director-brand-text">
           <span className="th-director-brand-name">Ban Giám đốc</span>
-          <span className="th-director-brand-role">OLAP · Phê duyệt</span>
+          <span className="th-director-brand-role">OLAP · Điều hành</span>
         </div>
       </Link>
 
@@ -79,12 +79,26 @@ export function DirectorSidebar({ narrow: isNarrow, onToggle: toggle }: Props) {
           </div>
         </DirectorNavGroup>
 
-        <DirectorNavGroup label="Rủi ro & SCM">
+        <DirectorNavGroup label="Điều hành sản xuất">
           <div className="th-director-nav-sub" role="group">
             <DirectorNavItemLink
-              to={directorPaths.risk.receivables}
-              icon="warning"
-              label="Nợ phải thu cảnh báo"
+              to={directorPaths.operations.performance}
+              icon="precision_manufacturing"
+              label="Hiệu suất xưởng"
+              narrow={isNarrow}
+              className="th-director-nav-sublink"
+            />
+            <DirectorNavItemLink
+              to={directorPaths.operations.orders}
+              icon="local_shipping"
+              label="Tình trạng đơn hàng"
+              narrow={isNarrow}
+              className="th-director-nav-sublink"
+            />
+            <DirectorNavItemLink
+              to={directorPaths.operations.tasks}
+              icon="assignment"
+              label="Lệnh đang chạy"
               narrow={isNarrow}
               className="th-director-nav-sublink"
             />
@@ -92,6 +106,18 @@ export function DirectorSidebar({ narrow: isNarrow, onToggle: toggle }: Props) {
               to={directorPaths.risk.wastage}
               icon="recycling"
               label="Hao phí / tay nghề"
+              narrow={isNarrow}
+              className="th-director-nav-sublink"
+            />
+          </div>
+        </DirectorNavGroup>
+
+        <DirectorNavGroup label="Rủi ro & SCM">
+          <div className="th-director-nav-sub" role="group">
+            <DirectorNavItemLink
+              to={directorPaths.risk.receivables}
+              icon="warning"
+              label="Nợ phải thu cảnh báo"
               narrow={isNarrow}
               className="th-director-nav-sublink"
             />

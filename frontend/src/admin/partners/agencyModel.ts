@@ -23,6 +23,8 @@ export type Agency = {
   /** Từ API: cấp BE (Bronze, VIP, A, …) */
   apiLevelRaw?: string
   totalDebtVnd: number
+  /** Dư nợ tính từ đơn Done (BE: computedDebtFromOrders). */
+  computedDebtVnd?: number
   creditLimitVnd: number
   isActive: boolean
   note: string
@@ -46,6 +48,34 @@ export function levelLabel(level: AgencyLevel): string {
 
 export function formatVND(n: number): string {
   return n.toLocaleString('vi-VN') + '₫'
+}
+
+/** Map công nợ từ AgencyResponse — chỉ dư theo đơn DH (Approved / Producing / Done). */
+export function mapAgencyDebtFromApi(d: {
+  computedDebtFromOrders?: number | null
+}): {
+  totalDebtVnd: number
+  computedDebtVnd: number
+} {
+  const computed = Number(d.computedDebtFromOrders ?? 0)
+  return {
+    totalDebtVnd: computed,
+    computedDebtVnd: computed,
+  }
+}
+
+/** Dư nợ hiển thị từ AgencyResponse (computed). */
+export function agencyDebtFromApi(d: {
+  computedDebtFromOrders?: number | null
+}): number {
+  return Number(d.computedDebtFromOrders ?? 0)
+}
+
+/** Dư nợ dùng cho hạn mức / cảnh báo — ưu tiên computed. */
+export function effectiveAgencyDebtVnd(
+  a: Pick<Agency, 'totalDebtVnd' | 'computedDebtVnd'>,
+): number {
+  return a.computedDebtVnd ?? a.totalDebtVnd
 }
 
 /** Dư nợ vượt ngưỡng cảnh báo so với hạn mức */

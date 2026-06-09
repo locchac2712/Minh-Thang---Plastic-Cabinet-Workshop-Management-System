@@ -467,17 +467,6 @@ export function AdminCategoriesPage() {
           <h1 className="th-admin-cat__title">Ngành hàng</h1>
           {loadError ? <p className="th-admin-users__api-error">{loadError}</p> : null}
         </div>
-        <div className="th-admin-cat__toolbar">
-          <button
-            type="button"
-            className="th-admin-cat__btn-primary"
-            onClick={() => setAddOpen(true)}
-            aria-haspopup="dialog"
-          >
-            <span className="material-symbols-outlined th-admin-cat__btn-icon" aria-hidden>add</span>
-            Thêm ngành hàng
-          </button>
-        </div>
       </header>
       {notice ? (
         <div
@@ -875,6 +864,18 @@ export function AdminCategoriesPage() {
                 />
               </AppFilterActions>
             ) : null}
+
+            <button
+              type="button"
+              className="th-admin-cat__btn-primary th-admin-cat__filter-add"
+              onClick={() => setAddOpen(true)}
+              aria-haspopup="dialog"
+            >
+              <span className="material-symbols-outlined th-admin-cat__btn-icon" aria-hidden>
+                add
+              </span>
+              Thêm ngành hàng
+            </button>
           </AppFilterBar>
         </div>
 

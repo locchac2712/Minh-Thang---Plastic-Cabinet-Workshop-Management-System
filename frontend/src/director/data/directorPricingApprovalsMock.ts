@@ -4,6 +4,8 @@
  * API: GET /api/director/approvals/orders — documents/api/director.md
  */
 import type { SellerOrderKind, SellerOrderLineItem } from '../../seller/data/sellerOrdersMock'
+import { sellerOrderKindLabel, SELLER_CUSTOM_KIND_LABEL } from '../../seller/data/sellerOrdersMock'
+import type { SellerApiOrderStatus } from '../../seller/sellerOrdersApi'
 
 export type DirectorPricingCaseKind = 'margin_loss' | 'deep_discount' | 'custom_bom'
 
@@ -31,12 +33,23 @@ export type DirectorPricingApprovalRow = {
   slaDueAt: string
   /** Độ ưu tiên hiển thị */
   priority: 'normal' | 'high'
+  /** Hạn hiệu lực báo giá */
+  quotationValidUntil?: string | null
   /** GET /api/director/approvals/orders — backend không trả biên LN / SLA chi tiết */
   metricsPlaceholder?: boolean
   /** Ghi chú nội bộ đơn (ORDERS.note) — dùng khi GD gửi reject / yêu cầu báo giá */
   orderNote?: string | null
   /** Dòng hàng từ API (chi tiết GD khi không có mock NVBH) */
   apiItems?: SellerOrderLineItem[]
+  /** Trạng thái đơn — từ API */
+  orderStatus?: SellerApiOrderStatus
+  agencyId?: string
+  agencyLegalName?: string
+  agencyPhone?: string
+  agencyEmail?: string
+  agencyAddress?: string
+  agencyCity?: string
+  approverName?: string | null
 }
 
 /** Mã đơn khớp mockOrdersForAgency (sellerAgenciesMock) để getSellerOrderDetail hoạt động. */
@@ -58,6 +71,7 @@ const ROWS: DirectorPricingApprovalRow[] = [
       'Tủ kệ theo shop drawing, mặt B acrylic trắng; đo tại Q.2 — khách chốt trong tuần.',
     discountRequestVnd: 8_500_000,
     slaDueAt: '2025-04-12',
+    quotationValidUntil: '2025-04-01',
     priority: 'high',
   },
   {
@@ -144,11 +158,11 @@ export function caseKindLabel(k: DirectorPricingCaseKind): string {
   const m: Record<DirectorPricingCaseKind, string> = {
     margin_loss: 'Lỗ biên / dưới floor',
     deep_discount: 'Chiết khấu sâu',
-    custom_bom: 'Custom / BOM đặc thù',
+    custom_bom: `${SELLER_CUSTOM_KIND_LABEL} / BOM đặc thù`,
   }
   return m[k]
 }
 
 export function orderKindShortLabel(kind: SellerOrderKind): string {
-  return kind === 'ready_made' ? 'Đơn sẵn' : 'Custom'
+  return sellerOrderKindLabel(kind)
 }

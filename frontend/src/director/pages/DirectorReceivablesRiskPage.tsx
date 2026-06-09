@@ -156,7 +156,7 @@ export function DirectorReceivablesRiskPage() {
                   <th scope="col">Khách sỉ</th>
                   <th scope="col">NVBH</th>
                   <th scope="col" className="th-director-ar-table__col-num">
-                    Nợ ghi sổ
+                    Dư nợ
                   </th>
                   <th scope="col" className="th-director-ar-table__col-num">
                     Ước QH đơn
@@ -185,7 +185,8 @@ export function DirectorReceivablesRiskPage() {
                   rows.map((r, idx) => {
                     const active = r.agencyId === selectedId
                     const rank = pageIndex * pageSize + idx + 1
-                    const odRatio = r.totalDebt > 0 ? r.estimatedOverdueAmount / r.totalDebt : 0
+                    const debtBase = r.computedDebtFromOrders ?? 0
+                    const odRatio = debtBase > 0 ? r.estimatedOverdueAmount / debtBase : 0
                     const code = formatReceivableAgencyCode(r)
                     return (
                       <tr
@@ -214,7 +215,9 @@ export function DirectorReceivablesRiskPage() {
                           <span className="th-director-ar-table__city">{r.address?.trim() || '—'}</span>
                         </td>
                         <td className="th-director-ar-table__muted">{r.assignedSellerName?.trim() || '—'}</td>
-                        <td className="th-director-ar-table__money">{formatVND(r.totalDebt)}</td>
+                        <td className="th-director-ar-table__money">
+                          {formatVND(r.computedDebtFromOrders ?? 0)}
+                        </td>
                         <td className="th-director-ar-table__money">
                           <span className={odRatio >= 0.5 ? 'th-director-ar__od--bad' : undefined}>
                             {formatVND(r.estimatedOverdueAmount)}
@@ -262,8 +265,8 @@ export function DirectorReceivablesRiskPage() {
                 {detail.legalCompanyName?.trim() || detail.name}
               </p>
               <dl className="th-director-ar__dl">
-                <dt>Nợ ghi sổ</dt>
-                <dd>{formatVND(detail.totalDebtRecorded)}</dd>
+                <dt>Dư nợ</dt>
+                <dd>{formatVND(detail.computedDebtFromOrders ?? 0)}</dd>
                 <dt>Rủi ro</dt>
                 <dd>
                   <span className={riskBadgeClass(detail.riskBand)}>{receivableRiskLabel(detail.riskBand)}</span>

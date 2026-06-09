@@ -88,6 +88,12 @@
   box-sizing: border-box;
 }
 
+.th-admin-products__filter-add {
+  align-self: flex-end;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 .th-admin-products__btn-ghost {
   display: inline-flex;
   align-items: center;

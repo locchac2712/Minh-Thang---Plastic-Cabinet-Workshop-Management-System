@@ -3,6 +3,12 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { DEFAULT_PRODUCT_IMAGE_URL, formatVND } from '../catalog/productModel'
 import { CategorySearchSelect } from '../components/CategorySearchSelect/CategorySearchSelect'
 import { adminPaths } from '../config/adminPaths'
+import {
+  bomLineCostVnd,
+  buildBomUnitCostMap,
+  resolveMaterialUnitCost,
+  trySumBomCostVnd,
+} from '../manufacturing/bomCostUtils'
 import { AdminBreadcrumb } from '../components/AdminBreadcrumb/AdminBreadcrumb'
 import { getAccessToken, getTokenType } from '../../auth/storage'
 import './AdminProductDetailPage.css'
@@ -46,6 +52,7 @@ type ProductBomLineDto = {
   materialCode: string
   materialName: string
   materialUnit: string
+  materialUnitCost: number | null
   quantity: number
   note: string | null
   createdAt: string
@@ -67,6 +74,16 @@ type MaterialListResponse = {
   totalElements: number
   totalPages: number
   last: boolean
+}
+
+type CategoryListRow = {
+  id: string
+  name: string
+  isActive: boolean
+}
+
+type CategoryListResponse = {
+  content: CategoryListRow[]
 }
 
 type BomDraftRow = {
@@ -99,23 +116,6 @@ function buildUnitCostMap(rows: MaterialRow[], extra: Record<string, number>): R
   return m
 }
 
-type BomLineLike = { materialId: string; quantity: number }
-
-function trySumBomCostVnd(
-  lines: BomLineLike[],
-  costById: Record<string, number | undefined>,
-): { ok: true; total: number } | { ok: false; reason: 'empty' | 'incomplete' } {
-  if (lines.length === 0) return { ok: false, reason: 'empty' }
-  let t = 0
-  for (const ln of lines) {
-    if (!ln.materialId) return { ok: false, reason: 'incomplete' }
-    const c = costById[ln.materialId]
-    if (c == null) return { ok: false, reason: 'incomplete' }
-    t += ln.quantity * c
-  }
-  return { ok: true, total: Math.round(t) }
-}
-
 export function AdminProductDetailPage() {
   const { productId } = useParams<{ productId: string }>()
   const [loading, setLoading] = useState(true)
@@ -136,6 +136,8 @@ export function AdminProductDetailPage() {
   const [materialOptions, setMaterialOptions] = useState<MaterialRow[]>([])
   const [materialLoading, setMaterialLoading] = useState(false)
   const [materialError, setMaterialError] = useState<string | null>(null)
+  const [categoryOptions, setCategoryOptions] = useState<Array<{ id: string; label: string }>>([])
+  const [categoryLoading, setCategoryLoading] = useState(false)
   /** unitCost từ GET lẻ khi materialId không nằm trong trang list đã tải */
   const [supplementalUnitCosts, setSupplementalUnitCosts] = useState<Record<string, number>>({})
   const [supplementalFetchInFlight, setSupplementalFetchInFlight] = useState(0)
@@ -173,6 +175,31 @@ export function AdminProductDetailPage() {
   useEffect(() => {
     void fetchDetail()
   }, [fetchDetail])
+
+  const fetchCategoryOptions = useCallback(async () => {
+    const accessToken = getAccessToken()
+    if (!accessToken) return
+    setCategoryLoading(true)
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/categories?page=0&size=200`, {
+        headers: {
+          accept: '*/*',
+          Authorization: `${getTokenType()} ${accessToken}`,
+        },
+      })
+      const envelope = (await res.json()) as ApiEnvelope<CategoryListResponse>
+      if (!res.ok || !envelope.success || !envelope.data) return
+      setCategoryOptions(envelope.data.content.map((c) => ({ id: c.id, label: c.name })))
+    } catch {
+      // form vẫn hiển thị nhãn từ draft.categoryName
+    } finally {
+      setCategoryLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void fetchCategoryOptions()
+  }, [fetchCategoryOptions])
 
   useEffect(() => {
     setSupplementalUnitCosts({})
@@ -277,13 +304,18 @@ export function AdminProductDetailPage() {
   }, [productId, fetchMaterialOptions, materialLoading, materialOptions.length])
 
   const costById: Record<string, number | undefined> = useMemo(
-    () => buildUnitCostMap(materialOptions, supplementalUnitCosts),
-    [materialOptions, supplementalUnitCosts],
+    () =>
+      buildBomUnitCostMap(
+        bomRows,
+        buildUnitCostMap(materialOptions, supplementalUnitCosts),
+        supplementalUnitCosts,
+      ),
+    [materialOptions, supplementalUnitCosts, bomRows],
   )
 
   const bomCostStatus: BomCostStatus = useMemo(() => {
     if (!draft) return { kind: 'no_bom' }
-    const lines: BomLineLike[] = bomEditing
+    const lines = bomEditing
       ? bomDraftRows
           .filter((r) => r.materialId && r.quantity > 0)
           .map((r) => ({ materialId: r.materialId, quantity: r.quantity }))
@@ -352,6 +384,20 @@ export function AdminProductDetailPage() {
       })),
     [materialOptions],
   )
+
+  const categoryPickerOptions = useMemo(() => {
+    if (!draft?.categoryId) return categoryOptions
+    if (categoryOptions.some((o) => o.id === draft.categoryId)) return categoryOptions
+    return [{ id: draft.categoryId, label: draft.categoryName || draft.categoryId }, ...categoryOptions]
+  }, [categoryOptions, draft?.categoryId, draft?.categoryName])
+
+  const patchDraftCategory = useCallback((categoryId: string) => {
+    setDraft((d) => {
+      if (!d) return d
+      const label = categoryOptions.find((o) => o.id === categoryId)?.label ?? d.categoryName
+      return { ...d, categoryId, categoryName: label }
+    })
+  }, [categoryOptions])
 
   const applyBomCostSuggestion = useCallback(() => {
     if (bomCostStatus.kind !== 'suggest') return
@@ -471,6 +517,15 @@ export function AdminProductDetailPage() {
       return
     }
 
+    if (!draft.name.trim()) {
+      setNotice('Tên sản phẩm không được để trống.')
+      return
+    }
+    if (!draft.categoryId) {
+      setNotice('Vui lòng chọn ngành hàng.')
+      return
+    }
+
     setSaving(true)
     setNotice(null)
     try {
@@ -502,6 +557,7 @@ export function AdminProductDetailPage() {
         },
         body: JSON.stringify({
           name: draft.name.trim(),
+          categoryId: draft.categoryId,
           imageUrls: [...draft.imageUrls, ...uploadedUrls],
           costPrice: draft.costPrice,
           suggestedPrice: draft.suggestedPrice,
@@ -724,6 +780,10 @@ export function AdminProductDetailPage() {
                 <dd><span className="th-admin-product-detail__mono">#{draft.id}</span></dd>
               </div>
               <div className="th-admin-product-detail__dl-row">
+                <dt>Ngành hàng</dt>
+                <dd>{draft.categoryName?.trim() || '—'}</dd>
+              </div>
+              <div className="th-admin-product-detail__dl-row">
                 <dt>Giá vốn</dt>
                 <dd><strong>{formatVND(draft.costPrice)}</strong></dd>
               </div>
@@ -751,6 +811,16 @@ export function AdminProductDetailPage() {
                   required
                 />
               </label>
+              <div className="th-admin-product-detail__field">
+                <span className="th-admin-product-detail__label">Ngành hàng</span>
+                <CategorySearchSelect
+                  variant="field"
+                  options={categoryPickerOptions}
+                  value={draft.categoryId}
+                  onChange={patchDraftCategory}
+                  placeholder={categoryLoading ? 'Đang tải ngành hàng…' : 'Chọn ngành hàng…'}
+                />
+              </div>
               <div className="th-admin-product-detail__form-row">
                 <label className="th-admin-product-detail__field">
                   <span className="th-admin-product-detail__label">Giá vốn</span>
@@ -901,12 +971,17 @@ export function AdminProductDetailPage() {
                         <th>#</th>
                         <th>Vật tư</th>
                         <th>SL / TP</th>
+                        <th className="th-admin-product-detail__money-col">Đơn giá NVL</th>
+                        <th className="th-admin-product-detail__money-col">Thành tiền</th>
                         <th>Ghi chú</th>
                         <th>Xóa</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {bomDraftRows.map((row, idx) => (
+                      {bomDraftRows.map((row, idx) => {
+                        const unitCost = resolveMaterialUnitCost(row.materialId, costById)
+                        const lineCost = bomLineCostVnd(row.quantity, unitCost)
+                        return (
                         <tr key={row.localId}>
                           <td>{idx + 1}</td>
                           <td>
@@ -931,6 +1006,12 @@ export function AdminProductDetailPage() {
                               }
                             />
                           </td>
+                          <td className="th-admin-product-detail__money-col">
+                            {unitCost != null ? formatVND(unitCost) : '—'}
+                          </td>
+                          <td className="th-admin-product-detail__money-col">
+                            {lineCost != null ? formatVND(lineCost) : '—'}
+                          </td>
                           <td>
                             <input
                               className="th-admin-product-detail__input"
@@ -950,7 +1031,8 @@ export function AdminProductDetailPage() {
                             </button>
                           </td>
                         </tr>
-                      ))}
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -971,12 +1053,17 @@ export function AdminProductDetailPage() {
                       <th>Mã NVL</th>
                       <th>Tên vật tư</th>
                       <th>Định mức</th>
+                      <th className="th-admin-product-detail__money-col">Đơn giá NVL</th>
+                      <th className="th-admin-product-detail__money-col">Thành tiền</th>
                       <th>Ghi chú</th>
                       <th>Liên kết</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {bomRows.map((row) => (
+                    {bomRows.map((row) => {
+                      const unitCost = row.materialUnitCost ?? resolveMaterialUnitCost(row.materialId, costById)
+                      const lineCost = bomLineCostVnd(row.quantity, unitCost)
+                      return (
                       <tr key={row.id}>
                         <td>
                           <code className="th-admin-product-detail__mono">{row.materialCode}</code>
@@ -984,6 +1071,12 @@ export function AdminProductDetailPage() {
                         <td>{row.materialName}</td>
                         <td>
                           {formatBomQuantity(row.quantity)} {row.materialUnit}
+                        </td>
+                        <td className="th-admin-product-detail__money-col">
+                          {unitCost != null ? formatVND(unitCost) : '—'}
+                        </td>
+                        <td className="th-admin-product-detail__money-col">
+                          {lineCost != null ? formatVND(lineCost) : '—'}
                         </td>
                         <td>{row.note ?? '—'}</td>
                         <td>
@@ -995,8 +1088,22 @@ export function AdminProductDetailPage() {
                           </Link>
                         </td>
                       </tr>
-                    ))}
+                      )
+                    })}
                   </tbody>
+                  {bomCostStatus.kind === 'ok' || bomCostStatus.kind === 'suggest' ? (
+                    <tfoot>
+                      <tr>
+                        <td colSpan={4} className="th-admin-product-detail__money-col th-admin-product-detail__money-foot-label">
+                          Tổng NVL (ước tính)
+                        </td>
+                        <td className="th-admin-product-detail__money-col th-admin-product-detail__money-foot-total">
+                          {formatVND(bomCostStatus.total)}
+                        </td>
+                        <td colSpan={2} />
+                      </tr>
+                    </tfoot>
+                  ) : null}
                 </table>
               </div>
             )}

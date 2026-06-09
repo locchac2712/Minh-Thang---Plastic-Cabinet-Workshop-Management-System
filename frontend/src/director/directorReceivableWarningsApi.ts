@@ -77,6 +77,8 @@ export type ReceivableWarningsSummaryDto = {
   cohortAgencyCount: number
   topLimitUsed: number
   totalReceivableRecorded: number
+  totalComputedFromOrders?: number
+  reconciliationMismatchCount?: number
   estimatedOverdueFromOrders: number
   urgentAgencyCount: number
   riskCounts: { riskBand: string; count: number }[]
@@ -93,6 +95,8 @@ export type ReceivableWarningsAgencyRowDto = {
   assignedSellerId?: string | null
   assignedSellerName?: string | null
   totalDebt: number
+  computedDebtFromOrders?: number | null
+  debtReconciliationDelta?: number | null
   maxDebtLimit?: number | null
   utilizationPercent?: number | null
   estimatedOverdueAmount: number
@@ -116,6 +120,8 @@ export type ReceivableWarningsAgencyDetailDto = {
   name: string
   legalCompanyName?: string | null
   totalDebtRecorded: number
+  computedDebtFromOrders?: number | null
+  debtReconciliationDelta?: number | null
   maxDebtLimit?: number | null
   utilizationPercent?: number | null
   riskBand: string

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { formatVND, isDebtRisk } from '../../../admin/partners/agencyModel'
+import { agencyDebtFromApi, formatVND, isDebtRisk } from '../../../admin/partners/agencyModel'
 import { PAGE_SIZE_OPTIONS } from '../../../admin/catalog/productModel'
 import { directorPaths } from '../../config/directorPaths'
 import {
@@ -18,14 +18,15 @@ import '../../../admin/styles/adminListToolbar.css'
 import '../../../admin/pages/AdminUsersPage.css'
 import './DirectorAgenciesPage.css'
 
-function debtRatioRow(row: Pick<AgencyResponse, 'totalDebt' | 'maxDebtLimit'>): number {
-  if (row.maxDebtLimit <= 0) return row.totalDebt > 0 ? 1 : 0
-  return Math.min(1, row.totalDebt / row.maxDebtLimit)
+function debtRatioRow(row: Pick<AgencyResponse, 'computedDebtFromOrders' | 'maxDebtLimit'>): number {
+  const debt = agencyDebtFromApi(row)
+  if (row.maxDebtLimit <= 0) return debt > 0 ? 1 : 0
+  return Math.min(1, debt / row.maxDebtLimit)
 }
 
-function isDebtRiskRow(row: Pick<AgencyResponse, 'totalDebt' | 'maxDebtLimit'>): boolean {
+function isDebtRiskRow(row: Pick<AgencyResponse, 'computedDebtFromOrders' | 'maxDebtLimit'>): boolean {
   return isDebtRisk({
-    totalDebtVnd: row.totalDebt,
+    totalDebtVnd: agencyDebtFromApi(row),
     creditLimitVnd: row.maxDebtLimit,
   })
 }
@@ -164,7 +165,8 @@ export function DirectorAgenciesPage() {
                   <tr
                     key={row.id}
                     className={`th-admin-agency-table__row${
-                      row.isActive && (isDebtRiskRow(row) || row.totalDebt > row.maxDebtLimit)
+                      row.isActive &&
+                      (isDebtRiskRow(row) || agencyDebtFromApi(row) > row.maxDebtLimit)
                         ? ' th-admin-agency-table__row--warn'
                         : ''
                     }`}
@@ -196,14 +198,14 @@ export function DirectorAgenciesPage() {
                         <div className="th-admin-agency-debt__nums">
                           <span
                             className={
-                              row.totalDebt > row.maxDebtLimit
+                              agencyDebtFromApi(row) > row.maxDebtLimit
                                 ? 'th-admin-agency__debt-bad'
                                 : isDebtRiskRow(row)
                                   ? 'th-admin-agency__debt-warn'
                                   : ''
                             }
                           >
-                            {formatVND(row.totalDebt)}
+                            {formatVND(agencyDebtFromApi(row))}
                           </span>
                           <span className="th-admin-agency-debt__sep">/</span>
                           <span className="th-admin-agency-debt__limit">

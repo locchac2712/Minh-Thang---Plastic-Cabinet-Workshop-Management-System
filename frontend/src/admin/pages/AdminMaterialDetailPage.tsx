@@ -4,6 +4,12 @@ import { DEFAULT_MATERIAL_IMAGE_URL, UNIT_OPTIONS, formatQty } from '../manufact
 import { formatVND } from '../catalog/productModel'
 import { adminPaths } from '../config/adminPaths'
 import { AdminBreadcrumb } from '../components/AdminBreadcrumb/AdminBreadcrumb'
+import {
+  fetchAdminMaterialById,
+  patchAdminMaterial,
+  type MaterialResponse,
+} from '../manufacturing/adminMaterialsApi'
+import { SupplierMultiSelect } from '../../shared/components/SupplierMultiSelect'
 import { getAccessToken, getTokenType } from '../../auth/storage'
 import './AdminUsersPage.css'
 import './AdminProductDetailPage.css'
@@ -15,18 +21,7 @@ type ApiEnvelope<T> = {
   data?: T
 }
 
-type MaterialDetailDto = {
-  id: string
-  code: string
-  name: string
-  imageUrl: string | null
-  unit: string
-  unitCost: number
-  stockQuantity: number
-  minStockLevel: number
-  isActive: boolean
-  createdAt: string
-}
+type MaterialDetailDto = MaterialResponse
 
 type UploadImageResponse = {
   url: string
@@ -53,37 +48,21 @@ export function AdminMaterialDetailPage() {
   const [editing, setEditing] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [draft, setDraft] = useState<MaterialDetailDto | null>(null)
+  const [supplierIds, setSupplierIds] = useState<string[]>([])
   const [pendingImage, setPendingImage] = useState<PendingUploadImage | null>(null)
 
   const fetchDetail = useCallback(async () => {
     if (!materialId) return
-    const accessToken = getAccessToken()
-    if (!accessToken) {
-      setLoadError('Thiếu access token. Vui lòng đăng nhập lại.')
-      setLoading(false)
-      return
-    }
-
     setLoading(true)
     setLoadError(null)
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/admin/materials/${encodeURIComponent(materialId)}`,
-        {
-          headers: {
-            accept: '*/*',
-            Authorization: `${getTokenType()} ${accessToken}`,
-          },
-        },
-      )
-      const envelope = (await res.json()) as ApiEnvelope<MaterialDetailDto>
-      if (!res.ok || !envelope.success || !envelope.data) {
-        throw new Error(envelope.message || 'Không tải được chi tiết vật tư')
-      }
-      setDraft(envelope.data)
+      const data = await fetchAdminMaterialById(materialId)
+      setDraft(data)
+      setSupplierIds((data.linkedSuppliers ?? []).map((s) => s.id))
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Không tải được chi tiết vật tư')
       setDraft(null)
+      setSupplierIds([])
     } finally {
       setLoading(false)
     }
@@ -123,42 +102,26 @@ export function AdminMaterialDetailPage() {
         imageUrl = uploadEnvelope.data.url
       }
 
-      const res = await fetch(
-        `${API_BASE_URL}/api/admin/materials/${encodeURIComponent(materialId)}`,
-        {
-          method: 'PATCH',
-          headers: {
-            accept: '*/*',
-            'Content-Type': 'application/json',
-            Authorization: `${getTokenType()} ${accessToken}`,
-          },
-          body: JSON.stringify({
-            code: draft.code.trim(),
-            name: draft.name.trim(),
-            imageUrl,
-            unit: draft.unit.trim(),
-            unitCost: draft.unitCost,
-            stockQuantity: draft.stockQuantity,
-            minStockLevel: draft.minStockLevel,
-            isActive: draft.isActive,
-          }),
-        },
-      )
-      const envelope = (await res.json()) as ApiEnvelope<MaterialDetailDto>
-      if (!res.ok || !envelope.success || !envelope.data) {
-        throw new Error(envelope.message || 'Cập nhật vật tư thất bại')
-      }
+      const updated = await patchAdminMaterial(materialId, {
+        name: draft.name.trim(),
+        imageUrl,
+        unit: draft.unit.trim(),
+        minStockLevel: draft.minStockLevel,
+        isActive: draft.isActive,
+        supplierIds,
+      })
       if (pendingImage) URL.revokeObjectURL(pendingImage.previewUrl)
       setPendingImage(null)
-      setDraft(envelope.data)
-    setEditing(false)
-      setNotice(envelope.message || 'Cập nhật vật tư thành công.')
+      setDraft(updated)
+      setSupplierIds((updated.linkedSuppliers ?? []).map((s) => s.id))
+      setEditing(false)
+      setNotice('Cập nhật vật tư thành công.')
     } catch (err) {
       setNotice(err instanceof Error ? err.message : 'Không thể cập nhật vật tư')
     } finally {
       setSaving(false)
     }
-  }, [draft, pendingImage, materialId, saving])
+  }, [draft, pendingImage, materialId, saving, supplierIds])
 
   const appendUploadFile = useCallback((files: FileList | null) => {
     const file = files?.[0]
@@ -369,8 +332,28 @@ export function AdminMaterialDetailPage() {
               <dd>{draft.minStockLevel}</dd>
             </div>
             <div className="th-admin-product-detail__dl-row">
-              <dt>Ảnh (URL)</dt>
-              <dd>{draft.imageUrl ? draft.imageUrl : '—'}</dd>
+              <dt>
+                NCC cung cấp{' '}
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: '0.85rem', verticalAlign: 'middle' }}
+                  title="PO chỉ mua được NVL đã gán NCC"
+                  aria-label="PO chỉ mua được NVL đã gán NCC"
+                >
+                  info
+                </span>
+              </dt>
+              <dd>
+                {(draft.linkedSuppliers ?? []).length === 0 ? (
+                  <span className="th-admin-mat__ncc-warn">Chưa gán NCC</span>
+                ) : (
+                  <ul className="th-admin-material-detail__supplier-list">
+                    {(draft.linkedSuppliers ?? []).map((s) => (
+                      <li key={s.id}>{s.name}</li>
+                    ))}
+                  </ul>
+                )}
+              </dd>
             </div>
             <div className="th-admin-product-detail__dl-row">
               <dt>Ngày tạo</dt>
@@ -382,26 +365,25 @@ export function AdminMaterialDetailPage() {
                 className="th-admin-product-detail__form"
                 onSubmit={(e) => {
                   e.preventDefault()
-              void handleSave()
+                  void handleSave()
                 }}
               >
+                <p className="th-admin-material-detail__edit-hint">
+                  Mã vật tư, giá vốn và tồn thực chỉ đọc — cập nhật qua nhập/xuất kho, mua hàng và sản xuất.
+                </p>
                 <div className="th-admin-product-detail__form-row">
-                  <label className="th-admin-product-detail__field">
-                <span className="th-admin-product-detail__label">Mã vật tư</span>
-                    <input
-                      className="th-admin-product-detail__input"
-                  value={draft.code}
-                  onChange={(e) => setDraft((d) => (d ? { ...d, code: e.target.value } : d))}
-                    />
-                  </label>
+                  <div className="th-admin-product-detail__field">
+                    <span className="th-admin-product-detail__label">Mã vật tư</span>
+                    <div className="th-admin-product-detail__readonly">{draft.code}</div>
+                  </div>
                   <label className="th-admin-product-detail__field">
                     <span className="th-admin-product-detail__label">Đơn vị</span>
                     <select
                       className="th-admin-product-detail__input"
                       value={draft.unit}
-                  onChange={(e) => setDraft((d) => (d ? { ...d, unit: e.target.value } : d))}
+                      onChange={(e) => setDraft((d) => (d ? { ...d, unit: e.target.value } : d))}
                     >
-                  {Array.from(new Set([draft.unit, ...UNIT_OPTIONS])).map((u) => (
+                      {Array.from(new Set([draft.unit, ...UNIT_OPTIONS])).map((u) => (
                         <option key={u} value={u}>
                           {u}
                         </option>
@@ -414,113 +396,96 @@ export function AdminMaterialDetailPage() {
                   <input
                     className="th-admin-product-detail__input"
                     value={draft.name}
-                onChange={(e) => setDraft((d) => (d ? { ...d, name: e.target.value } : d))}
+                    onChange={(e) => setDraft((d) => (d ? { ...d, name: e.target.value } : d))}
                   />
                 </label>
                 <div className="th-admin-product-detail__form-row">
+                  <div className="th-admin-product-detail__field">
+                    <span className="th-admin-product-detail__label">Giá vốn đơn vị</span>
+                    <div className="th-admin-product-detail__readonly">{formatVND(draft.unitCost)}</div>
+                  </div>
+                  <div className="th-admin-product-detail__field">
+                    <span className="th-admin-product-detail__label">Tồn kho hiện tại</span>
+                    <div className="th-admin-product-detail__readonly">
+                      {formatQty(draft.stockQuantity, draft.unit)}
+                    </div>
+                  </div>
+                </div>
+                <div className="th-admin-product-detail__form-row">
                   <label className="th-admin-product-detail__field">
-                <span className="th-admin-product-detail__label">Giá vốn đơn vị (VND)</span>
-                <input
-                  type="number"
+                    <span className="th-admin-product-detail__label">Tồn tối thiểu (ngưỡng cảnh báo)</span>
+                    <input
+                      type="number"
                       className="th-admin-product-detail__input"
-                  value={draft.unitCost || ''}
+                      value={draft.minStockLevel || ''}
                       onChange={(e) =>
-                    setDraft((d) => (d ? { ...d, unitCost: Number(e.target.value) } : d))
-                  }
-                  min={0}
-                />
+                        setDraft((d) => (d ? { ...d, minStockLevel: Number(e.target.value) } : d))
+                      }
+                      min={0}
+                      step="any"
+                    />
                   </label>
                   <label className="th-admin-product-detail__field">
                     <span className="th-admin-product-detail__label">Trạng thái</span>
                     <select
                       className="th-admin-product-detail__input"
-                  value={draft.isActive ? 'active' : 'inactive'}
+                      value={draft.isActive ? 'active' : 'inactive'}
                       onChange={(e) =>
                         setDraft((d) =>
-                      d ? { ...d, isActive: e.target.value === 'active' } : d,
-                    )
-                  }
-                >
-                  <option value="active">Đang dùng</option>
-                  <option value="inactive">Ngưng</option>
+                          d ? { ...d, isActive: e.target.value === 'active' } : d,
+                        )
+                      }
+                    >
+                      <option value="active">Đang dùng</option>
+                      <option value="inactive">Ngưng</option>
                     </select>
                   </label>
                 </div>
-            <div className="th-admin-product-detail__form-row">
-                  <label className="th-admin-product-detail__field">
-                    <span className="th-admin-product-detail__label">Tồn kho</span>
-                    <input
-                      type="number"
-                      className="th-admin-product-detail__input"
-                  value={draft.stockQuantity || ''}
-                      onChange={(e) =>
-                    setDraft((d) => (d ? { ...d, stockQuantity: Number(e.target.value) } : d))
-                      }
-                      min={0}
-                    />
-                  </label>
-                  <label className="th-admin-product-detail__field">
-                    <span className="th-admin-product-detail__label">Tồn tối thiểu</span>
-                    <input
-                      type="number"
-                      className="th-admin-product-detail__input"
-                  value={draft.minStockLevel || ''}
-                      onChange={(e) =>
-                    setDraft((d) => (d ? { ...d, minStockLevel: Number(e.target.value) } : d))
-                      }
-                      min={0}
-                    />
-                  </label>
-                </div>
                 <label className="th-admin-product-detail__field">
-              <span className="th-admin-product-detail__label">URL ảnh (để trống nếu không dùng)</span>
+                  <span className="th-admin-product-detail__label">Ảnh mới từ máy</span>
                   <input
-                type="url"
                     className="th-admin-product-detail__input"
-                value={draft.imageUrl ?? ''}
-                    onChange={(e) =>
-                  setDraft((d) => (d ? { ...d, imageUrl: e.target.value.trim() || null } : d))
-                    }
-                placeholder="https://…"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      appendUploadFile(e.target.files)
+                      e.currentTarget.value = ''
+                    }}
                   />
                 </label>
-              <label className="th-admin-product-detail__field">
-              <span className="th-admin-product-detail__label">Hoặc ảnh mới từ máy</span>
-              <input
-                className="th-admin-product-detail__input"
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  appendUploadFile(e.target.files)
-                  e.currentTarget.value = ''
-                }}
-              />
-              </label>
-            {pendingImage ? (
-              <div className="th-admin-product-detail__images-grid" aria-live="polite">
-                <figure className="th-admin-product-detail__image-card">
-                  <img
-                    src={pendingImage.previewUrl}
-                    alt="Ảnh mới"
-                    className="th-admin-product-detail__image-preview"
+                {pendingImage ? (
+                  <div className="th-admin-product-detail__images-grid" aria-live="polite">
+                    <figure className="th-admin-product-detail__image-card">
+                      <img
+                        src={pendingImage.previewUrl}
+                        alt="Ảnh mới"
+                        className="th-admin-product-detail__image-preview"
+                      />
+                      <figcaption className="th-admin-product-detail__image-name" title={pendingImage.file.name}>
+                        {pendingImage.file.name}
+                      </figcaption>
+                      <button
+                        type="button"
+                        className="th-admin-product-detail__btn-icon-remove"
+                        onClick={removePendingUpload}
+                        aria-label={`Xóa ảnh ${pendingImage.file.name}`}
+                      >
+                        <span className="material-symbols-outlined" aria-hidden>
+                          close
+                        </span>
+                      </button>
+                    </figure>
+                  </div>
+                ) : null}
+                <div className="th-admin-product-detail__field th-admin-product-detail__field--full">
+                  <span className="th-admin-product-detail__label">NCC cung cấp</span>
+                  <SupplierMultiSelect
+                    value={supplierIds}
+                    onChange={setSupplierIds}
+                    disabled={saving}
                   />
-                  <figcaption className="th-admin-product-detail__image-name" title={pendingImage.file.name}>
-                    {pendingImage.file.name}
-                  </figcaption>
-                  <button
-                    type="button"
-                    className="th-admin-product-detail__btn-icon-remove"
-                    onClick={removePendingUpload}
-                    aria-label={`Xóa ảnh ${pendingImage.file.name}`}
-                  >
-                    <span className="material-symbols-outlined" aria-hidden>
-                      close
-                    </span>
-                  </button>
-                </figure>
-              </div>
-            ) : null}
-          </form>
+                </div>
+              </form>
         )}
       </div>
     </div>

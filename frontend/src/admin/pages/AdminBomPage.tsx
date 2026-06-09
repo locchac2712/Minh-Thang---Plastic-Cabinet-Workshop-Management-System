@@ -4,6 +4,12 @@ import { formatVND } from '../catalog/productModel'
 import { AdminBreadcrumb } from '../components/AdminBreadcrumb/AdminBreadcrumb'
 import { CategorySearchSelect } from '../components/CategorySearchSelect/CategorySearchSelect'
 import { adminPaths } from '../config/adminPaths'
+import {
+  bomLineCostVnd,
+  buildBomUnitCostMap,
+  resolveMaterialUnitCost,
+  trySumBomCostVnd,
+} from '../manufacturing/bomCostUtils'
 import { getAccessToken, getTokenType } from '../../auth/storage'
 import './AdminBomPage.css'
 
@@ -44,6 +50,7 @@ type ProductBomLineDto = {
   materialCode: string
   materialName: string
   materialUnit: string
+  materialUnitCost: number | null
   quantity: number
   note: string | null
   createdAt: string
@@ -86,23 +93,6 @@ function buildUnitCostMap(rows: MaterialRow[], extra: Record<string, number>): R
   for (const r of rows) m[r.id] = r.unitCost ?? 0
   for (const [k, v] of Object.entries(extra)) m[k] = v
   return m
-}
-
-type BomLineLike = { materialId: string; quantity: number }
-
-function trySumBomCostVnd(
-  lines: BomLineLike[],
-  costById: Record<string, number | undefined>,
-): { ok: true; total: number } | { ok: false; reason: 'empty' | 'incomplete' } {
-  if (lines.length === 0) return { ok: false, reason: 'empty' }
-  let t = 0
-  for (const ln of lines) {
-    if (!ln.materialId) return { ok: false, reason: 'incomplete' }
-    const c = costById[ln.materialId]
-    if (c == null) return { ok: false, reason: 'incomplete' }
-    t += ln.quantity * c
-  }
-  return { ok: true, total: Math.round(t) }
 }
 
 type BomCostStatus =
@@ -309,13 +299,18 @@ export function AdminBomPage() {
   }, [])
 
   const costById: Record<string, number | undefined> = useMemo(
-    () => buildUnitCostMap(materialOptions, supplementalUnitCosts),
-    [materialOptions, supplementalUnitCosts],
+    () =>
+      buildBomUnitCostMap(
+        bomRows,
+        buildUnitCostMap(materialOptions, supplementalUnitCosts),
+        supplementalUnitCosts,
+      ),
+    [materialOptions, supplementalUnitCosts, bomRows],
   )
 
   const bomCostStatus: BomCostStatus = useMemo(() => {
     if (!selectedProduct) return { kind: 'no_bom' }
-    const lines: BomLineLike[] = bomEditing
+    const lines = bomEditing
       ? bomDraftRows
           .filter((r) => r.materialId && r.quantity > 0)
           .map((r) => ({ materialId: r.materialId, quantity: r.quantity }))
@@ -717,12 +712,17 @@ export function AdminBomPage() {
                     <th className="th-admin-bom__col-idx">#</th>
                     <th>Vật tư</th>
                     <th className="th-admin-bom__col-qty">Định mức / TP</th>
+                    <th className="th-admin-bom__money-col">Đơn giá NVL</th>
+                    <th className="th-admin-bom__money-col">Thành tiền</th>
                     <th>Ghi chú</th>
                     <th className="th-admin-bom__col-act">Xóa</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {bomDraftRows.map((row, idx) => (
+                  {bomDraftRows.map((row, idx) => {
+                    const unitCost = resolveMaterialUnitCost(row.materialId, costById)
+                    const lineCost = bomLineCostVnd(row.quantity, unitCost)
+                    return (
                     <tr key={row.localId}>
                       <td className="th-admin-bom__muted">{idx + 1}</td>
                       <td>
@@ -744,6 +744,12 @@ export function AdminBomPage() {
                           step={0.0001}
                           onChange={(e) => patchDraftLine(row.localId, { quantity: Number(e.target.value) || 0 })}
                         />
+                      </td>
+                      <td className="th-admin-bom__money-col">
+                        {unitCost != null ? formatVND(unitCost) : '—'}
+                      </td>
+                      <td className="th-admin-bom__money-col">
+                        {lineCost != null ? formatVND(lineCost) : '—'}
                       </td>
                       <td>
                         <input
@@ -767,7 +773,8 @@ export function AdminBomPage() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -792,12 +799,17 @@ export function AdminBomPage() {
                     <th>Tên</th>
                     <th>ĐVT</th>
                     <th className="th-admin-bom__col-qty">Định mức / TP</th>
+                    <th className="th-admin-bom__money-col">Đơn giá NVL</th>
+                    <th className="th-admin-bom__money-col">Thành tiền</th>
                     <th>Ghi chú</th>
                     <th className="th-admin-bom__col-act">Liên kết</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {bomRows.map((row, idx) => (
+                  {bomRows.map((row, idx) => {
+                    const unitCost = row.materialUnitCost ?? resolveMaterialUnitCost(row.materialId, costById)
+                    const lineCost = bomLineCostVnd(row.quantity, unitCost)
+                    return (
                     <tr key={row.id}>
                       <td className="th-admin-bom__muted">{idx + 1}</td>
                       <td>
@@ -808,6 +820,12 @@ export function AdminBomPage() {
                       </td>
                       <td>{row.materialUnit}</td>
                       <td>{formatBomQuantity(row.quantity)}</td>
+                      <td className="th-admin-bom__money-col">
+                        {unitCost != null ? formatVND(unitCost) : '—'}
+                      </td>
+                      <td className="th-admin-bom__money-col">
+                        {lineCost != null ? formatVND(lineCost) : '—'}
+                      </td>
                       <td>{row.note ?? '—'}</td>
                       <td>
                         <Link
@@ -818,8 +836,22 @@ export function AdminBomPage() {
                         </Link>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
+                {bomCostStatus.kind === 'ok' || bomCostStatus.kind === 'suggest' ? (
+                  <tfoot>
+                    <tr>
+                      <td colSpan={6} className="th-admin-bom__money-col th-admin-bom__money-foot-label">
+                        Tổng NVL (ước tính)
+                      </td>
+                      <td className="th-admin-bom__money-col th-admin-bom__money-foot-total">
+                        {formatVND(bomCostStatus.total)}
+                      </td>
+                      <td colSpan={2} />
+                    </tr>
+                  </tfoot>
+                ) : null}
               </table>
             </div>
           ) : null}

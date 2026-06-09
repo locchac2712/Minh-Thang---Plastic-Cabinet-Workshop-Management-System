@@ -6,6 +6,7 @@
 import { getAccessToken, getTokenType } from '../auth/storage'
 import type { AgencyResponse, PageResponse } from '../admin/partners/adminAgenciesApi'
 import type { AgencyLevel } from '../admin/partners/agencyModel'
+import { mapAgencyDebtFromApi } from '../admin/partners/agencyModel'
 import type { DirectorDebtApprovalRow } from './data/directorDebtApprovalsMock'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://be.minhthangerp.space'
@@ -95,7 +96,9 @@ export function mapAgencyResponseToDirectorDebtRow(d: AgencyResponse): DirectorD
   const level = apiLevelToAgencyLevel(d.level)
   const agencyCode = d.taxCode?.trim() || `KS-${d.id.replace(/-/g, '').slice(0, 8)}`
   const cap = d.maxDebtLimit
-  const ratio = cap > 0 ? d.totalDebt / cap : 1
+  const debt = mapAgencyDebtFromApi(d)
+  const displayDebt = debt.totalDebtVnd
+  const ratio = cap > 0 ? displayDebt / cap : 1
   return {
     id: d.id,
     agencyId: d.id,
@@ -105,17 +108,17 @@ export function mapAgencyResponseToDirectorDebtRow(d: AgencyResponse): DirectorD
     level,
     sellerName: d.assignedSellerName || '—',
     submittedAt: d.createdAt.slice(0, 10),
-    totalDebtVnd: d.totalDebt,
+    totalDebtVnd: displayDebt,
     currentCreditLimitVnd: d.maxDebtLimit,
     requestedCreditLimitVnd: d.maxDebtLimit,
     reasonSummary:
-      d.totalDebt > d.maxDebtLimit
+      displayDebt > d.maxDebtLimit
         ? 'Vượt hạn mức công nợ — cần điều chỉnh từ Giám đốc (DIR-A03).'
         : ratio >= 0.8
           ? 'Dư nợ gần hoặc tại trần hạn mức (≥80% HM).'
           : 'Theo số liệu từ hệ thống; Giám đốc có thể nới/chỉnh hạn mức.',
-    isOrderingBlocked: d.isActive && d.totalDebt > d.maxDebtLimit,
-    priority: ratio >= 0.9 || d.totalDebt > d.maxDebtLimit ? 'high' : 'normal',
+    isOrderingBlocked: d.isActive && displayDebt > d.maxDebtLimit,
+    priority: ratio >= 0.9 || displayDebt > d.maxDebtLimit ? 'high' : 'normal',
     slaDueAt: '—',
   }
 }

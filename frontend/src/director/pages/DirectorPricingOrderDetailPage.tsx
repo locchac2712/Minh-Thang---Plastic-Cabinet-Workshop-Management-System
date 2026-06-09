@@ -4,6 +4,7 @@ import { formatVND } from '../../admin/partners/agencyModel'
 import { directorPaths } from '../config/directorPaths'
 import {
   approveDirectorApprovalOrder,
+  directorOrderStatusLabel,
   fetchDirectorApprovalOrderById,
   isDirectorBackendOrderId,
   rejectDirectorApprovalOrder,
@@ -15,8 +16,11 @@ import {
   orderKindShortLabel,
   type DirectorPricingApprovalRow,
 } from '../data/directorPricingApprovalsMock'
-import { getSellerOrderDetail } from '../../seller/data/sellerOrdersMock'
+import { getSellerOrderDetail, sellerOrderLineKindLabel } from '../../seller/data/sellerOrdersMock'
+import { DirectorOrderCustomerPanel } from '../components/DirectorOrderCustomerPanel'
 import { DirectorPricingDecisionDialog } from '../components/DirectorPricingDecisionDialog'
+import { formatDateVi } from '../../shared/formatDateVi'
+import { isQuotationExpired } from '../../seller/sellerQuotationValidity'
 import '../../admin/pages/AdminUsersPage.css'
 import './DirectorPricingOrderDetailPage.css'
 
@@ -72,6 +76,7 @@ export function DirectorPricingOrderDetailPage() {
   )
 
   const approval = apiApproval ?? mockApproval ?? null
+  const isPending = approval?.orderStatus === 'Pending' || approval?.orderStatus == null
 
   const sellerDetail = useMemo(
     () => (orderCode && !isApiId ? getSellerOrderDetail(orderCode) : undefined),
@@ -108,7 +113,7 @@ export function DirectorPricingOrderDetailPage() {
           })
         }
         setDecisionDialogVariant(null)
-        navigate(directorPaths.approvals.pricing, { replace: true })
+        navigate(directorPaths.approvals.pricing, { replace: true, state: { tab: 'Approved' } })
       } catch (e) {
         setDecisionDialogError(
           e instanceof Error
@@ -196,6 +201,13 @@ export function DirectorPricingOrderDetailPage() {
         variant={decisionDialogVariant}
         orderCode={orderCode}
         contextHint={`${approval.agencyShortName} · NVBH: ${approval.sellerName}`}
+        validityHint={
+          decisionDialogVariant === 'approve' &&
+          approval.quotationValidUntil &&
+          isQuotationExpired(approval.quotationValidUntil)
+            ? 'Báo giá đã quá hạn hiệu lực — vẫn có thể phê duyệt theo quy trình.'
+            : null
+        }
         isSubmitting={decisionPhase !== 'idle'}
         submitError={decisionDialogError}
         onClose={() => {
@@ -233,7 +245,31 @@ export function DirectorPricingOrderDetailPage() {
 
       <header className="th-director-pricing-detail__header">
         <div>
-          <h1 className="th-director-pricing-detail__title">Chi tiết duyệt đơn</h1>
+          <h1 className="th-director-pricing-detail__title">
+            {isPending ? 'Chi tiết duyệt đơn' : 'Chi tiết báo giá / đơn'}
+          </h1>
+          {approval.orderStatus ? (
+            <p className="th-director-pricing-detail__status-row">
+              <span
+                className={
+                  approval.orderStatus === 'Pending'
+                    ? 'th-director-pricing-detail__status th-director-pricing-detail__status--pending'
+                    : approval.orderStatus === 'Approved'
+                      ? 'th-director-pricing-detail__status th-director-pricing-detail__status--approved'
+                      : approval.orderStatus === 'Rejected'
+                        ? 'th-director-pricing-detail__status th-director-pricing-detail__status--rejected'
+                        : 'th-director-pricing-detail__status'
+                }
+              >
+                {directorOrderStatusLabel(approval.orderStatus)}
+              </span>
+              {approval.approverName?.trim() ? (
+                <span className="th-director-pricing-detail__approver">
+                  · Duyệt bởi {approval.approverName.trim()}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
         </div>
         <div className="th-director-pricing-detail__header-actions">
           <Link
@@ -288,6 +324,15 @@ export function DirectorPricingOrderDetailPage() {
             <dd>{approval.sellerName}</dd>
             <dt>Ngày gửi</dt>
             <dd>{approval.submittedAt}</dd>
+            <dt>Hạn báo giá</dt>
+            <dd>
+              {approval.quotationValidUntil?.trim()
+                ? formatDateVi(approval.quotationValidUntil)
+                : '—'}
+              {isQuotationExpired(approval.quotationValidUntil) ? (
+                <span className="th-director-pricing-detail__validity-warn">Hết hạn</span>
+              ) : null}
+            </dd>
             <dt>Giá trị (hồ sơ phê duyệt)</dt>
             <dd>{formatVND(approval.orderValueVnd)}</dd>
             <dt>Chiết khấu đang xin</dt>
@@ -318,45 +363,53 @@ export function DirectorPricingOrderDetailPage() {
             <dt>Lý do tóm tắt</dt>
             <dd className="th-director-pricing-detail__reason">{approval.reasonSummary}</dd>
           </dl>
+          <DirectorOrderCustomerPanel row={approval} />
           {approval.requirementExcerpt ? (
             <div className="th-director-pricing-detail__req">
-              <p className="th-director-pricing-detail__req-kicker">Trích yêu cầu (custom)</p>
+              <p className="th-director-pricing-detail__req-kicker">Trích yêu cầu (thiết kế riêng)</p>
               <p className="th-director-pricing-detail__req-text">{approval.requirementExcerpt}</p>
             </div>
           ) : null}
-          <p className="th-director-pricing-detail__note">
-            <span className="material-symbols-outlined" aria-hidden>
-              info
-            </span>
-            Quy trình: NVBH gửi đơn lên hàng chờ → giám đốc duyệt / từ chối / yêu cầu chỉnh → kế toán / xưởng xử lý
-            tiếp.
-          </p>
-          <div className="th-director-pricing-detail__actions">
-            <button
-              type="button"
-              className="th-director-pricing-detail__btn th-director-pricing-detail__btn--ghost"
-              onClick={() => void handleDecision('revise')}
-              disabled={decisionPhase !== 'idle'}
-            >
-              {decisionPhase === 'revising' ? 'Đang gửi…' : 'Yêu cầu chỉnh'}
-            </button>
-            <button
-              type="button"
-              className="th-director-pricing-detail__btn th-director-pricing-detail__btn--danger"
-              onClick={() => void handleDecision('reject')}
-              disabled={decisionPhase !== 'idle'}
-            >
-              {decisionPhase === 'rejecting' ? 'Đang từ chối…' : 'Từ chối'}
-            </button>
-            <button
-              type="button"
-              className="th-director-pricing-detail__btn th-director-pricing-detail__btn--primary"
-              onClick={() => void handleDecision('approve')}
-              disabled={decisionPhase !== 'idle'}
-            >
-              {decisionPhase === 'approving' ? 'Đang phê duyệt…' : 'Phê duyệt'}
-            </button>
-          </div>
+          {isPending &&
+          approval.quotationValidUntil &&
+          isQuotationExpired(approval.quotationValidUntil) ? (
+            <p className="th-director-pricing-detail__validity-note" role="status">
+              Báo giá đã quá hạn hiệu lực ({formatDateVi(approval.quotationValidUntil)}). Vẫn có thể phê duyệt
+              theo quy trình hiện tại.
+            </p>
+          ) : null}
+          {isPending ? (
+            <div className="th-director-pricing-detail__actions">
+              <button
+                type="button"
+                className="th-director-pricing-detail__btn th-director-pricing-detail__btn--ghost"
+                onClick={() => void handleDecision('revise')}
+                disabled={decisionPhase !== 'idle'}
+              >
+                {decisionPhase === 'revising' ? 'Đang gửi…' : 'Yêu cầu chỉnh'}
+              </button>
+              <button
+                type="button"
+                className="th-director-pricing-detail__btn th-director-pricing-detail__btn--danger"
+                onClick={() => void handleDecision('reject')}
+                disabled={decisionPhase !== 'idle'}
+              >
+                {decisionPhase === 'rejecting' ? 'Đang từ chối…' : 'Từ chối'}
+              </button>
+              <button
+                type="button"
+                className="th-director-pricing-detail__btn th-director-pricing-detail__btn--primary"
+                onClick={() => void handleDecision('approve')}
+                disabled={decisionPhase !== 'idle'}
+              >
+                {decisionPhase === 'approving' ? 'Đang phê duyệt…' : 'Phê duyệt'}
+              </button>
+            </div>
+          ) : (
+            <p className="th-director-pricing-detail__readonly">
+              Đơn đã xử lý — chỉ xem lại hồ sơ và thông tin khách hàng.
+            </p>
+          )}
         </section>
 
         <section
@@ -409,7 +462,7 @@ export function DirectorPricingOrderDetailPage() {
                                 : 'th-director-pricing-detail__line-kind'
                             }
                           >
-                            {line.kind === 'custom' ? 'Tùy chỉnh' : 'Danh mục'}
+                            {sellerOrderLineKindLabel(line.kind)}
                           </span>
                         </td>
                         <td>
@@ -433,7 +486,7 @@ export function DirectorPricingOrderDetailPage() {
                   <tfoot>
                     <tr className="th-director-pricing-detail__table-foot">
                       <td colSpan={7} className="th-director-pricing-detail__table-foot-label">
-                        Cộng các dòng
+                        TỔNG
                       </td>
                       <td className="th-director-pricing-detail__td-num th-director-pricing-detail__table-foot-sum">
                         {formatVND(itemsSumVnd)}

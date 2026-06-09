@@ -470,3 +470,35 @@ textarea.th-admin-product-create__input--note {
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+@media (min-width: 900px) {
+  .th-admin-product-create__bom-row {
+    grid-template-columns:
+      minmax(12rem, 1.4fr)
+      5.5rem
+      minmax(6.5rem, auto)
+      minmax(6.5rem, auto)
+      minmax(7rem, 1fr)
+      auto;
+    align-items: end;
+  }
+}
+
+.th-admin-product-create__money-field {
+  min-width: 0;
+}
+
+.th-admin-product-create__money-out {
+  display: block;
+  min-height: 2.35rem;
+  padding: 0.5rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--c-border, rgba(203, 213, 225, 0.85));
+  background: #f8fafc;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: #0f172a;
+  line-height: 1.35;
+}

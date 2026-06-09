@@ -321,3 +321,88 @@ export async function toggleAdminSupplierActive(id: string): Promise<SupplierRes
   }
   return unwrapEntity<SupplierResponse>(json)
 }
+
+export type SetSupplierLinkedMaterialsResult = {
+  materialIds: string[]
+  linkedCount: number
+}
+
+export async function replaceSupplierLinkedMaterials(
+  supplierId: string,
+  materialIds: string[],
+): Promise<SetSupplierLinkedMaterialsResult> {
+  const accessToken = getAccessToken()
+  if (!accessToken) {
+    throw new AdminSupplierApiError('Thiếu access token. Vui lòng đăng nhập lại.', 401)
+  }
+  const res = await fetch(
+    `${API_BASE_URL}/api/admin/suppliers/${encodeURIComponent(supplierId)}/materials`,
+    {
+      method: 'PUT',
+      headers: {
+        accept: '*/*',
+        'Content-Type': 'application/json',
+        ...authHeader(),
+      },
+      body: JSON.stringify({ materialIds }),
+    },
+  )
+  const body = await res.json().catch(() => null)
+  if (!res.ok) {
+    throw new AdminSupplierApiError(await readErrorMessage(res, body), res.status)
+  }
+  if (body && typeof body === 'object' && 'linkedCount' in body) {
+    return body as SetSupplierLinkedMaterialsResult
+  }
+  const w = body as ApiEnvelope<SetSupplierLinkedMaterialsResult>
+  if (w?.success && w.data) return w.data
+  throw new AdminSupplierApiError('Phản hồi cập nhật danh mục không hợp lệ', 500)
+}
+
+export async function linkMaterialToSupplier(
+  supplierId: string,
+  materialId: string,
+): Promise<SupplierMaterialResponse> {
+  const accessToken = getAccessToken()
+  if (!accessToken) {
+    throw new AdminSupplierApiError('Thiếu access token. Vui lòng đăng nhập lại.', 401)
+  }
+  const res = await fetch(
+    `${API_BASE_URL}/api/admin/suppliers/${encodeURIComponent(supplierId)}/materials`,
+    {
+      method: 'POST',
+      headers: {
+        accept: '*/*',
+        'Content-Type': 'application/json',
+        ...authHeader(),
+      },
+      body: JSON.stringify({ materialId }),
+    },
+  )
+  const body = await res.json().catch(() => null)
+  if (!res.ok) {
+    throw new AdminSupplierApiError(await readErrorMessage(res, body), res.status)
+  }
+  return unwrapEntity<SupplierMaterialResponse>(body)
+}
+
+export async function unlinkMaterialFromSupplier(
+  supplierId: string,
+  materialId: string,
+): Promise<void> {
+  const accessToken = getAccessToken()
+  if (!accessToken) {
+    throw new AdminSupplierApiError('Thiếu access token. Vui lòng đăng nhập lại.', 401)
+  }
+  const res = await fetch(
+    `${API_BASE_URL}/api/admin/suppliers/${encodeURIComponent(supplierId)}/materials/${encodeURIComponent(materialId)}`,
+    {
+      method: 'DELETE',
+      headers: { accept: '*/*', ...authHeader() },
+    },
+  )
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new AdminSupplierApiError(await readErrorMessage(res, body), res.status)
+  }
+}

@@ -1,0 +1,210 @@
+/* Hiệu suất xưởng — Giám đốc */
+
+.th-director-perf {
+  --th-dp-ink: #0f172a;
+  --th-dp-muted: #64748b;
+  --th-dp-border: #e2e8f0;
+  --th-dp-accent: #4338ca;
+  max-width: none;
+  width: 100%;
+  min-width: 0;
+}
+
+.th-director-perf__header {
+  margin-bottom: 1rem;
+}
+
+.th-director-perf__period {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.5rem;
+  font-size: var(--th-text-sm);
+  font-weight: var(--th-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--th-dp-muted);
+}
+
+.th-director-perf__title {
+  margin: 0 0 0.35rem;
+  font-size: var(--th-text-3xl);
+  font-weight: var(--th-weight-extrabold);
+  color: var(--th-dp-ink);
+}
+
+.th-director-perf__lead {
+  margin: 0;
+  font-size: var(--th-text-lg);
+  line-height: 1.55;
+  color: var(--th-dp-muted);
+  max-width: 52rem;
+}
+
+.th-director-perf__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.th-director-perf__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: var(--th-text-sm);
+  color: var(--th-dp-muted);
+}
+
+.th-director-perf__field input {
+  min-height: 2.25rem;
+  border: 1px solid var(--th-dp-border);
+  border-radius: 8px;
+  padding: 0 0.5rem;
+}
+
+.th-director-perf__hint {
+  color: var(--th-dp-muted);
+}
+
+.th-director-perf__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 900px) {
+  .th-director-perf__stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.th-director-perf__stat {
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--th-dp-border);
+  background: #fff;
+}
+
+.th-director-perf__stat--accent {
+  border-color: rgba(67, 56, 202, 0.35);
+  background: rgba(67, 56, 202, 0.06);
+}
+
+.th-director-perf__stat--warn {
+  border-color: rgba(251, 146, 60, 0.45);
+  background: #fff7ed;
+}
+
+.th-director-perf__stat-label {
+  display: block;
+  font-size: var(--th-text-micro);
+  font-weight: var(--th-weight-bold);
+  text-transform: uppercase;
+  color: var(--th-dp-muted);
+  margin-bottom: 0.25rem;
+}
+
+.th-director-perf__stat-value {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: var(--th-weight-extrabold);
+  color: var(--th-dp-ink);
+}
+
+.th-director-perf__stat-hint {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: var(--th-text-xs);
+  color: var(--th-dp-muted);
+}
+
+.th-director-perf__table-wrap {
+  border: 1px solid var(--th-dp-border);
+  border-radius: 12px;
+  background: #fff;
+  overflow: auto;
+}
+
+.th-director-perf__table-title {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  border-bottom: 1px solid var(--th-dp-border);
+}
+
+.th-director-perf__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--th-text-sm);
+}
+
+.th-director-perf__table th,
+.th-director-perf__table td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.th-director-perf__table th {
+  font-weight: var(--th-weight-bold);
+  white-space: nowrap;
+}
+
+.th-director-perf__table tbody tr {
+  transition: background 0.12s ease;
+}
+
+.th-director-perf__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.th-director-perf__empty {
+  text-align: center;
+  color: var(--th-dp-muted);
+  padding: 1.5rem !important;
+}
+
+.th-director-perf__pic {
+  display: block;
+  font-weight: var(--th-weight-bold);
+}
+
+.th-director-perf__team {
+  display: block;
+  font-size: var(--th-text-xs);
+  color: var(--th-dp-muted);
+}
+
+.th-director-perf__risk {
+  display: inline-flex;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.th-director-perf__risk--critical {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.th-director-perf__risk--high {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.th-director-perf__risk--watch {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.th-director-perf__risk--ok {
+  background: #ecfdf5;
+  color: #047857;
+}

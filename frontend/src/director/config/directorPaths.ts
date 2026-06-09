@@ -2,6 +2,7 @@
 export const directorPaths = {
   root: '/director',
   dashboard: '/director',
+  account: '/director/account',
   analytics: '/director',
   approvals: {
     root: '/director/approvals',
@@ -15,6 +16,14 @@ export const directorPaths = {
     root: '/director/risk',
     receivables: '/director/risk/receivables',
     wastage: '/director/risk/wastage',
+  },
+  operations: {
+    root: '/director/operations',
+    performance: '/director/operations/performance',
+    orders: '/director/operations/orders',
+    order: (id: string) => `/director/operations/orders/${encodeURIComponent(id)}`,
+    tasks: '/director/operations/tasks',
+    task: (id: string) => `/director/operations/tasks/${encodeURIComponent(id)}`,
   },
   /** Make-to-stock — lệnh xưởng độc lập */
   mts: '/director/mts',

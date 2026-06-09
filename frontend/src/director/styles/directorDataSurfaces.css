@@ -20,7 +20,12 @@
 .th-director-panel .th-admin-agency-table thead th,
 .th-director-panel .th-admin-supplier-list-table thead th,
 .th-director-panel .th-director-pricing-detail__table thead th,
-.th-director-panel .th-admin-product-detail__table thead th {
+.th-director-panel .th-admin-product-detail__table thead th,
+.th-director-panel .th-director-ops-tasks__table thead th,
+.th-director-panel .th-director-pipe__table thead th,
+.th-director-panel .th-director-perf__table thead th,
+.th-director-panel .th-order-waste__table thead th,
+.th-director-panel .th-prod-data-table thead th {
   background: var(--th-dr-head-gradient);
   color: var(--th-dr-head-fg);
   border-bottom: 1px solid var(--th-dr-head-edge);
@@ -87,8 +92,60 @@
 }
 
 .th-director-panel .th-admin-agency-table-wrap,
-.th-director-panel .th-admin-supplier-list-table-wrap {
+.th-director-panel .th-admin-supplier-list-table-wrap,
+.th-director-panel .th-director-ops-tasks__table-wrap,
+.th-director-panel .th-director-pipe__table-wrap,
+.th-director-panel .th-director-perf__table-wrap {
   border-radius: 12px;
   overflow: hidden;
   border-color: #e2e8f0;
+}
+
+/* ── Điều hành sản xuất: hover hàng & bảng chi tiết lệnh (read-only) ── */
+.th-director-panel .th-director-ops-tasks__table tbody tr:hover,
+.th-director-panel .th-director-pipe__table tbody tr:hover,
+.th-director-panel .th-director-perf__table tbody tr:hover,
+.th-director-panel .th-order-waste__table tbody tr:hover,
+.th-director-panel .th-prod-data-table tbody tr:hover {
+  background: #faf5ff;
+}
+
+.th-director-panel .th-prod-table-shell {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: auto;
+  background: #fff;
+  -webkit-overflow-scrolling: touch;
+}
+
+.th-director-panel .th-prod-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--th-text-sm);
+}
+
+.th-director-panel .th-prod-data-table th,
+.th-director-panel .th-prod-data-table td {
+  padding: 0.6rem 0.65rem;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.th-director-panel .th-prod-data-table thead th {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.th-director-panel .th-prod-data-table__num,
+.th-director-panel .th-prod-data-table__money {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.th-director-panel .th-prod-tdetail .th-prod-data-table {
+  min-width: 520px;
 }

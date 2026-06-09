@@ -1,5 +1,12 @@
 import { getAccessToken, getTokenType } from '../auth/storage'
-import type { SellerOrderListDto } from '../seller/sellerOrdersApi'
+import {
+  agencyCodeFromDto,
+  displayOrDash,
+  guessCityFromAddress,
+  type SellerApiOrderStatus,
+  type SellerOrderListDto,
+} from '../seller/sellerOrdersApi'
+import { isBackendOrderRef, orderCodeFromDto } from '../seller/sellerOrderRef'
 import type { SellerOrderKind, SellerOrderLineItem } from '../seller/data/sellerOrdersMock'
 import type { DirectorPricingApprovalRow, DirectorPricingCaseKind } from './data/directorPricingApprovalsMock'
 
@@ -39,9 +46,80 @@ function mapItems(d: SellerOrderListDto): SellerOrderLineItem[] {
     kind: it.isCustom ? 'custom' : 'catalog',
     qty: it.quantity,
     unitPriceVnd: it.unitPrice,
-    unitCostAtTimeVnd: it.unitCostAtTime,
+    unitCostAtTimeVnd: it.unitCostAtTime ?? undefined,
     lineTotalVnd: it.subtotal,
   }))
+}
+
+function resolveDirectorApprovalMetrics(d: SellerOrderListDto): {
+  marginPct: number
+  floorMarginPct: number
+  slaDueAt: string
+  metricsPlaceholder: boolean
+} {
+  const marginPct = d.marginPercent
+  const floorMarginPct = d.floorMarginPercent
+  const slaRaw = d.approvalSlaDueAt
+  if (
+    marginPct != null &&
+    Number.isFinite(marginPct) &&
+    floorMarginPct != null &&
+    Number.isFinite(floorMarginPct) &&
+    slaRaw
+  ) {
+    return {
+      marginPct,
+      floorMarginPct,
+      slaDueAt: slaRaw.slice(0, 10),
+      metricsPlaceholder: false,
+    }
+  }
+
+  const fallbackMargin = computeMarginPctFromItems(d)
+  const fallbackFloor = inferFloorMarginPct(d)
+  const fallbackSla = computeApprovalSlaDueAt(d.createdAt)
+  if (fallbackMargin != null && fallbackFloor != null && fallbackSla) {
+    return {
+      marginPct: fallbackMargin,
+      floorMarginPct: fallbackFloor,
+      slaDueAt: fallbackSla,
+      metricsPlaceholder: false,
+    }
+  }
+
+  return {
+    marginPct: 0,
+    floorMarginPct: 0,
+    slaDueAt: '—',
+    metricsPlaceholder: true,
+  }
+}
+
+function computeMarginPctFromItems(d: SellerOrderListDto): number | null {
+  const revenue = d.totalPayable
+  if (!Number.isFinite(revenue) || revenue <= 0 || !d.items.length) return null
+  let cost = 0
+  for (const item of d.items) {
+    const unitCost = item.unitCostAtTime
+    if (unitCost == null || !Number.isFinite(unitCost)) return null
+    cost += unitCost * item.quantity
+  }
+  const margin = ((revenue - cost) / revenue) * 100
+  return Number.isFinite(margin) ? Math.round(margin * 10) / 10 : null
+}
+
+function inferFloorMarginPct(d: SellerOrderListDto): number {
+  if (d.items.some((i) => i.isCustom)) return 18
+  if (d.totalAmount > 0 && d.discountAmount >= Math.max(500_000, d.totalAmount * 0.03)) return 16
+  return 15
+}
+
+function computeApprovalSlaDueAt(createdAt: string): string | null {
+  const base = createdAt.slice(0, 10)
+  const date = new Date(`${base}T12:00:00`)
+  if (Number.isNaN(date.getTime())) return null
+  date.setDate(date.getDate() + 2)
+  return date.toISOString().slice(0, 10)
 }
 
 /** Map DTO hàng chờ duyệt GD → dòng bảng phê duyệt giá. */
@@ -51,29 +129,54 @@ export function mapDirectorOrderDtoToApprovalRow(d: SellerOrderListDto): Directo
   const reasonSummary =
     d.note?.trim() ||
     (lineNames.length ? lineNames.join(' · ') : 'Chờ phê duyệt giá')
+  const metrics = resolveDirectorApprovalMetrics(d)
 
   return {
     id: d.id,
-    orderCode: d.id,
+    orderCode: orderCodeFromDto(d),
     agencyShortName: d.agencyName,
-    agencyCode: '—',
+    agencyCode: agencyCodeFromDto(d),
+    agencyId: d.agencyId,
+    agencyLegalName: displayOrDash(d.agencyLegalName ?? d.agencyName),
+    agencyPhone: displayOrDash(d.agencyPhone),
+    agencyEmail: displayOrDash(d.agencyEmail),
+    agencyAddress: displayOrDash(d.shippingAddress),
+    agencyCity: guessCityFromAddress(d.shippingAddress),
     orderKind,
     sellerName: d.createdByName,
     submittedAt: d.createdAt.slice(0, 10),
     orderValueVnd: d.totalPayable,
-    marginPct: 0,
-    floorMarginPct: 0,
+    marginPct: metrics.marginPct,
+    floorMarginPct: metrics.floorMarginPct,
     caseKind: inferCaseKind(d),
     reasonSummary,
     requirementExcerpt: null,
     discountRequestVnd: d.discountAmount,
-    slaDueAt: '—',
+    slaDueAt: metrics.slaDueAt,
     priority: d.totalPayable >= 30_000_000 ? 'high' : 'normal',
-    metricsPlaceholder: true,
+    metricsPlaceholder: metrics.metricsPlaceholder,
+    quotationValidUntil: d.quotationValidUntil ?? null,
     orderNote: d.note,
     apiItems: mapItems(d),
+    orderStatus: d.status,
+    approverName: d.approverName,
   }
 }
+
+export function directorOrderStatusLabel(status: SellerApiOrderStatus | string | undefined): string {
+  const m: Record<string, string> = {
+    Draft: 'Nháp',
+    Pending: 'Chờ duyệt',
+    Approved: 'Đã duyệt',
+    Producing: 'Sản xuất',
+    Done: 'Hoàn tất',
+    Canceled: 'Đã hủy',
+    Rejected: 'Từ chối',
+  }
+  return status ? (m[status] ?? status) : '—'
+}
+
+export type DirectorApprovalStatusFilter = 'pending' | 'Approved' | 'Rejected' | 'all'
 
 export type DirectorOrderNoteMergeKind = 'request_quote' | 'reject_price'
 
@@ -97,6 +200,8 @@ export function mergeOrderNoteForDirectorAction(
 export type FetchDirectorApprovalOrdersParams = {
   page?: number
   size?: number
+  /** Tab lọc — mặc định hàng chờ Pending (không gửi filter). */
+  statusFilter?: DirectorApprovalStatusFilter
 }
 
 export async function fetchDirectorApprovalOrders(params: FetchDirectorApprovalOrdersParams): Promise<{
@@ -114,6 +219,13 @@ export async function fetchDirectorApprovalOrders(params: FetchDirectorApprovalO
   const q = new URLSearchParams()
   q.set('page', String(params.page ?? 0))
   q.set('size', String(params.size ?? 20))
+  const filter = params.statusFilter ?? 'pending'
+  if (filter === 'Approved' || filter === 'Rejected') {
+    q.set('status', filter)
+  } else if (filter === 'all') {
+    // Backend: cần ít nhất một filter để không rơi về inbox Pending-only.
+    q.set('from_date', '1970-01-01')
+  }
 
   const res = await fetch(`${API_BASE_URL}/api/director/approvals/orders?${q.toString()}`, {
     headers: {
@@ -136,9 +248,9 @@ export async function fetchDirectorApprovalOrders(params: FetchDirectorApprovalO
   }
 }
 
-/** Mã đơn backend (UUID) — dùng cho PATCH reject/approve và GET chi tiết. */
+/** Mã đơn backend (UUID hoặc BG-/DH-) — dùng cho PATCH reject/approve và GET chi tiết. */
 export function isDirectorBackendOrderId(s: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.trim())
+  return isBackendOrderRef(s)
 }
 
 export type RejectDirectorOrderPayload = {
@@ -244,31 +356,28 @@ export async function approveDirectorApprovalOrder(orderId: string): Promise<Sel
   return envelope.data
 }
 
-/** Chi tiết một đơn trong hàng chờ — thử GET theo id, không có thì quét trang đầu. */
+/** Chi tiết một đơn — GET theo id (mọi trạng thái). */
 export async function fetchDirectorApprovalOrderById(orderId: string): Promise<DirectorPricingApprovalRow> {
   const accessToken = getAccessToken()
   if (!accessToken) {
     throw new Error('Thiếu access token')
   }
-  if (isDirectorBackendOrderId(orderId)) {
-    const res = await fetch(
-      `${API_BASE_URL}/api/director/approvals/orders/${encodeURIComponent(orderId)}`,
-      {
-        headers: {
-          accept: '*/*',
-          Authorization: `${getTokenType()} ${accessToken}`,
-        },
-      },
-    )
-    if (res.ok) {
-      const envelope = (await res.json()) as ApiEnvelope<SellerOrderListDto>
-      if (envelope.success && envelope.data) {
-        return mapDirectorOrderDtoToApprovalRow(envelope.data)
-      }
-    }
+  if (!isDirectorBackendOrderId(orderId)) {
+    throw new Error('Mã đơn không hợp lệ')
   }
-  const list = await fetchDirectorApprovalOrders({ page: 0, size: 100 })
-  const hit = list.content.find((r) => r.orderCode === orderId)
-  if (hit) return hit
-  throw new Error('Không tìm thấy đơn trong hàng chờ duyệt')
+  const res = await fetch(
+    `${API_BASE_URL}/api/director/approvals/orders/${encodeURIComponent(orderId)}`,
+    {
+      headers: {
+        accept: '*/*',
+        Authorization: `${getTokenType()} ${accessToken}`,
+      },
+    },
+  )
+  const envelope = (await res.json()) as ApiEnvelope<SellerOrderListDto>
+  if (!res.ok || !envelope.success || !envelope.data) {
+    throw new Error(envelope.message || 'Không tải được chi tiết đơn')
+  }
+  return mapDirectorOrderDtoToApprovalRow(envelope.data)
 }
+

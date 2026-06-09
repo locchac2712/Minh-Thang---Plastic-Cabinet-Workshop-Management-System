@@ -494,6 +494,22 @@
   border-bottom: none;
 }
 
+.th-admin-product-detail__money-col {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.th-admin-product-detail__money-foot-label {
+  font-weight: 700;
+  color: var(--th-pd-muted);
+}
+
+.th-admin-product-detail__money-foot-total {
+  font-weight: 800;
+  color: #0f172a;
+}
+
 .th-admin-product-detail__commercial {
   max-width: 960px;
 }
@@ -584,6 +600,29 @@
   flex-shrink: 0;
   font-size: 1.35rem;
   margin-top: 0.05rem;
+}
+
+.th-admin-material-detail__edit-hint {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid var(--th-pd-border, rgba(203, 213, 225, 0.85));
+  border-radius: 8px;
+}
+
+.th-admin-product-detail__readonly {
+  min-height: 2.35rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--th-pd-border, rgba(203, 213, 225, 0.85));
+  background: #f1f5f9;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #475569;
+  line-height: 1.35;
 }
 
 .th-admin-material-detail__subheading {

@@ -8,8 +8,13 @@ import {
   useState,
 } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { formatVND, isDebtRisk, type Agency, type AgencyLevel } from '../../../admin/partners/agencyModel'
-import { mockRecentOrdersForAgency, formatOrderAmount } from '../../../admin/partners/agencyDetailMock'
+import { formatVND, isDebtRisk, mapAgencyDebtFromApi, type Agency, type AgencyLevel } from '../../../admin/partners/agencyModel'
+import { mockRecentOrdersForAgency, mockRecentQuotationsForAgency } from '../../../admin/partners/agencyDetailMock'
+import type { AgencyOrderRow } from '../../../admin/partners/agencyDetailMock'
+import {
+  AgencyOrderHistoryTable,
+  mapApiOrderToAgencyOrderRow,
+} from '../../../admin/partners/AgencyOrderHistoryTable'
 import { directorPaths } from '../../config/directorPaths'
 import { useAgenciesCatalog } from '../../../admin/context/AgenciesCatalogContext'
 import { AdminBreadcrumb } from '../../../admin/components/AdminBreadcrumb/AdminBreadcrumb'
@@ -18,6 +23,8 @@ import {
   type AgencyResponse,
   buildAgencyUpdatePayload,
   fetchAdminAgencyById,
+  fetchAdminAgencyOrders,
+  fetchAdminAgencyQuotations,
   fetchAdminActiveSellers,
   patchAdminAgency,
   toggleAgencyActive,
@@ -29,7 +36,7 @@ import '../../../admin/pages/AdminUsersPage.css'
 import '../../../admin/pages/AdminProductDetailPage.css'
 import './DirectorAgencyDetailPage.css'
 
-type DetailTab = 'overview' | 'credit' | 'orders' | 'notes'
+type DetailTab = 'overview' | 'credit' | 'orders' | 'quotations'
 
 function apiLevelToAgencyLevel(level: string): AgencyLevel {
   const x = level.trim().toLowerCase()
@@ -44,6 +51,7 @@ function guessCityFromAddress(address: string): string {
 }
 
 function mapAgencyResponseToAgency(d: AgencyResponse): Agency {
+  const debt = mapAgencyDebtFromApi(d)
   return {
     id: d.id,
     code: d.taxCode || `KS-${d.id.slice(0, 8)}`,
@@ -58,7 +66,8 @@ function mapAgencyResponseToAgency(d: AgencyResponse): Agency {
     assignedSellerName: d.assignedSellerName || '—',
     assignedSellerId: d.assignedSellerId || undefined,
     apiLevelRaw: d.level,
-    totalDebtVnd: d.totalDebt,
+    totalDebtVnd: debt.totalDebtVnd,
+    computedDebtVnd: debt.computedDebtVnd,
     creditLimitVnd: d.maxDebtLimit,
     isActive: d.isActive,
     note: '',
@@ -112,6 +121,12 @@ export function DirectorAgencyDetailPage() {
   const [tab, setTab] = useState<DetailTab>('overview')
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<Agency | null>(null)
+  const [orderRows, setOrderRows] = useState<AgencyOrderRow[]>([])
+  const [ordersLoading, setOrdersLoading] = useState(false)
+  const [ordersError, setOrdersError] = useState<string | null>(null)
+  const [quotationRows, setQuotationRows] = useState<AgencyOrderRow[]>([])
+  const [quotationsLoading, setQuotationsLoading] = useState(false)
+  const [quotationsError, setQuotationsError] = useState<string | null>(null)
 
   const confirmRef = useRef<HTMLDialogElement>(null)
   const [pendingDelete, setPendingDelete] = useState(false)
@@ -205,10 +220,70 @@ export function DirectorAgencyDetailPage() {
     else if (!pendingApiToggle && el.open) el.close()
   }, [pendingApiToggle])
 
-  const orderRows = useMemo(() => {
+  const orderRowsMock = useMemo(() => {
     if (!draft || fromApi) return []
     return mockRecentOrdersForAgency(draft)
   }, [draft, fromApi])
+
+  const quotationRowsMock = useMemo(() => {
+    if (!draft || fromApi) return []
+    return mockRecentQuotationsForAgency(draft)
+  }, [draft, fromApi])
+
+  useEffect(() => {
+    if (!agencyId || tab !== 'orders' || !fromApi) return
+    let cancelled = false
+    setOrdersLoading(true)
+    setOrdersError(null)
+    void (async () => {
+      try {
+        const data = await fetchAdminAgencyOrders(agencyId, { page: 0, size: 50 })
+        if (cancelled) return
+        setOrderRows(data.content.map(mapApiOrderToAgencyOrderRow))
+      } catch (e) {
+        if (!cancelled) {
+          setOrderRows([])
+          setOrdersError(
+            e instanceof AdminAgencyApiError ? e.message : 'Không tải được lịch sử đơn',
+          )
+        }
+      } finally {
+        if (!cancelled) setOrdersLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [agencyId, tab, fromApi])
+
+  useEffect(() => {
+    if (!agencyId || tab !== 'quotations' || !fromApi) return
+    let cancelled = false
+    setQuotationsLoading(true)
+    setQuotationsError(null)
+    void (async () => {
+      try {
+        const data = await fetchAdminAgencyQuotations(agencyId, { page: 0, size: 50 })
+        if (cancelled) return
+        setQuotationRows(data.content.map(mapApiOrderToAgencyOrderRow))
+      } catch (e) {
+        if (!cancelled) {
+          setQuotationRows([])
+          setQuotationsError(
+            e instanceof AdminAgencyApiError ? e.message : 'Không tải được lịch sử báo giá',
+          )
+        }
+      } finally {
+        if (!cancelled) setQuotationsLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [agencyId, tab, fromApi])
+
+  const displayedOrderRows = fromApi ? orderRows : orderRowsMock
+  const displayedQuotationRows = fromApi ? quotationRows : quotationRowsMock
 
   const startApiEdit = useCallback(() => {
     if (!serverAgency) return
@@ -509,7 +584,7 @@ export function DirectorAgencyDetailPage() {
             { id: 'overview' as const, label: 'Tổng quan', icon: 'badge' },
             { id: 'credit' as const, label: 'Tín dụng & công nợ', icon: 'account_balance_wallet' },
             { id: 'orders' as const, label: 'Đơn hàng bán sỉ', icon: 'shopping_cart' },
-            { id: 'notes' as const, label: 'Ghi chú nghiệp vụ', icon: 'policy' },
+            { id: 'quotations' as const, label: 'Báo giá', icon: 'request_quote' },
           ] as const
         ).map((t) => (
           <button
@@ -946,7 +1021,9 @@ export function DirectorAgencyDetailPage() {
                 >
                   {formatVND(draft.totalDebtVnd)}
                 </p>
-                <p className="th-admin-product-detail__card-note">Công nợ phải thu.</p>
+                <p className="th-admin-product-detail__card-note">
+                  Tổng còn phải thu trên đơn DH (Approved / Producing / Done).
+                </p>
               </div>
               <div className="th-admin-product-detail__card">
                 <h3 className="th-admin-product-detail__card-title">Hạn mức</h3>
@@ -977,66 +1054,36 @@ export function DirectorAgencyDetailPage() {
         {tab === 'orders' && (
           <div role="tabpanel">
             <p className="th-admin-product-detail__tab-lead">
-              NVBH phụ trách: <strong>{draft.assignedSellerName}</strong>.
+              Đơn fulfillment (DH) — NVBH phụ trách: <strong>{draft.assignedSellerName}</strong>.
             </p>
-            <div className="th-admin-product-detail__table-wrap">
-              <table className="th-admin-product-detail__table">
-                <thead>
-                  <tr>
-                    <th>Số đơn</th>
-                    <th>Ngày</th>
-                    <th>Giá trị</th>
-                    <th>Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orderRows.map((r) => (
-                    <tr key={r.id}>
-                      <td>
-                        <code className="th-admin-product-detail__mono">{r.orderRef}</code>
-                      </td>
-                      <td>{r.orderDate}</td>
-                      <td>{formatOrderAmount(r.amountVnd)}</td>
-                      <td>{r.statusLabel}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <AgencyOrderHistoryTable
+              rows={displayedOrderRows}
+              loading={fromApi && ordersLoading}
+              error={fromApi ? ordersError : null}
+              emptyMessage="Chưa có đơn hàng bán sỉ (DH)."
+              showQuotationBadge={false}
+              orderLink={(ref) => directorPaths.operations.order(ref)}
+            />
           </div>
         )}
 
-        {tab === 'notes' && (
+        {tab === 'quotations' && (
           <div role="tabpanel">
-            {editing ? (
-              <label className="th-admin-product-detail__field">
-                <span className="th-admin-product-detail__label">Ghi chú nội bộ</span>
-                <textarea
-                  className="th-admin-product-detail__input th-admin-material-detail__textarea"
-                  value={draft.note}
-                  onChange={(e) =>
-                    setDraft((d) => (d ? { ...d, note: e.target.value } : d))
-                  }
-                  rows={12}
-                  placeholder="Chính sách giá, giao hàng, hạn thanh toán riêng…"
-                />
-              </label>
-            ) : (
-              <div className="th-admin-product-detail__desc-panel">
-                {draft.note ? (
-                  <p className="th-admin-material-detail__note-plain">{draft.note}</p>
-                ) : (
-                  <p className="th-admin-product-detail__tab-lead">Chưa có ghi chú.</p>
-                )}
-                <ul className="th-admin-agency-detail__policy-list">
-                  <li>Kiểm tra hạn mức trước khi xác nhận SO có giá trị lớn.</li>
-                  <li>Ưu tiên giao hàng theo khung đã thỏa thuận trong hợp đồng khung.</li>
-                  <li>Thu hồi nợ quá hạn: nhắc NVBH phụ trách và kế toán theo quy trình thu nợ.</li>
-                </ul>
-              </div>
-            )}
+            <p className="th-admin-product-detail__tab-lead">
+              Báo giá (BG) chờ duyệt hoặc đã xử lý — NVBH phụ trách:{' '}
+              <strong>{draft.assignedSellerName}</strong>.
+            </p>
+            <AgencyOrderHistoryTable
+              rows={displayedQuotationRows}
+              loading={fromApi && quotationsLoading}
+              error={fromApi ? quotationsError : null}
+              emptyMessage="Chưa có báo giá (BG)."
+              showQuotationBadge
+              orderLink={(ref) => directorPaths.approvals.pricingOrder(ref)}
+            />
           </div>
         )}
+
       </div>
 
       <dialog

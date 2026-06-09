@@ -1,0 +1,263 @@
+/* Trang tạo vật tư — layout & NCC panel rộng */
+.th-admin-mat-create .th-admin-product-create__layout {
+  align-items: start;
+}
+
+.th-admin-mat-create .th-admin-product-create__aside {
+  position: sticky;
+  top: 0.75rem;
+}
+
+.th-admin-mat-create .th-admin-product-create__fields--aside {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem 0.75rem;
+}
+
+.th-admin-mat-create .th-admin-product-create__field--full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 400px) {
+  .th-admin-mat-create .th-admin-product-create__fields--aside {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Upload ảnh */
+.th-admin-mat-create__upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.th-admin-mat-create__upload-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.th-admin-mat-create__upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: #0369a1;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px dashed rgba(14, 165, 233, 0.45);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.th-admin-mat-create__upload-btn:hover {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(14, 165, 233, 0.65);
+}
+
+.th-admin-mat-create__upload-btn .material-symbols-outlined {
+  font-size: 1.15rem;
+}
+
+.th-admin-mat-create__upload-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  flex: 1 1 100%;
+}
+
+.th-admin-mat-create .th-admin-product-create__image-preview {
+  height: 140px;
+}
+
+/* Panel NCC — cột phải */
+.th-admin-mat-create__suppliers-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: min(72vh, 40rem);
+}
+
+.th-admin-mat-create__sec-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.th-admin-mat-create__sec-head .th-admin-product-create__sec-title {
+  margin: 0;
+}
+
+.th-admin-mat-create__count {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0369a1;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  white-space: nowrap;
+}
+
+.th-admin-mat-create__count--empty {
+  color: #64748b;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.th-admin-mat-create__callout {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: #f0f9ff;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #334155;
+}
+
+.th-admin-mat-create__callout .material-symbols-outlined {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  color: #0284c7;
+  margin-top: 0.05rem;
+}
+
+.th-admin-mat-create__callout p {
+  margin: 0;
+}
+
+.th-admin-mat-create .th-supplier-multi {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.th-admin-mat-create .th-supplier-multi__list {
+  flex: 1;
+  max-height: none;
+  min-height: 14rem;
+}
+
+/* SupplierMultiSelect — styles dùng chung (trang list cũng có bản tương tự) */
+.th-admin-mat-create .th-supplier-multi__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.65rem;
+}
+
+.th-admin-mat-create .th-supplier-multi__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 99px;
+  background: #e0f2fe;
+  color: #0c4a6e;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.th-admin-mat-create .th-supplier-multi__chip-remove {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.15rem;
+  color: #0369a1;
+}
+
+.th-admin-mat-create .th-supplier-multi__hint {
+  margin: 0 0 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  color: #64748b;
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.th-admin-mat-create .th-supplier-multi__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.th-admin-mat-create .th-supplier-multi__option {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: background 0.12s ease;
+}
+
+.th-admin-mat-create .th-supplier-multi__option:last-child {
+  border-bottom: none;
+}
+
+.th-admin-mat-create .th-supplier-multi__option:hover {
+  background: #f8fafc;
+}
+
+.th-admin-mat-create .th-supplier-multi__option.is-selected {
+  background: rgba(56, 189, 248, 0.1);
+  color: #0c4a6e;
+  font-weight: 600;
+}
+
+.th-admin-mat-create .th-supplier-multi__option .material-symbols-outlined {
+  font-size: 1.1rem;
+  color: #0284c7;
+}
+
+.th-admin-mat-create .th-supplier-multi__empty {
+  padding: 1rem 0.75rem;
+  color: #64748b;
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+@media (max-width: 960px) {
+  .th-admin-mat-create .th-admin-product-create__aside {
+    position: static;
+  }
+
+  .th-admin-mat-create__suppliers-card {
+    min-height: 0;
+  }
+
+  .th-admin-mat-create .th-supplier-multi__list {
+    min-height: 12rem;
+    max-height: 20rem;
+  }
+}

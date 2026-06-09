@@ -46,6 +46,12 @@
   align-items: center;
 }
 
+.th-admin-cat__filter-add {
+  align-self: flex-end;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 /* ── Buttons ── */
 .th-admin-cat__btn-primary {
   display: inline-flex;

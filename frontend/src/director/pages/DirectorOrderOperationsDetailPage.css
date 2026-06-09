@@ -1,0 +1,116 @@
+.th-director-ops-detail {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.25rem 1.5rem 2.5rem;
+}
+
+.th-director-ops-detail__header {
+  margin-bottom: 1.5rem;
+}
+
+.th-director-ops-detail__back {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  color: #0284c7;
+  font-size: var(--th-text-sm);
+  font-weight: var(--th-weight-semibold);
+  text-decoration: none;
+}
+
+.th-director-ops-detail__back:hover {
+  text-decoration: underline;
+}
+
+.th-director-ops-detail__kicker {
+  margin: 0 0 0.25rem;
+  font-size: var(--th-text-xs);
+  font-weight: var(--th-weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.th-director-ops-detail__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.35rem;
+  color: #0f172a;
+}
+
+.th-director-ops-detail__title code {
+  font-size: 0.95em;
+}
+
+.th-director-ops-detail__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  color: #475569;
+  font-size: var(--th-text-sm);
+}
+
+.th-director-ops-detail__link {
+  color: #0284c7;
+  font-weight: var(--th-weight-semibold);
+  text-decoration: none;
+}
+
+.th-director-ops-detail__link:hover {
+  text-decoration: underline;
+}
+
+.th-director-ops-detail__muted {
+  color: #64748b;
+  margin: 0;
+}
+
+.th-director-ops-detail__card {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  padding: 1rem 1.15rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.th-director-ops-detail__section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #334155;
+}
+
+.th-director-ops-detail__section-title .material-symbols-outlined {
+  font-size: 1.15rem;
+  color: #64748b;
+}
+
+.th-director-ops-detail__callout {
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  background: #fffbeb;
+  padding: 1rem 1.15rem;
+  color: #92400e;
+}
+
+.th-director-ops-detail__callout p {
+  margin: 0 0 0.75rem;
+}
+
+.th-director-ops-detail__cta {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  background: #0284c7;
+  color: #fff;
+  font-weight: var(--th-weight-bold);
+  text-decoration: none;
+  font-size: var(--th-text-sm);
+}
+
+.th-director-ops-detail__cta:hover {
+  background: #0369a1;
+}

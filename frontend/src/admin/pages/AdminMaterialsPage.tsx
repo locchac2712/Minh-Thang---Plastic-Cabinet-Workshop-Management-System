@@ -11,7 +11,10 @@ import {
 } from '../manufacturing/materialModel'
 import { PAGE_SIZE_OPTIONS } from '../catalog/productModel'
 import { adminPaths } from '../config/adminPaths'
-import { getAccessToken, getTokenType } from '../../auth/storage'
+import {
+  fetchAdminMaterials,
+  type MaterialResponse,
+} from '../manufacturing/adminMaterialsApi'
 import {
   AppFilterActions,
   AppFilterBar,
@@ -25,36 +28,7 @@ import '../styles/adminListToolbar.css'
 import './AdminUsersPage.css'
 import './AdminMaterialsPage.css'
 
-type MaterialRow = {
-  id: string
-  code: string
-  name: string
-  imageUrl: string | null
-  unit: string
-  unitCost: number
-  stockQuantity: number
-  minStockLevel: number
-  isActive: boolean
-  createdAt: string
-}
-
-type ApiEnvelope<T> = {
-  success: boolean
-  statusCode: number
-  message: string
-  data?: T
-}
-
-type MaterialListResponse = {
-  content: MaterialRow[]
-  page: number
-  size: number
-  totalElements: number
-  totalPages: number
-  last: boolean
-}
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://be.minhthangerp.space'
+type MaterialRow = MaterialResponse
 
 function isLowStockRow(row: Pick<MaterialRow, 'stockQuantity' | 'minStockLevel'>): boolean {
   return row.stockQuantity <= row.minStockLevel
@@ -79,36 +53,15 @@ export function AdminMaterialsPage() {
   }, [searchQuery, filterStatus, onlyLowStock])
 
   const fetchMaterials = useCallback(async () => {
-    const accessToken = getAccessToken()
-    if (!accessToken) {
-      setLoadError('Thiếu access token. Vui lòng đăng nhập lại.')
-      setRows([])
-      setTotalElements(0)
-      return
-    }
-
     setLoading(true)
     setLoadError(null)
     try {
-      const q = new URLSearchParams()
-      q.set('page', String(pageIndex))
-      q.set('size', String(pageSize))
-      const search = searchQuery.trim()
-      if (search) q.set('search', search)
-      if (filterStatus) q.set('is_active', filterStatus === 'active' ? 'true' : 'false')
-
-      const res = await fetch(`${API_BASE_URL}/api/admin/materials?${q.toString()}`, {
-        headers: {
-          accept: '*/*',
-          Authorization: `${getTokenType()} ${accessToken}`,
-        },
+      const data = await fetchAdminMaterials({
+        page: pageIndex,
+        size: pageSize,
+        search: searchQuery.trim() || undefined,
+        isActive: filterStatus === 'active' ? true : filterStatus === 'inactive' ? false : undefined,
       })
-      const envelope = (await res.json()) as ApiEnvelope<MaterialListResponse>
-      if (!res.ok || !envelope.success || !envelope.data) {
-        throw new Error(envelope.message || 'Không tải được danh sách vật tư')
-      }
-
-      const data = envelope.data
       const filtered = onlyLowStock ? data.content.filter((r) => isLowStockRow(r)) : data.content
       setRows(filtered)
       setPageIndex(data.page)
@@ -126,6 +79,7 @@ export function AdminMaterialsPage() {
     void fetchMaterials()
   }, [fetchMaterials])
 
+  const noSupplierCount = rows.filter((r) => r.isActive && (r.linkedSupplierCount ?? 0) === 0).length
   const lowStockCount = rows.filter((r) => r.isActive && isLowStockRow(r)).length
   const activeCount = rows.filter((r) => r.isActive).length
   const filtersApplied = !!filterStatus || onlyLowStock || searchQuery.trim() !== ''
@@ -156,26 +110,6 @@ export function AdminMaterialsPage() {
             </div>
           </div>
         </div>
-        <div className="th-admin-mat__toolbar">
-          <Link
-            to={adminPaths.manufacturing.bom}
-            className="th-admin-mat__btn-secondary th-admin-mat__btn-secondary--link"
-          >
-            <span className="material-symbols-outlined th-admin-mat__btn-icon" aria-hidden>
-              account_tree
-            </span>
-            Cấu hình BOM
-          </Link>
-          <Link
-            to={adminPaths.manufacturing.materialsNew}
-            className="th-admin-mat__btn-primary th-admin-mat__btn-primary--link"
-          >
-            <span className="material-symbols-outlined th-admin-mat__btn-icon" aria-hidden>
-              add
-            </span>
-            Thêm vật tư
-          </Link>
-        </div>
       </header>
 
       <ul className="th-admin-mat__stats" aria-label="Chỉ số nhanh">
@@ -183,6 +117,11 @@ export function AdminMaterialsPage() {
           <span className="th-admin-mat__stat-label">Tổng mã vật tư</span>
           <span className="th-admin-mat__stat-value">{totalElements}</span>
           <span className="th-admin-mat__stat-hint">{activeCount} đang dùng</span>
+        </li>
+        <li className="th-admin-mat__stat th-admin-mat__stat--warn">
+          <span className="th-admin-mat__stat-label">Chưa gán NCC</span>
+          <span className="th-admin-mat__stat-value">{noSupplierCount}</span>
+          <span className="th-admin-mat__stat-hint">NVL active không có NCC</span>
         </li>
         <li className="th-admin-mat__stat th-admin-mat__stat--warn">
           <span className="th-admin-mat__stat-label">Cảnh báo tồn</span>
@@ -236,6 +175,16 @@ export function AdminMaterialsPage() {
                 <AppFilterClearButton onClick={clearFilters} />
               </AppFilterActions>
             ) : null}
+
+            <Link
+              to={adminPaths.manufacturing.materialsNew}
+              className="th-admin-mat__btn-primary th-admin-mat__btn-primary--link th-admin-mat__filter-add"
+            >
+              <span className="material-symbols-outlined th-admin-mat__btn-icon" aria-hidden>
+                add
+              </span>
+              Thêm vật tư
+            </Link>
           </AppFilterBar>
         </div>
 
@@ -249,6 +198,7 @@ export function AdminMaterialsPage() {
                 <th scope="col">ĐVT</th>
                 <th scope="col">Đơn giá</th>
                 <th scope="col">Tồn / Min</th>
+                <th scope="col">NCC</th>
                 <th scope="col">Trạng thái</th>
                 <th scope="col">Thao tác</th>
               </tr>
@@ -256,14 +206,14 @@ export function AdminMaterialsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="th-admin-mat-table__empty">
+                  <td colSpan={9} className="th-admin-mat-table__empty">
                     Đang tải danh sách vật tư...
                   </td>
                 </tr>
               ) : null}
               {!loading && rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="th-admin-mat-table__empty">
+                  <td colSpan={9} className="th-admin-mat-table__empty">
                     Không có vật tư phù hợp. Thử đổi từ khóa hoặc bộ lọc.
                   </td>
                 </tr>
@@ -319,6 +269,15 @@ export function AdminMaterialsPage() {
                       <span className="th-admin-mat__stock-sep">/</span>
                       {formatQty(row.minStockLevel, row.unit)}
                     </span>
+                  </td>
+                  <td data-label="NCC">
+                    {(row.linkedSupplierCount ?? 0) === 0 ? (
+                      <span className="th-admin-mat__ncc-warn" title="Chưa gán NCC — không lập PO được">
+                        0
+                      </span>
+                    ) : (
+                      <span>{row.linkedSupplierCount}</span>
+                    )}
                   </td>
                   <td data-label="Trạng thái">
                     <span

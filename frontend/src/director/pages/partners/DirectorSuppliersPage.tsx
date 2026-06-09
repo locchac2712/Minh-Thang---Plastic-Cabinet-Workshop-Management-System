@@ -145,21 +145,10 @@ export function DirectorSuppliersPage() {
             <h1 className="th-admin-supplier-list__title">Nhà cung cấp</h1>
           </div>
         </div>
-        <div className="th-admin-supplier-list__header-actions">
-          <Link
-            to={directorPaths.partners.suppliersNew}
-            className="th-admin-supplier-list__btn-primary th-admin-supplier-list__btn-primary--link"
-          >
-            <span className="material-symbols-outlined" aria-hidden>
-              add
-            </span>
-            Tạo mới
-          </Link>
-        </div>
       </header>
 
       <section className="th-director-partners__filter-bar" aria-label="Tìm nhà cung cấp">
-        <div className="th-admin-list-toolbar__head">
+        <div className="th-admin-list-toolbar__head th-admin-supplier-list__filter-row">
           <AppFilterBar className="th-admin-list-toolbar__bar">
             <AppFilterField search className="th-admin-list-toolbar__search">
               <AppFilterInput
@@ -171,6 +160,15 @@ export function DirectorSuppliersPage() {
               />
             </AppFilterField>
           </AppFilterBar>
+          <Link
+            to={directorPaths.partners.suppliersNew}
+            className="th-admin-supplier-list__btn-primary th-admin-supplier-list__btn-primary--link"
+          >
+            <span className="material-symbols-outlined" aria-hidden>
+              add
+            </span>
+            Tạo mới
+          </Link>
         </div>
       </section>
 

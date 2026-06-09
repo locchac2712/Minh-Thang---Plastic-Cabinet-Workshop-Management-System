@@ -34,6 +34,8 @@ export type DirectorPricingDecisionDialogProps = {
   onClose: () => void
   /** Ghi chú do GD nhập (reject/revise); approve gọi với chuỗi rỗng */
   onSubmit: (note: string) => void
+  /** Cảnh báo hết hạn báo giá (informational) */
+  validityHint?: string | null
 }
 
 function variantMeta(v: DirectorPricingDecisionVariant): VariantMeta {
@@ -57,8 +59,7 @@ function variantMeta(v: DirectorPricingDecisionVariant): VariantMeta {
     return {
       icon: 'verified',
       title: 'Phê duyệt báo giá',
-      lead:
-        'Đơn chuyển sang trạng thái đã duyệt (Approved). Giá và chiết khấu trong hồ sơ được chấp nhận để NVBH / kế toán xử lý tiếp.',
+      lead: 'Xác nhận chấp nhận giá và chiết khấu trong hồ sơ.',
       submitLabel: 'Xác nhận phê duyệt',
       submittingLabel: 'Đang phê duyệt…',
       submitClass: 'th-admin-users__btn-primary',
@@ -71,8 +72,7 @@ function variantMeta(v: DirectorPricingDecisionVariant): VariantMeta {
   return {
     icon: 'edit_note',
     title: 'Yêu cầu điều chỉnh',
-    lead:
-      'NVBH sẽ nhận thông báo chỉnh lại giá hoặc hồ sơ. Đơn có thể chuyển về nháp (Draft) để chỉnh sửa.',
+    lead: '',
     submitLabel: 'Gửi yêu cầu',
     submittingLabel: 'Đang gửi…',
     submitClass: 'th-admin-users__btn-primary',
@@ -92,6 +92,7 @@ export function DirectorPricingDecisionDialog({
   submitError,
   onClose,
   onSubmit,
+  validityHint,
 }: DirectorPricingDecisionDialogProps) {
   const dlgRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
@@ -193,9 +194,24 @@ export function DirectorPricingDecisionDialog({
                   </>
                 ) : null}
               </p>
-              <p style={{ margin: 0, fontSize: '0.875rem', color: '#334155', lineHeight: 1.5 }}>
-                {meta.lead}
-              </p>
+              {meta.lead ? (
+                <p style={{ margin: 0, fontSize: '0.875rem', color: '#334155', lineHeight: 1.5 }}>
+                  {meta.lead}
+                </p>
+              ) : null}
+              {validityHint ? (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '0.8125rem',
+                    color: '#b45309',
+                    lineHeight: 1.45,
+                  }}
+                  role="status"
+                >
+                  {validityHint}
+                </p>
+              ) : null}
               {meta.requiresNote ? (
                 <label className="th-admin-users-field">
                   <span className="th-admin-users-field__label">{meta.noteLabel}</span>

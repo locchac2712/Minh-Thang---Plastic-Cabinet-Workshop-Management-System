@@ -423,3 +423,76 @@
   color: var(--th-dpd-ink);
   font-size: 0.9375rem;
 }
+
+.th-director-pricing-detail__status-row {
+  margin: 0.35rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+}
+
+.th-director-pricing-detail__status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.th-director-pricing-detail__status--pending {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.th-director-pricing-detail__status--approved {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.th-director-pricing-detail__status--rejected {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.th-director-pricing-detail__approver {
+  color: var(--th-dpd-muted);
+}
+
+.th-director-pricing-detail__readonly {
+  margin: 0.75rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  font-size: 0.8125rem;
+  color: var(--th-dpd-muted);
+  line-height: 1.45;
+}
+
+.th-director-pricing-detail__validity-warn {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.08rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.th-director-pricing-detail__validity-note {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  font-size: 0.8125rem;
+  color: #92400e;
+  line-height: 1.45;
+}

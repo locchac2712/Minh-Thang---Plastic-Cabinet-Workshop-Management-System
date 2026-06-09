@@ -131,8 +131,7 @@ export function DirectorDashboardPage() {
       <div className="th-director-dashboard__charts">
         <div className="th-director-dashboard__row th-director-dashboard__row--2">
           <ChartStatePanel
-            title="Xu hướng doanh thu (Done)"
-            subtitle="VND theo mốc thời gian"
+            title="Doanh thu"
             isLoading={revQ.isLoading}
             error={revQ.error}
             isEmpty={revQ.isEmpty}
@@ -157,8 +156,7 @@ export function DirectorDashboardPage() {
           </ChartStatePanel>
 
           <ChartStatePanel
-            title="Trạng thái đơn (theo giá trị)"
-            subtitle="Tỷ lệ theo VND — tâm: tổng số đơn"
+            title="Trạng thái đơn"
             isLoading={statusQ.isLoading}
             error={statusQ.error}
             isEmpty={statusQ.isEmpty}
@@ -171,8 +169,7 @@ export function DirectorDashboardPage() {
         </div>
 
         <ChartStatePanel
-          title="Biên lợi nhuận theo kỳ"
-          subtitle="Doanh thu, giá vốn, % biên (trục phải)"
+          title="Biên độ lợi nhuận"
           isLoading={gmQ.isLoading}
           error={gmQ.error}
           isEmpty={gmQ.isEmpty}

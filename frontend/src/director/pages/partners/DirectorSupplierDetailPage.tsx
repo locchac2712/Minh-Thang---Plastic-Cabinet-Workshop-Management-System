@@ -12,8 +12,11 @@ import {
   fetchAdminSupplierById,
   fetchAdminSupplierMaterials,
   patchAdminSupplier,
+  replaceSupplierLinkedMaterials,
   toggleAdminSupplierActive,
+  unlinkMaterialFromSupplier,
 } from '../../../admin/partners/adminSuppliersApi'
+import { fetchAdminMaterials, type MaterialResponse } from '../../../admin/manufacturing/adminMaterialsApi'
 import { adminPaths } from '../../../admin/config/adminPaths'
 import { directorPaths } from '../../config/directorPaths'
 import { AdminBreadcrumb } from '../../../admin/components/AdminBreadcrumb/AdminBreadcrumb'
@@ -81,6 +84,17 @@ export function DirectorSupplierDetailPage() {
   const [matError, setMatError] = useState<string | null>(null)
   const [matTotal, setMatTotal] = useState(0)
   const [matTotalPages, setMatTotalPages] = useState(0)
+
+  const [catalogEditOpen, setCatalogEditOpen] = useState(false)
+  const [catalogPickIds, setCatalogPickIds] = useState<string[]>([])
+  const [catalogPickOptions, setCatalogPickOptions] = useState<MaterialResponse[]>([])
+  const [catalogPickQuery, setCatalogPickQuery] = useState('')
+  const [catalogPickLoading, setCatalogPickLoading] = useState(false)
+  const [catalogSaving, setCatalogSaving] = useState(false)
+  const [catalogActionError, setCatalogActionError] = useState<string | null>(null)
+  const [matReloadKey, setMatReloadKey] = useState(0)
+
+  const reloadCatalog = useCallback(() => setMatReloadKey((k) => k + 1), [])
 
   const load = useCallback(async () => {
     if (!supplierId) return
@@ -170,7 +184,94 @@ export function DirectorSupplierDetailPage() {
       }
     })()
     return () => ac.abort()
-  }, [tab, supplierId, matPageIndex, matPageSize, matDebounced, matFilter])
+  }, [tab, supplierId, matPageIndex, matPageSize, matDebounced, matFilter, matReloadKey])
+
+  const loadAllLinkedMaterialIds = useCallback(async (sid: string): Promise<string[]> => {
+    const ids: string[] = []
+    let page = 0
+    for (;;) {
+      const p = await fetchAdminSupplierMaterials(sid, { page, size: 100 })
+      ids.push(...p.content.map((m) => m.id))
+      if (p.last || p.content.length === 0) break
+      page += 1
+      if (page > 50) break
+    }
+    return ids
+  }, [])
+
+  const openCatalogEdit = useCallback(async () => {
+    if (!supplierId) return
+    setCatalogActionError(null)
+    setCatalogPickLoading(true)
+    setCatalogEditOpen(true)
+    try {
+      const [linkedIds, allMaterials] = await Promise.all([
+        loadAllLinkedMaterialIds(supplierId),
+        (async () => {
+          const items: MaterialResponse[] = []
+          let page = 0
+          for (;;) {
+            const p = await fetchAdminMaterials({ page, size: 100, isActive: true })
+            items.push(...p.content)
+            if (p.last || p.content.length === 0) break
+            page += 1
+            if (page > 50) break
+          }
+          return items
+        })(),
+      ])
+      setCatalogPickIds(linkedIds)
+      setCatalogPickOptions(allMaterials)
+    } catch (e) {
+      setCatalogActionError(
+        e instanceof AdminSupplierApiError ? e.message : 'Không tải được danh mục vật tư.',
+      )
+      setCatalogEditOpen(false)
+    } finally {
+      setCatalogPickLoading(false)
+    }
+  }, [loadAllLinkedMaterialIds, supplierId])
+
+  const saveCatalogEdit = useCallback(async () => {
+    if (!supplierId || catalogSaving) return
+    setCatalogSaving(true)
+    setCatalogActionError(null)
+    try {
+      await replaceSupplierLinkedMaterials(supplierId, catalogPickIds)
+      setCatalogEditOpen(false)
+      reloadCatalog()
+    } catch (e) {
+      setCatalogActionError(
+        e instanceof AdminSupplierApiError ? e.message : 'Không lưu được danh mục vật tư.',
+      )
+    } finally {
+      setCatalogSaving(false)
+    }
+  }, [catalogPickIds, catalogSaving, reloadCatalog, supplierId])
+
+  const handleUnlinkMaterial = useCallback(
+    async (materialId: string) => {
+      if (!supplierId) return
+      setCatalogActionError(null)
+      try {
+        await unlinkMaterialFromSupplier(supplierId, materialId)
+        reloadCatalog()
+      } catch (e) {
+        setCatalogActionError(
+          e instanceof AdminSupplierApiError ? e.message : 'Không gỡ được liên kết vật tư.',
+        )
+      }
+    },
+    [reloadCatalog, supplierId],
+  )
+
+  const catalogPickFiltered = useMemo(() => {
+    const q = catalogPickQuery.trim().toLowerCase()
+    if (!q) return catalogPickOptions
+    return catalogPickOptions.filter(
+      (m) => m.code.toLowerCase().includes(q) || m.name.toLowerCase().includes(q),
+    )
+  }, [catalogPickOptions, catalogPickQuery])
 
   const poRows = useMemo(() => (supplier ? mockPurchaseOrdersForSupplier(supplier) : []), [supplier])
 
@@ -522,12 +623,27 @@ export function DirectorSupplierDetailPage() {
         {tab === 'catalog' && (
           <div role="tabpanel">
             <p className="th-admin-product-detail__tab-lead">
-              Danh sách vật tư liên kết có thể tìm và lọc bên dưới. Danh mục tổng:{' '}
+              Vật tư trong danh mục NCC này — PO chỉ mua được các mã đã gắn. Danh mục tổng:{' '}
               <Link to={adminPaths.manufacturing.materials} className="th-admin-product-detail__link">
                 Vật tư
               </Link>
               .
             </p>
+            <div className="th-admin-product-detail__actions" style={{ marginBottom: '0.75rem' }}>
+              <button
+                type="button"
+                className="th-admin-product-detail__btn-primary"
+                onClick={() => void openCatalogEdit()}
+                disabled={!supplier?.isActive || catalogPickLoading}
+              >
+                Sửa danh mục NVL
+              </button>
+            </div>
+            {catalogActionError ? (
+              <p className="th-admin-list-toolbar__error" role="alert">
+                {catalogActionError}
+              </p>
+            ) : null}
             <div className="th-admin-list-toolbar__head" style={{ margin: '0 0 0.75rem' }}>
               <div className="th-admin-list-toolbar__bar" style={{ alignItems: 'flex-end' }}>
                 <label className="th-admin-list-toolbar__search" style={{ flex: '1 1 12rem' }}>
@@ -580,6 +696,7 @@ export function DirectorSupplierDetailPage() {
                       <th>Tồn</th>
                       <th>Trạng thái</th>
                       <th />
+                      <th />
                     </tr>
                   </thead>
                   <tbody>
@@ -616,6 +733,16 @@ export function DirectorSupplierDetailPage() {
                           >
                             Chi tiết
                           </Link>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="th-admin-product-detail__btn-ghost"
+                            onClick={() => void handleUnlinkMaterial(m.id)}
+                            disabled={!supplier?.isActive}
+                          >
+                            Gỡ
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -793,6 +920,99 @@ export function DirectorSupplierDetailPage() {
           </div>
         </div>
       </dialog>
+
+      {catalogEditOpen ? (
+        <div className="th-dlg-backdrop" role="presentation">
+          <div className="th-dlg__panel th-dlg__panel--wide" role="dialog" aria-modal="true" aria-labelledby={`${fid}-cat-title`}>
+            <header className="th-dlg__header">
+              <h2 id={`${fid}-cat-title`} className="th-dlg__title">
+                Sửa danh mục vật tư
+              </h2>
+              <button
+                type="button"
+                className="th-dlg__close"
+                onClick={() => !catalogSaving && setCatalogEditOpen(false)}
+                aria-label="Đóng"
+              >
+                <span className="material-symbols-outlined" aria-hidden>
+                  close
+                </span>
+              </button>
+            </header>
+            <div className="th-dlg__body">
+              {catalogPickLoading ? (
+                <p>Đang tải danh sách vật tư…</p>
+              ) : (
+                <>
+                  <label className="th-admin-product-create__field">
+                    <span className="th-admin-product-create__label">Tìm vật tư</span>
+                    <input
+                      type="search"
+                      className="th-admin-product-create__input"
+                      value={catalogPickQuery}
+                      onChange={(e) => setCatalogPickQuery(e.target.value)}
+                      placeholder="Mã, tên…"
+                      autoComplete="off"
+                    />
+                  </label>
+                  <ul className="th-supplier-multi__list" style={{ maxHeight: '18rem' }}>
+                    {catalogPickFiltered.length === 0 ? (
+                      <li className="th-supplier-multi__empty">Không có vật tư phù hợp.</li>
+                    ) : (
+                      catalogPickFiltered.map((m) => {
+                        const checked = catalogPickIds.includes(m.id)
+                        return (
+                          <li key={m.id}>
+                            <button
+                              type="button"
+                              className={`th-supplier-multi__option${checked ? ' is-selected' : ''}`}
+                              onClick={() => {
+                                setCatalogPickIds((prev) =>
+                                  checked ? prev.filter((x) => x !== m.id) : [...prev, m.id],
+                                )
+                              }}
+                            >
+                              <span>
+                                {m.code} · {m.name}
+                              </span>
+                              {checked ? (
+                                <span className="material-symbols-outlined" aria-hidden>
+                                  check
+                                </span>
+                              ) : null}
+                            </button>
+                          </li>
+                        )
+                      })
+                    )}
+                  </ul>
+                  <p className="th-admin-product-detail__tab-lead">
+                    Đã chọn {catalogPickIds.length} vật tư.
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="th-dlg__footer">
+              <button
+                type="button"
+                className="th-admin-product-detail__btn-ghost"
+                onClick={() => setCatalogEditOpen(false)}
+                disabled={catalogSaving}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                className="th-admin-product-detail__btn-primary"
+                onClick={() => void saveCatalogEdit()}
+                disabled={catalogSaving || catalogPickLoading}
+              >
+                {catalogSaving ? 'Đang lưu…' : 'Lưu danh mục'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

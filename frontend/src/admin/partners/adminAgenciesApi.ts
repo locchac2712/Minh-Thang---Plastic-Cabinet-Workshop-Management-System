@@ -17,6 +17,8 @@ export type AgencyResponse = {
   taxCode: string | null
   legalCompanyName: string | null
   totalDebt: number
+  computedDebtFromOrders?: number | null
+  debtReconciliationDelta?: number | null
   maxDebtLimit: number
   isActive: boolean
   createdAt: string
@@ -167,6 +169,57 @@ export async function fetchAdminAgencyById(id: string): Promise<AgencyResponse> 
     throw new AdminAgencyApiError(await readErrorMessage(res, body), res.status)
   }
   return unwrapEntity<AgencyResponse>(body)
+}
+
+export type AgencyOrderHistoryDto = {
+  id: string
+  displayCode?: string | null
+  sourceOrderId?: string | null
+  recordKind?: string | null
+  totalPayable: number
+  status: string
+  createdAt: string
+}
+
+async function fetchAdminAgencyOrderPage(
+  agencyId: string,
+  resource: 'orders' | 'quotations',
+  params: { page?: number; size?: number; status?: string; signal?: AbortSignal } = {},
+): Promise<PageResponse<AgencyOrderHistoryDto>> {
+  const accessToken = getAccessToken()
+  if (!accessToken) {
+    throw new AdminAgencyApiError('Thiếu access token. Vui lòng đăng nhập lại.', 401)
+  }
+  const q = new URLSearchParams()
+  q.set('page', String(params.page ?? 0))
+  q.set('size', String(params.size ?? 20))
+  if (params.status?.trim()) q.set('status', params.status.trim())
+  const res = await fetch(
+    `${API_BASE_URL}/api/admin/agencies/${encodeURIComponent(agencyId)}/${resource}?${q.toString()}`,
+    {
+      headers: { accept: '*/*', ...authHeader() },
+      signal: params.signal,
+    },
+  )
+  const body = await res.json().catch(() => null)
+  if (!res.ok) {
+    throw new AdminAgencyApiError(await readErrorMessage(res, body), res.status)
+  }
+  return unwrapPage<AgencyOrderHistoryDto>(body)
+}
+
+export async function fetchAdminAgencyOrders(
+  agencyId: string,
+  params: { page?: number; size?: number; status?: string; signal?: AbortSignal } = {},
+): Promise<PageResponse<AgencyOrderHistoryDto>> {
+  return fetchAdminAgencyOrderPage(agencyId, 'orders', params)
+}
+
+export async function fetchAdminAgencyQuotations(
+  agencyId: string,
+  params: { page?: number; size?: number; status?: string; signal?: AbortSignal } = {},
+): Promise<PageResponse<AgencyOrderHistoryDto>> {
+  return fetchAdminAgencyOrderPage(agencyId, 'quotations', params)
 }
 
 export async function createAdminAgency(payload: CreateAgencyRequest): Promise<AgencyResponse> {

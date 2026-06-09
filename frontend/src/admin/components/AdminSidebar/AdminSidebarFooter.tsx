@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom'
+import { adminPaths } from '../../config/adminPaths'
 import { clearAuthStorage } from '../../../auth/storage'
+import { AdminNavItemLink } from '../AdminNav/AdminNavItemLink'
 
 type Props = {
   narrow: boolean
@@ -16,6 +18,12 @@ export function AdminSidebarFooter({ narrow }: Props) {
   return (
     <div className="th-admin-sidebar-footer">
       <p className="th-admin-nav-label th-admin-nav-label--footer">Phiên làm việc</p>
+      <AdminNavItemLink
+        to={adminPaths.account}
+        icon="manage_accounts"
+        label="Tài khoản"
+        narrow={narrow}
+      />
       <button
         type="button"
         className="th-admin-nav-link th-admin-nav-link--logout"

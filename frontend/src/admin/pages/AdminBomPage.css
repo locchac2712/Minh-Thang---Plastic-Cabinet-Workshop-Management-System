@@ -304,6 +304,23 @@
   text-align: center;
 }
 
+.th-admin-bom__money-col {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 6.5rem;
+}
+
+.th-admin-bom__money-foot-label {
+  font-weight: 700;
+  color: var(--th-bom-muted);
+}
+
+.th-admin-bom__money-foot-total {
+  font-weight: 800;
+  color: #0f172a;
+}
+
 .th-admin-bom__muted {
   color: var(--th-bom-muted);
 }

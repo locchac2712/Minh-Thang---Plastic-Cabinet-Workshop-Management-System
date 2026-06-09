@@ -82,7 +82,6 @@ export function AdminProductsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterStatus, setFilterStatus] = useState<'' | 'active' | 'inactive'>('')
-  const [filterStock, setFilterStock] = useState<'all' | 'in_stock' | 'out_of_stock'>('all')
 
   /* pagination */
   const [pageIndex, setPageIndex] = useState(0)
@@ -90,7 +89,7 @@ export function AdminProductsPage() {
 
   useEffect(() => {
     setPageIndex(0)
-  }, [searchQuery, filterCategory, filterStatus, filterStock])
+  }, [searchQuery, filterCategory, filterStatus])
 
   useEffect(() => {
     const accessToken = getAccessToken()
@@ -135,7 +134,6 @@ export function AdminProductsPage() {
       if (search) q.set('search', search)
       if (filterCategory) q.set('category_id', filterCategory)
       if (filterStatus) q.set('is_active', filterStatus === 'active' ? 'true' : 'false')
-      if (filterStock !== 'all') q.set('in_stock', filterStock === 'in_stock' ? 'true' : 'false')
 
       const res = await fetch(`${API_BASE_URL}/api/admin/products?${q.toString()}`, {
         headers: {
@@ -159,17 +157,16 @@ export function AdminProductsPage() {
     } finally {
       setLoading(false)
     }
-  }, [filterCategory, filterStatus, filterStock, pageIndex, pageSize, searchQuery])
+  }, [filterCategory, filterStatus, pageIndex, pageSize, searchQuery])
 
   useEffect(() => {
     void fetchProducts()
   }, [fetchProducts])
 
-  const filtersApplied = !!filterCategory || !!filterStatus || filterStock !== 'all' || searchQuery.trim() !== ''
+  const filtersApplied = !!filterCategory || !!filterStatus || searchQuery.trim() !== ''
   const clearFilters = useCallback(() => {
     setFilterCategory('')
     setFilterStatus('')
-    setFilterStock('all')
     setSearchQuery('')
   }, [])
 
@@ -193,10 +190,6 @@ export function AdminProductsPage() {
             {loadError ? <p className="th-admin-users__api-error">{loadError}</p> : null}
           </div>
         </div>
-        <Link to={adminPaths.catalog.productsNew} className="th-admin-products__btn-primary th-admin-products__btn-primary--link">
-          <span className="material-symbols-outlined th-admin-products__btn-icon" aria-hidden>add</span>
-          Tạo sản phẩm
-        </Link>
       </div>
 
       {/* ── Table card ── */}
@@ -239,23 +232,22 @@ export function AdminProductsPage() {
                 ]}
               />
             </AppFilterField>
-            <AppFilterField label="Tồn kho" className="th-admin-list-toolbar__filter">
-              <AppFilterSelect
-                value={filterStock}
-                onChangeValue={(value) => setFilterStock(value as 'all' | 'in_stock' | 'out_of_stock')}
-                options={[
-                  { value: 'all', label: 'Tất cả' },
-                  { value: 'in_stock', label: 'Còn hàng' },
-                  { value: 'out_of_stock', label: 'Hết hàng' },
-                ]}
-              />
-            </AppFilterField>
 
             {filtersApplied ? (
               <AppFilterActions>
                 <AppFilterClearButton onClick={clearFilters} />
               </AppFilterActions>
             ) : null}
+
+            <Link
+              to={adminPaths.catalog.productsNew}
+              className="th-admin-products__btn-primary th-admin-products__btn-primary--link th-admin-products__filter-add"
+            >
+              <span className="material-symbols-outlined th-admin-products__btn-icon" aria-hidden>
+                add
+              </span>
+              Tạo sản phẩm
+            </Link>
           </AppFilterBar>
         </div>
 

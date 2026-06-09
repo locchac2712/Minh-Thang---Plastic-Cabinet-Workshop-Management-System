@@ -43,16 +43,6 @@ function riskClassName(s: WasteSeverity): string {
   return 'th-director-ws__risk th-director-ws__risk--ok'
 }
 
-function trendInfo(pct: number | null): { text: string; bad: boolean } {
-  if (pct === null || Number.isNaN(pct)) {
-    return { text: '— (kỳ trước không so được)', bad: false }
-  }
-  if (pct > 5) return { text: `+${pct.toFixed(1)}% so kỳ trước`, bad: true }
-  if (pct < -5) return { text: `${pct.toFixed(1)}% so kỳ trước`, bad: false }
-  if (pct === 0) return { text: 'Ổn định', bad: false }
-  return { text: `${pct > 0 ? '+' : ''}${pct.toFixed(1)}% so kỳ trước`, bad: pct > 0 }
-}
-
 function formatOptionalInstant(iso: string | null): string {
   if (!iso) return '—'
   const d = new Date(iso)
@@ -268,45 +258,42 @@ export function DirectorWastagePage() {
             <thead>
               <tr>
                 <th scope="col">#</th>
-                <th scope="col">Tổ (nhãn)</th>
-                <th scope="col">Sản phẩm nổi bật (gợi ý kỳ)</th>
-                <th scope="col">PIC</th>
+                <th scope="col">Tổ sản xuất</th>
+                <th scope="col">Sản phẩm</th>
                 <th scope="col" className="th-director-ws-table__col-num">
-                  Sự kiện
+                  Số lần
                 </th>
                 <th scope="col" className="th-director-ws-table__col-num">
-                  Tấm
+                  Số lượng
                 </th>
                 <th scope="col" className="th-director-ws-table__col-num">
                   Thiệt hại
                 </th>
-                <th scope="col">Xu hướng</th>
-                <th scope="col">Mức</th>
+                <th scope="col">Cảnh báo</th>
               </tr>
             </thead>
             <tbody>
               {teamsError ? (
                 <tr>
-                  <td colSpan={9} className="th-director-ws-table__empty">
+                  <td colSpan={7} className="th-director-ws-table__empty">
                     Không tải được dữ liệu.
                   </td>
                 </tr>
               ) : !rangeValid ? (
                 <tr>
-                  <td colSpan={9} className="th-director-ws-table__empty">
+                  <td colSpan={7} className="th-director-ws-table__empty">
                     Chỉnh kỳ từ–đến hợp lệ.
                   </td>
                 </tr>
               ) : teams.length === 0 && !teamsLoading ? (
                 <tr>
-                  <td colSpan={9} className="th-director-ws-table__empty">
+                  <td colSpan={7} className="th-director-ws-table__empty">
                     Không có dữ liệu tổ trong kỳ / bộ lọc.
                   </td>
                 </tr>
               ) : (
                 teams.map((r) => {
                   const active = r.teamUserId === selectedTeamUserId
-                  const tr = trendInfo(r.trendPercent)
                   return (
                     <tr
                       key={r.teamUserId}
@@ -332,17 +319,9 @@ export function DirectorWastagePage() {
                         <span className="th-director-ws-table__name">{r.teamLabel ?? '—'}</span>
                       </td>
                       <td className="th-director-ws-table__muted">{r.areaLabel ?? '—'}</td>
-                      <td>{r.picName ?? '—'}</td>
                       <td className="th-director-ws-table__num">{r.eventCount}</td>
                       <td className="th-director-ws-table__num">{r.boardEquivalent}</td>
                       <td className="th-director-ws-table__money">{formatVND(r.estimatedDamageVnd)}</td>
-                      <td>
-                        <span
-                          className={tr.bad ? 'th-director-ws__trend th-director-ws__trend--bad' : 'th-director-ws__trend'}
-                        >
-                          {tr.text}
-                        </span>
-                      </td>
                       <td>
                         <span className={riskClassName(r.severity)}>{riskLabel(r.severity)}</span>
                       </td>

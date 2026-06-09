@@ -14,6 +14,7 @@ import {
 } from '../components/CategorySearchSelect/CategorySearchSelect'
 import { formatVND } from '../partners/agencyModel'
 import { adminPaths } from '../config/adminPaths'
+import { bomLineCostVnd, resolveMaterialUnitCost, trySumBomCostVnd } from '../manufacturing/bomCostUtils'
 import { AdminBreadcrumb } from '../components/AdminBreadcrumb/AdminBreadcrumb'
 import { getAccessToken, getTokenType } from '../../auth/storage'
 import '../../production/pages/ProductionCustomProductCreatePage.css'
@@ -115,23 +116,6 @@ const emptyBomRow = (): BomFormRow => ({
   quantity: '1',
   note: '',
 })
-
-type BomLineLike = { materialId: string; quantity: number }
-
-function trySumBomCostVnd(
-  lines: BomLineLike[],
-  costById: Record<string, number | undefined>,
-): { ok: true; total: number } | { ok: false; reason: 'empty' | 'incomplete' } {
-  if (lines.length === 0) return { ok: false, reason: 'empty' }
-  let t = 0
-  for (const ln of lines) {
-    if (!ln.materialId) return { ok: false, reason: 'incomplete' }
-    const c = costById[ln.materialId]
-    if (c == null) return { ok: false, reason: 'incomplete' }
-    t += ln.quantity * c
-  }
-  return { ok: true, total: Math.round(t) }
-}
 
 function mergeMaterialSelectOptions(
   base: CategoryOption[],
@@ -262,7 +246,7 @@ export function AdminProductCreatePage() {
   }, [materialCache])
 
   const bomCostStatus = useMemo(() => {
-    const lines: BomLineLike[] = bomRows
+    const lines = bomRows
       .map((r) => ({
         materialId: r.materialId.trim(),
         quantity: Number(r.quantity),
@@ -689,8 +673,15 @@ export function AdminProductCreatePage() {
                 ) : null}
 
                 <div className="th-prod-cpc__bom">
-                  {bomRows.map((row, idx) => (
-                    <div key={row.key} className="th-prod-cpc__bom-row">
+                  {bomRows.map((row, idx) => {
+                    const qty = Number(row.quantity)
+                    const unitCost = resolveMaterialUnitCost(row.materialId.trim(), costById)
+                    const lineCost = bomLineCostVnd(
+                      Number.isFinite(qty) && qty > 0 ? qty : 0,
+                      unitCost,
+                    )
+                    return (
+                    <div key={row.key} className="th-prod-cpc__bom-row th-admin-product-create__bom-row">
                       <div className="th-prod-cpc__field th-prod-cpc__field--material-select">
                         <label className="th-prod-cpc__label" id={`${fid}-ml-${row.key}`}>
                           Vật tư #{idx + 1}
@@ -722,6 +713,18 @@ export function AdminProductCreatePage() {
                           onChange={(e) => patchBomRow(row.key, { quantity: e.target.value })}
                         />
                       </div>
+                      <div className="th-prod-cpc__field th-admin-product-create__money-field">
+                        <span className="th-prod-cpc__label">Đơn giá NVL</span>
+                        <output className="th-admin-product-create__money-out">
+                          {unitCost != null ? formatVND(unitCost) : '—'}
+                        </output>
+                      </div>
+                      <div className="th-prod-cpc__field th-admin-product-create__money-field">
+                        <span className="th-prod-cpc__label">Thành tiền</span>
+                        <output className="th-admin-product-create__money-out">
+                          {lineCost != null ? formatVND(lineCost) : '—'}
+                        </output>
+                      </div>
                       <div className="th-prod-cpc__field">
                         <label className="th-prod-cpc__label" htmlFor={`${fid}-n-${row.key}`}>
                           Ghi chú
@@ -748,7 +751,8 @@ export function AdminProductCreatePage() {
                         </button>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
                 <button type="button" className="th-prod-cpc__add-bom" onClick={addBomRow}>
                   <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '1.1rem' }}>

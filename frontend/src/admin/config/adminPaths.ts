@@ -4,6 +4,7 @@
 export const adminPaths = {
   root: '/admin',
   dashboard: '/admin',
+  account: '/admin/account',
   users: '/admin/users',
   catalog: {
     root: '/admin/catalog',
