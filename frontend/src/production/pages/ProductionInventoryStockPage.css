@@ -108,25 +108,6 @@
   display: block;
 }
 
-.th-prod-stock__filter-alert {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  min-width: min(100%, 13rem);
-}
-
-.th-prod-stock__filter-alert-control {
-  display: flex;
-  align-items: center;
-  min-height: 32px;
-}
-
-.th-prod-stock__filter-alert-control .ant-checkbox-wrapper {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #57534e;
-}
-
 .th-prod-stock__pager {
   display: flex;
   flex-wrap: wrap;

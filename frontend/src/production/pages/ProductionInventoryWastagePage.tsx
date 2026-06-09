@@ -15,11 +15,13 @@ import {
   fetchProductionMaterials,
   fetchProductionTaskDetails,
   fetchProductionTasks,
+  formatProductionTaskOptionLabel,
   type ProductionInventoryLogDto,
   type ProductionMaterialDto,
   type ProductionTaskDetailDto,
   type ProductionTaskDto,
 } from '../productionTasksApi'
+import { productionTaskRefFromId } from '../utils/productionTaskRef'
 import './ProductionInventoryWastagePage.css'
 
 function fmtDate(iso: string): string {
@@ -27,11 +29,6 @@ function fmtDate(iso: string): string {
   if (!d) return '—'
   const noMs = d.includes('.') ? (d.split('.')[0] ?? d) : d
   return noMs.replace('T', ' ')
-}
-
-function taskOptionLabel(t: ProductionTaskDto): string {
-  const name = (t.productName?.trim() || 'Lệnh SX').slice(0, 72)
-  return t.orderId ? `${name} · Theo đơn` : `${name} · MTS`
 }
 
 export function ProductionInventoryWastagePage() {
@@ -228,6 +225,7 @@ export function ProductionInventoryWastagePage() {
         r.id.toLowerCase().includes(q) ||
         r.materialId.toLowerCase().includes(q) ||
         r.materialName.toLowerCase().includes(q) ||
+        (r.taskDisplayCode ?? '').toLowerCase().includes(q) ||
         (r.taskId ?? '').toLowerCase().includes(q) ||
         (r.note ?? '').toLowerCase().includes(q) ||
         r.createdByName.toLowerCase().includes(q)
@@ -399,7 +397,9 @@ export function ProductionInventoryWastagePage() {
                     <tr key={r.id}>
                       <td>{fmtDate(r.createdAt)}</td>
                       <td>
-                        <code className="th-prod-waste__req">{r.taskId ?? '—'}</code>
+                        <code className="th-prod-waste__req">
+                          {r.taskId ? productionTaskRefFromId(r.taskId, r.taskDisplayCode) : '—'}
+                        </code>
                       </td>
                       <td>
                         <code className="th-prod-waste__sku">{r.materialId}</code>
@@ -486,7 +486,7 @@ export function ProductionInventoryWastagePage() {
                 <option value="">{tasksLoading ? 'Đang tải lệnh…' : '— Chọn lệnh —'}</option>
                 {myTasks.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {taskOptionLabel(t)} — {t.id}
+                    {formatProductionTaskOptionLabel(t)}
                   </option>
                 ))}
               </select>

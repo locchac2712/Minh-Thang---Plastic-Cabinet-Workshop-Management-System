@@ -19,6 +19,9 @@ const ORDER_STATUS_VI: Record<string, string> = {
   canceled: 'Đã hủy',
   Canceled: 'Đã hủy',
   CANCELED: 'Đã hủy',
+  rejected: 'Từ chối',
+  Rejected: 'Từ chối',
+  REJECTED: 'Từ chối',
   // Production task
   doing: 'Đang làm',
   Doing: 'Đang làm',
@@ -55,6 +58,7 @@ export function orderStatusColor(name: string): string {
   if (t === 'pending' || t === 'approved') return '#f59e0b'
   if (t === 'draft' || t === 'waiting') return '#94a3b8'
   if (t === 'canceled') return '#ef4444'
+  if (t === 'rejected') return '#ef4444'
   return '#64748b'
 }
 

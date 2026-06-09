@@ -1,6 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useState } from 'react'
-import { Checkbox } from 'antd'
-import { formatVND } from '../../admin/partners/agencyModel'
+import { useCallback, useEffect, useId, useState } from 'react'
 import {
   AppFilterBar,
   AppFilterField,
@@ -21,7 +19,6 @@ export function ProductionInventoryStockPage() {
   const [pageIndex, setPageIndex] = useState(0)
   const [pageSize] = useState(10)
   const [statusFilter, setStatusFilter] = useState<'' | 'active' | 'inactive'>('')
-  const [alertOnly, setAlertOnly] = useState(false)
   const [search, setSearch] = useState('')
 
   const fetchRows = useCallback(async () => {
@@ -56,11 +53,6 @@ export function ProductionInventoryStockPage() {
     void fetchRows()
   }, [fetchRows])
 
-  const filteredRows = useMemo(() => {
-    if (!alertOnly) return rows
-    return rows.filter((r) => r.stockQuantity <= r.minStockLevel)
-  }, [rows, alertOnly])
-
   return (
     <div className="th-prod-stock">
       <header className="th-prod-stock__header">
@@ -84,17 +76,6 @@ export function ProductionInventoryStockPage() {
               ]}
             />
           </AppFilterField>
-          <div className="th-prod-stock__filter-alert">
-            <span className="th-listing-filter-label">Cảnh báo tồn</span>
-            <div className="th-prod-stock__filter-alert-control">
-              <Checkbox
-                checked={alertOnly}
-                onChange={(event) => setAlertOnly(event.target.checked)}
-              >
-                Chỉ dòng cảnh báo
-              </Checkbox>
-            </div>
-          </div>
           <AppFilterField search label="Tìm kiếm">
             <AppFilterInput
               id={`${fid}-q`}
@@ -115,15 +96,11 @@ export function ProductionInventoryStockPage() {
             <tr>
               <th scope="col">SKU</th>
               <th scope="col">Tên vật tư</th>
-              <th scope="col">Material ID</th>
               <th scope="col" className="th-prod-data-table__num">
                 Tồn
               </th>
               <th scope="col" className="th-prod-data-table__num">
                 Tối thiểu
-              </th>
-              <th scope="col" className="th-prod-data-table__num">
-                Giá vốn / ĐV
               </th>
               <th scope="col">ĐVT</th>
               <th scope="col">Trạng thái</th>
@@ -131,27 +108,23 @@ export function ProductionInventoryStockPage() {
             </tr>
           </thead>
           <tbody>
-            {!loading && filteredRows.length === 0 ? (
+            {!loading && rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="th-prod-data-table__empty">
+                <td colSpan={7} className="th-prod-data-table__empty">
                   Không có dòng khớp bộ lọc.
                 </td>
               </tr>
             ) : (
-              filteredRows.map((r) => (
+              rows.map((r) => (
                 <tr key={r.id}>
                   <td>
                     <code className="th-prod-stock__sku">{r.code}</code>
                   </td>
                   <td className="th-prod-data-table__name">{r.name}</td>
-                  <td className="th-prod-data-table__zone">
-                    <code>{r.id}</code>
-                  </td>
                   <td className="th-prod-data-table__num">
                     {r.stockQuantity}
                   </td>
                   <td className="th-prod-data-table__num">{r.minStockLevel}</td>
-                  <td className="th-prod-data-table__num">{formatVND(r.unitCost)}</td>
                   <td>{r.unit}</td>
                   <td>
                     <span

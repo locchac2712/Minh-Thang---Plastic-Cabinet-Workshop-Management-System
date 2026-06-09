@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { formatVND } from '../../admin/partners/agencyModel'
+import { directorPaths } from '../../director/config/directorPaths'
 import { sellerPaths } from '../../seller/config/sellerPaths'
 import { sellerOrderKindLabel } from '../../seller/data/sellerOrdersMock'
 import { productionPaths } from '../config/productionPaths'
@@ -9,6 +10,9 @@ import {
   productionTaskStatusToColumn,
   type ProductionTaskDetailDto,
 } from '../productionTasksApi'
+import { formatTaskDueCell, isTaskDueOverdue } from '../utils/productionTaskDue'
+import { productionOrderRef } from '../utils/productionOrderRef'
+import { productionTaskRef } from '../utils/productionTaskRef'
 import '../pages/ProductionTaskByOrderDetailPage.css'
 
 export type ProductionTaskDetailVariant = 'by-order' | 'internal'
@@ -35,15 +39,18 @@ function formatDateTime(iso: string): string {
 type Props = {
   task: ProductionTaskDetailDto
   variant: ProductionTaskDetailVariant
+  audience?: 'production' | 'director'
 }
 
 /**
  * Chi tiết lệnh SX từ GET /api/production/tasks/:id/details — dùng chung cho trang theo đơn & MTS.
  */
-export function ProductionTaskDetailFromApi({ task, variant }: Props) {
+export function ProductionTaskDetailFromApi({ task, variant, audience = 'production' }: Props) {
   const floor = productionTaskStatusToColumn(task.status)
   const statusLabel = internalStatusLabel(floor as ProductionInternalTaskStatus)
   const hasOrder = Boolean(task.orderId && task.orderId !== '')
+  const orderRef = productionOrderRef(task.orderId ?? '', task.orderDisplayCode)
+  const taskRef = productionTaskRef(task)
   const mismatchByOrder = variant === 'by-order' && !hasOrder
   const mismatchInternal = variant === 'internal' && hasOrder
   const kind = orderTypeToSellerKind(task.orderType)
@@ -51,10 +58,18 @@ export function ProductionTaskDetailFromApi({ task, variant }: Props) {
   const orderItems = task.orderItems ?? []
   const bomItems = task.bomItems ?? []
 
-  const listPath =
-    variant === 'by-order' ? productionPaths.tasks.byOrder : productionPaths.tasks.internal
-  const listLabel =
-    variant === 'by-order' ? 'Lệnh theo đơn bán' : 'Lệnh tồn kho (MTS)'
+  const isDirector = audience === 'director'
+
+  const listPath = isDirector
+    ? directorPaths.operations.tasks
+    : variant === 'by-order'
+      ? productionPaths.tasks.byOrder
+      : productionPaths.tasks.internal
+  const listLabel = isDirector
+    ? 'Lệnh đang chạy'
+    : variant === 'by-order'
+      ? 'Lệnh theo đơn bán'
+      : 'Lệnh tồn kho (MTS)'
 
   const cr = task.customRequirements?.trim()
   const titleLine =
@@ -69,7 +84,7 @@ export function ProductionTaskDetailFromApi({ task, variant }: Props) {
             <Link to={listPath}>{listLabel}</Link>
           </li>
           <li aria-current="page">
-            <code className="th-prod-tdetail__uuid">{task.id}</code>
+            <code className="th-prod-tdetail__uuid">{taskRef}</code>
           </li>
         </ol>
       </nav>
@@ -86,7 +101,7 @@ export function ProductionTaskDetailFromApi({ task, variant }: Props) {
         <div className="th-prod-tdetail__hero">
           <div className="th-prod-tdetail__hero-main">
             <h1 className="th-prod-tdetail__h1">
-              <code className="th-prod-tdetail__task-code th-prod-tdetail__uuid">{task.id}</code>
+              <code className="th-prod-tdetail__task-code th-prod-tdetail__uuid">{taskRef}</code>
             </h1>
             <p className="th-prod-tdetail__summary">{titleLine}</p>
           </div>
@@ -102,14 +117,13 @@ export function ProductionTaskDetailFromApi({ task, variant }: Props) {
                   : 'th-prod-tdetail__kind'
               }
             >
-              {task.orderType?.trim() ? `${task.orderType} · ` : ''}
-              {sellerOrderKindLabel(kind)}
+              {isDirector ? sellerOrderKindLabel(kind) : `${task.orderType?.trim() ? `${task.orderType} · ` : ''}${sellerOrderKindLabel(kind)}`}
             </span>
           </div>
         </div>
       </header>
 
-      {mismatchByOrder ? (
+      {mismatchByOrder && !isDirector ? (
         <div className="th-prod-tdetail__mismatch" role="status">
           <p>
             <strong>Lệnh này không gắn đơn NVBH</strong> — thuộc nhóm Make-to-Stock / nội bộ.
@@ -120,7 +134,7 @@ export function ProductionTaskDetailFromApi({ task, variant }: Props) {
         </div>
       ) : null}
 
-      {mismatchInternal ? (
+      {mismatchInternal && !isDirector ? (
         <div className="th-prod-tdetail__mismatch" role="status">
           <p>
             <strong>Lệnh này gắn đơn NVBH</strong> — không phải lệnh tồn kho thuần MTS.
@@ -143,23 +157,59 @@ export function ProductionTaskDetailFromApi({ task, variant }: Props) {
             Thông tin lệnh
           </h2>
           <dl className="th-prod-tdetail__kv">
-            <dt>Product ID</dt>
-            <dd>
-              <code className="th-prod-tdetail__uuid">{task.productId ?? '—'}</code>
-            </dd>
+            {!isDirector ? (
+              <>
+                <dt>Product ID</dt>
+                <dd>
+                  <code className="th-prod-tdetail__uuid">{task.productId ?? '—'}</code>
+                </dd>
+              </>
+            ) : null}
             <dt>Số lượng</dt>
             <dd>{q}</dd>
-            <dt>Thợ</dt>
+            <dt>Thợ phụ trách</dt>
             <dd>{task.assignedToName?.trim() ? task.assignedToName : '—'}</dd>
             <dt>Tạo lệnh</dt>
             <dd>{formatDateTime(task.createdAt)}</dd>
             <dt>Bắt đầu (dự kiến)</dt>
             <dd>{formatIsoDate(task.startDate)}</dd>
             <dt>Hạn xong</dt>
-            <dd>{formatIsoDate(task.expectedEndDate)}</dd>
+            <dd className={isTaskDueOverdue(task) ? 'th-prod-tdetail__overdue' : undefined}>
+              {formatTaskDueCell(task)}
+              {isTaskDueOverdue(task) && task.expectedEndDate ? (
+                <span className="th-prod-tdetail__overdue-sub">
+                  {' '}
+                  (hạn {formatIsoDate(task.expectedEndDate)})
+                </span>
+              ) : null}
+            </dd>
             <dt>Hoàn tất</dt>
             <dd>{formatIsoDate(task.completedAt)}</dd>
+            {hasOrder ? (
+              <>
+                <dt>Dòng đơn</dt>
+                <dd>
+                  <code className="th-prod-tdetail__uuid">{task.orderItemId ?? '—'}</code>
+                </dd>
+                <dt>Giao hàng</dt>
+                <dd>
+                  {task.deliveredAt
+                    ? `Đã giao · ${formatDateTime(task.deliveredAt)}`
+                    : task.deliverable
+                      ? 'SX xong — chờ Seller giao lô'
+                      : task.status === 'Done'
+                        ? '—'
+                        : 'Chưa hoàn tất SX'}
+                </dd>
+              </>
+            ) : null}
           </dl>
+          {hasOrder && task.status === 'Done' && !isDirector ? (
+            <p className="th-prod-tdetail__req" style={{ marginTop: '0.75rem' }}>
+              Seller xác nhận giao qua <strong>deliver-batch</strong> sau khi lô hoàn tất; chốt đơn
+              riêng bằng mark-done.
+            </p>
+          ) : null}
           {task.customRequirements?.trim() ? (
             <p className="th-prod-tdetail__req">
               <strong>Yêu cầu:</strong> {task.customRequirements.trim()}
@@ -174,23 +224,39 @@ export function ProductionTaskDetailFromApi({ task, variant }: Props) {
           {hasOrder ? (
             <>
               <dl className="th-prod-tdetail__kv">
-                <dt>Order ID</dt>
+                <dt>Mã đơn</dt>
                 <dd>
-                  <Link className="th-prod-tdetail__link" to={sellerPaths.order(task.orderId!)}>
-                    <code className="th-prod-tdetail__uuid">{task.orderId}</code>
+                  <Link
+                    className="th-prod-tdetail__link"
+                    to={
+                      isDirector
+                        ? directorPaths.operations.order(orderRef)
+                        : sellerPaths.order(task.orderId!)
+                    }
+                  >
+                    {orderRef}
                   </Link>
                 </dd>
               </dl>
-              <Link className="th-prod-tdetail__cta" to={sellerPaths.order(task.orderId!)}>
-                Mở chi tiết đơn trên NVBH
-                <span className="material-symbols-outlined" aria-hidden>
-                  open_in_new
-                </span>
-              </Link>
+              {!isDirector ? (
+                <Link className="th-prod-tdetail__cta" to={sellerPaths.order(task.orderId!)}>
+                  Mở chi tiết đơn trên NVBH
+                  <span className="material-symbols-outlined" aria-hidden>
+                    open_in_new
+                  </span>
+                </Link>
+              ) : (
+                <Link className="th-prod-tdetail__cta" to={directorPaths.operations.order(orderRef)}>
+                  Mở tiến độ vận hành đơn
+                  <span className="material-symbols-outlined" aria-hidden>
+                    open_in_new
+                  </span>
+                </Link>
+              )}
             </>
           ) : (
             <p className="th-prod-tdetail__lead" style={{ margin: 0 }}>
-              Không có đơn NVBH (lệnh nội bộ / dự trữ).
+              Lệnh nội bộ / dự trữ.
             </p>
           )}
         </section>
@@ -246,11 +312,11 @@ export function ProductionTaskDetailFromApi({ task, variant }: Props) {
 
         <section className="th-prod-tdetail__card th-prod-tdetail__card--wide" aria-labelledby="td-api-bom">
           <h2 id="td-api-bom" className="th-prod-tdetail__card-title">
-            BOM vật tư
+            {isDirector ? 'Vật tư định mức' : 'BOM vật tư'}
           </h2>
           {bomItems.length === 0 ? (
             <p className="th-prod-tdetail__lead" style={{ margin: 0 }}>
-              Chưa có dữ liệu BOM.
+              {isDirector ? 'Chưa có vật tư định mức.' : 'Chưa có dữ liệu BOM.'}
             </p>
           ) : (
             <div className="th-prod-table-shell">

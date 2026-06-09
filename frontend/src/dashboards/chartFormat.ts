@@ -64,3 +64,31 @@ export function formatAxisMonthFromBucket(bucket: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(bucket)) return bucket
   return yearFmt.format(new Date(bucket + 'T12:00:00'))
 }
+
+/** Thứ tự bucket aging — khớp BE `AgingBucketLabels`. */
+export const AGING_BUCKET_ORDER = ['0-30', '31-60', '61-90', '>90'] as const
+
+export const AGING_BUCKET_LABEL_VI: Record<(typeof AGING_BUCKET_ORDER)[number], string> = {
+  '0-30': '0–30 ngày',
+  '31-60': '31–60 ngày',
+  '61-90': '61–90 ngày',
+  '>90': 'Trên 90 ngày',
+}
+
+export type AgingChartRow = { name: string; amount: number; count: number }
+
+/** Map `AgingBucket[]` API → dữ liệu cột chart (nhãn trục tiếng Việt). */
+export function agingBucketsToChartData(
+  rows: Array<{ range: string; amount: number; count: number }> | null,
+): AgingChartRow[] {
+  const byLabel = new Map((rows ?? []).map((r) => [r.range, r]))
+  return AGING_BUCKET_ORDER.map((key) => {
+    const label = AGING_BUCKET_LABEL_VI[key]
+    const b = byLabel.get(label)
+    return {
+      name: label,
+      amount: b?.amount ?? 0,
+      count: b?.count ?? 0,
+    }
+  })
+}

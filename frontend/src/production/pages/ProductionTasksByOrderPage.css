@@ -504,3 +504,115 @@
 .th-prod-byorder .th-prod-data-table--nested td:first-child {
   padding-left: 0.85rem;
 }
+
+.th-prod-byorder__layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .th-prod-byorder__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.th-prod-byorder__queue {
+  border: 1px solid var(--th-pbo-border);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.75rem;
+}
+
+.th-prod-byorder__queue-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.th-prod-byorder__queue-title {
+  margin: 0;
+  font-size: var(--th-text-md);
+  font-weight: var(--th-weight-bold);
+}
+
+.th-prod-byorder__queue-tabs {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.th-prod-byorder__queue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.th-prod-byorder__queue-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.th-prod-byorder__queue-btn {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--th-pbo-border);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.55rem 0.65rem;
+  cursor: pointer;
+}
+
+.th-prod-byorder__queue-btn.is-active {
+  border-color: var(--th-pbo-accent);
+  background: var(--th-pbo-accent-soft);
+}
+
+.th-prod-byorder__queue-code {
+  display: block;
+  font-family: var(--th-font-mono);
+  font-size: var(--th-text-xs);
+  font-weight: var(--th-weight-bold);
+}
+
+.th-prod-byorder__queue-agency {
+  display: block;
+  font-size: var(--th-text-sm);
+  color: var(--th-pbo-ink);
+}
+
+.th-prod-byorder__queue-meta {
+  display: block;
+  font-size: var(--th-text-xs);
+  color: var(--th-pbo-muted);
+}
+
+.th-prod-byorder__queue-create {
+  align-self: flex-start;
+  font-size: var(--th-text-xs);
+  font-weight: var(--th-weight-bold);
+  color: var(--th-pbo-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.th-prod-byorder-order__agency {
+  display: block;
+  font-size: var(--th-text-xs);
+  color: var(--th-pbo-muted);
+  margin-top: 0.15rem;
+}
+
+.th-prod-byorder-order__remaining {
+  font-size: var(--th-text-xs);
+  color: var(--th-pbo-muted);
+}
+

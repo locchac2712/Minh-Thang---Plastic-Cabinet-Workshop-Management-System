@@ -1,0 +1,427 @@
+.th-account-page {
+  --th-ac-accent: #0ea5e9;
+  --th-ac-accent-pressed: #0284c7;
+  --th-ac-ink: #0f172a;
+  --th-ac-muted: #64748b;
+  --th-ac-border: #e2e8f0;
+  --th-ac-surface: #ffffff;
+  --th-ac-surface-subtle: #f8fafc;
+  --th-ac-surface-tint: #f0f9ff;
+
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.th-account-page__header {
+  margin-bottom: 1.25rem;
+}
+
+.th-account-page__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--th-ac-ink);
+  letter-spacing: -0.02em;
+}
+
+.th-account-page__lead {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--th-ac-muted);
+  line-height: 1.5;
+}
+
+/* Hero summary */
+.th-account-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.15rem 1.2rem;
+  margin-bottom: 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--th-ac-border);
+  background: linear-gradient(135deg, var(--th-ac-surface) 0%, var(--th-ac-surface-tint) 100%);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.th-account-hero__avatar {
+  flex-shrink: 0;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #0369a1;
+  background: linear-gradient(145deg, #e0f2fe 0%, #bae6fd 100%);
+  border: 2px solid rgba(14, 165, 233, 0.25);
+}
+
+.th-account-hero__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.th-account-hero__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+  margin-bottom: 0.45rem;
+}
+
+.th-account-hero__name {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--th-ac-ink);
+  line-height: 1.3;
+}
+
+.th-account-hero__role {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #0369a1;
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.22);
+}
+
+.th-account-hero__meta {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.th-account-hero__meta li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  color: #475569;
+  word-break: break-word;
+}
+
+.th-account-hero__meta .material-symbols-outlined {
+  font-size: 1rem;
+  color: #94a3b8;
+}
+
+/* Stack */
+.th-account-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.th-account-card {
+  background: var(--th-ac-surface);
+  border: 1px solid var(--th-ac-border);
+  border-radius: 14px;
+  padding: 1.15rem 1.2rem 1.1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.th-account-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.th-account-card__icon {
+  flex-shrink: 0;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0369a1;
+  background: var(--th-ac-surface-tint);
+  border: 1px solid rgba(14, 165, 233, 0.18);
+}
+
+.th-account-card__icon--lock {
+  color: #7c3aed;
+  background: #f5f3ff;
+  border-color: rgba(124, 58, 237, 0.18);
+}
+
+.th-account-card__icon .material-symbols-outlined {
+  font-size: 1.25rem;
+}
+
+.th-account-card__title {
+  margin: 0 0 0.2rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--th-ac-ink);
+}
+
+.th-account-card__subtitle {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--th-ac-muted);
+  line-height: 1.45;
+}
+
+.th-account-link {
+  color: var(--th-ac-accent-pressed);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.th-account-link:hover {
+  text-decoration: underline;
+}
+
+/* Form */
+.th-account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.th-account-form__pw-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.th-account-form__pw-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.th-account-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.th-account-field__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.th-account-field__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  color: var(--th-ac-ink);
+  background: var(--th-ac-surface);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.th-account-field__input:focus {
+  outline: none;
+  border-color: var(--th-ac-accent);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
+}
+
+.th-account-field__input--error {
+  border-color: #f87171;
+}
+
+.th-account-field__input--error:focus {
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.18);
+}
+
+.th-account-field__input:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  background: var(--th-ac-surface-subtle);
+}
+
+.th-account-field__hint {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.th-account-field__error {
+  font-size: 0.78rem;
+  color: #b91c1c;
+  font-weight: 500;
+}
+
+/* Banners */
+.th-account-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.th-account-banner .material-symbols-outlined {
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+.th-account-banner--success {
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+}
+
+.th-account-banner--error {
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+}
+
+.th-account-banner p {
+  margin: 0.15rem 0 0;
+  font-weight: 500;
+}
+
+/* Card footer */
+.th-account-card__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* Buttons */
+.th-account-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    filter 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.th-account-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.th-account-btn--primary {
+  border: none;
+  color: #fff;
+  background: linear-gradient(165deg, var(--th-ac-accent) 0%, var(--th-ac-accent-pressed) 100%);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.th-account-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.04);
+}
+
+.th-account-btn--ghost {
+  border: 1px solid var(--th-ac-border);
+  color: #475569;
+  background: var(--th-ac-surface);
+}
+
+.th-account-btn--ghost:hover:not(:disabled) {
+  background: var(--th-ac-surface-subtle);
+  border-color: #cbd5e1;
+}
+
+.th-account-btn--text {
+  padding: 0.25rem 0.35rem;
+  border: none;
+  background: transparent;
+  color: var(--th-ac-accent-pressed);
+  font-size: 0.8125rem;
+}
+
+.th-account-btn--text:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+/* Loading skeleton */
+.th-account-skeleton-block {
+  border-radius: 14px;
+  background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
+  background-size: 200% 100%;
+  animation: th-account-shimmer 1.2s ease-in-out infinite;
+}
+
+.th-account-skeleton-block--hero {
+  height: 6.5rem;
+  margin-bottom: 1rem;
+}
+
+.th-account-skeleton-block--card {
+  height: 14rem;
+}
+
+.th-account-page__header.th-account-skeleton-block {
+  height: 4rem;
+  margin-bottom: 1.25rem;
+}
+
+@keyframes th-account-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .th-account-hero {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .th-account-hero__top {
+    justify-content: center;
+  }
+
+  .th-account-hero__meta {
+    align-items: center;
+  }
+
+  .th-account-card__foot {
+    flex-direction: column-reverse;
+  }
+
+  .th-account-card__foot .th-account-btn {
+    width: 100%;
+  }
+}

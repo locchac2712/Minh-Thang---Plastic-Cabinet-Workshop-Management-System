@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from 'react'
 import type { ProductionTaskDto } from '../productionTasksApi'
+import { productionTaskRef } from '../utils/productionTaskRef'
 
 export type ProductionStartTaskDialogProps = {
   open: boolean
@@ -85,7 +86,7 @@ export function ProductionStartTaskDialog({
           </header>
           <div className="th-dlg__body th-prod-dlg-body">
             <p className="th-prod-dlg-lead">
-              <strong>Mã lệnh:</strong> <code>{task.id}</code>
+              <strong>Mã lệnh:</strong> <code>{productionTaskRef(task)}</code>
             </p>
             <p className="th-prod-dlg-text">
               <strong>Nội dung:</strong> {taskSummary(task)}

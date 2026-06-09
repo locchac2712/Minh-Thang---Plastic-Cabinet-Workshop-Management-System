@@ -1,6 +1,7 @@
 /** Đường dẫn Production (xưởng) — khớp documents/ui/production_sidebar.md */
 export const productionPaths = {
   root: '/production',
+  account: '/production/account',
   /** Tổng quan — biểu đồ xưởng (GET /api/production/dashboard/charts/...) */
   dashboard: '/production/dashboard',
   /** Kanban 3 cột */
@@ -15,11 +16,11 @@ export const productionPaths = {
   tasks: {
     root: '/production/tasks',
     byOrder: '/production/tasks/by-order',
-    /** Chi tiết lệnh SX gắn đơn — `taskId` = UUID (GET …/tasks/:id/details) */
+    /** Chi tiết lệnh SX gắn đơn — `taskId` = UUID hoặc LSX (GET …/tasks/:idOrCode/details) */
     byOrderTask: (taskId: string) =>
       `/production/tasks/by-order/${encodeURIComponent(taskId)}`,
     internal: '/production/tasks/internal',
-    /** Chi tiết lệnh MTS — `taskId` = UUID từ GET /api/production/tasks (khi nối chi tiết API) */
+    /** Chi tiết lệnh MTS — `taskId` = UUID hoặc LSX */
     internalTask: (taskId: string) =>
       `/production/tasks/internal/${encodeURIComponent(taskId)}`,
   },
@@ -32,6 +33,14 @@ export const productionPaths = {
     /** Nhật ký biến động NVL (IMPORT / EXPORT / WASTE) */
     logs: '/production/inventory/logs',
   },
-  /** Tạo sản phẩm custom theo đại lý — POST /api/production/custom-products */
-  customProductCreate: '/production/products/custom',
+  /** Sản phẩm custom theo đại lý */
+  customProducts: {
+    root: '/production/custom-products',
+    list: '/production/custom-products',
+    create: '/production/custom-products/new',
+    detail: (productId: string) =>
+      `/production/custom-products/${encodeURIComponent(productId)}`,
+  },
+  /** @deprecated dùng customProducts.create */
+  customProductCreate: '/production/custom-products/new',
 } as const

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AppFilterBar, AppFilterField, AppFilterSelect, AppPagination } from '../../shared/ui/listing'
+import { App } from 'antd'
+import { AppFilterBar, AppFilterField, AppPagination } from '../../shared/ui/listing'
+import { ProductionBoardOrderFilter } from '../components/ProductionBoardOrderFilter'
 import { fetchMeProfile } from '../../auth/authApi'
 import { getAccessToken, getTokenType } from '../../auth/storage'
 import { sellerPaths } from '../../seller/config/sellerPaths'
@@ -11,20 +13,27 @@ import { ProductionStartTaskDialog } from '../components/ProductionStartTaskDial
 import {
   assignProductionTask,
   completeProductionTask,
+  fetchProductionTaskLogs,
   fetchProductionTasks,
   productionTaskStatusToColumn,
   startProductionTask,
   type ProductionTaskDto,
 } from '../productionTasksApi'
+import { formatTaskDueFootLabel, isTaskDueOverdue } from '../utils/productionTaskDue'
+import { productionOrderRef, isProductionBoardTask } from '../utils/productionOrderRef'
+import { productionTaskRef } from '../utils/productionTaskRef'
 import './ProductionBoardPage.css'
 
 type ColumnKey = 'waiting' | 'doing' | 'done'
+
+type TaskScope = 'personal' | 'all'
 
 const COLUMNS: { key: ColumnKey; title: string; hint: string; mod?: string }[] = [
   {
     key: 'waiting',
     title: 'Chờ làm',
     hint: 'Chờ phân công hoặc đủ vật tư',
+    mod: 'th-prod-column--waiting',
   },
   {
     key: 'doing',
@@ -49,29 +58,27 @@ function taskTitleLine(t: ProductionTaskDto): string {
   return 'Lệnh sản xuất'
 }
 
-function shortId(id: string): string {
-  const x = id.replace(/-/g, '')
-  return x.length >= 8 ? x.slice(0, 8) : id.slice(0, 8)
-}
-
 function cardsForColumn(tasks: ProductionTaskDto[], col: ColumnKey): ProductionTaskDto[] {
   return tasks.filter((t) => productionTaskStatusToColumn(t.status) === col)
 }
 
 function productionTaskDetailPath(t: ProductionTaskDto): string {
+  const ref = productionTaskRef(t)
   return t.orderId
-    ? productionPaths.tasks.byOrderTask(t.id)
-    : productionPaths.tasks.internalTask(t.id)
+    ? productionPaths.tasks.byOrderTask(ref)
+    : productionPaths.tasks.internalTask(ref)
 }
 
 /** Bảng công việc ráp tủ — ba cột chờ / đang làm / hoàn thành. */
 export function ProductionBoardPage() {
+  const { message } = App.useApp()
   const navigate = useNavigate()
   const baseId = useId()
   const orderFilterId = `${baseId}-order-filter`
   const [orderFilter, setOrderFilter] = useState<string>('all')
+  const [taskScope, setTaskScope] = useState<TaskScope>('personal')
   const [pageIndex, setPageIndex] = useState(0)
-  const [pageSize] = useState(10)
+  const [pageSize] = useState(100)
   const [tasks, setTasks] = useState<ProductionTaskDto[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -136,12 +143,13 @@ export function ProductionBoardPage() {
       const updated = await assignProductionTask(assignTask.id, me.id)
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
       setAssignTask(null)
+      message.success('Đã nhận việc')
     } catch (e) {
       setAssignError(e instanceof Error ? e.message : 'Không nhận việc được')
     } finally {
       setAssignSubmitting(false)
     }
-  }, [assignTask, me?.id])
+  }, [assignTask, me?.id, message])
 
   const handleStartConfirm = useCallback(async () => {
     if (!startTask) return
@@ -163,6 +171,13 @@ export function ProductionBoardPage() {
     setCompleteSubmitting(true)
     setCompleteError(null)
     try {
+      const logs = await fetchProductionTaskLogs(completeTask.id)
+      if (logs.length < 1) {
+        setCompleteError(
+          'Cần ít nhất một nhật ký làm việc của lệnh trước khi hoàn tất.',
+        )
+        return
+      }
       const updated = await completeProductionTask(completeTask.id)
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
       setCompleteTask(null)
@@ -195,27 +210,36 @@ export function ProductionBoardPage() {
     void load()
   }, [load])
 
-  const orderOptions = useMemo(() => {
+  const taskOrderHints = useMemo(() => {
     const seen = new Set<string>()
-    const out: { id: string; label: string }[] = []
+    const out: Array<{
+      orderId: string
+      orderDisplayCode?: string | null
+      agencyName?: string | null
+    }> = []
     for (const t of tasks) {
-      if (t.orderId && !seen.has(t.orderId)) {
-        seen.add(t.orderId)
-        out.push({
-          id: t.orderId,
-          label: `${shortId(t.orderId)}…`,
-        })
-      }
+      if (!t.orderId || !isProductionBoardTask(t) || seen.has(t.orderId)) continue
+      seen.add(t.orderId)
+      out.push({
+        orderId: t.orderId,
+        orderDisplayCode: t.orderDisplayCode,
+        agencyName: t.orderAgencyName,
+      })
     }
-    return out.sort((a, b) => a.id.localeCompare(b.id))
+    return out
   }, [tasks])
 
   /**
-   * Ẩn lệnh của người khác: chỉ hiện lệnh chưa ai nhận + lệnh đã giao cho bạn.
-   * (Switch «Chỉ lệnh của tôi» đang tạm ẩn.)
+   * Cá nhân: lệnh chưa nhận + lệnh đã giao cho bạn (ẩn lệnh thợ khác).
+   * Tất cả: mọi lệnh trên trang hiện tại (sau lọc đơn).
    */
   const filteredTasks = useMemo(() => {
-    const list = orderFilter === 'all' ? tasks : tasks.filter((t) => t.orderId === orderFilter)
+    const fulfillmentTasks = tasks.filter(isProductionBoardTask)
+    const list =
+      orderFilter === 'all'
+        ? fulfillmentTasks
+        : fulfillmentTasks.filter((t) => t.orderId === orderFilter)
+    if (taskScope === 'all') return list
     const unassigned = (t: ProductionTaskDto) => !t.assignedToId
     if (meLoading) {
       return list.filter(unassigned)
@@ -224,7 +248,7 @@ export function ProductionBoardPage() {
       return list.filter(unassigned)
     }
     return list.filter((t) => unassigned(t) || t.assignedToId === me.id)
-  }, [tasks, orderFilter, me?.id, meLoading])
+  }, [tasks, orderFilter, taskScope, me?.id, meLoading])
 
   const columnCards = useMemo(
     () => ({
@@ -241,7 +265,6 @@ export function ProductionBoardPage() {
         open={assignTask !== null}
         task={assignTask}
         workerFullName={me?.fullName ?? ''}
-        workerId={me?.id ?? ''}
         isSubmitting={assignSubmitting}
         submitError={assignError}
         onClose={() => {
@@ -296,21 +319,49 @@ export function ProductionBoardPage() {
       <div className="th-prod-board__toolbar">
         <AppFilterBar>
           <AppFilterField label="Đơn hàng" className="th-prod-board__filter">
-            <AppFilterSelect
+            <ProductionBoardOrderFilter
+              className="th-prod-board__order-select"
               value={orderFilter}
               onChangeValue={setOrderFilter}
-              options={[
-                { value: 'all', label: `Tất cả (${loading ? '…' : totalElements} lệnh trang này)` },
-                ...orderOptions.map((option) => ({ value: option.id, label: `Đơn ${option.label}` })),
-              ]}
+              allOptionLabel={`Tất cả (${loading ? '…' : totalElements} lệnh trang này)`}
+              taskOrderHints={taskOrderHints}
             />
           </AppFilterField>
+          <div className="th-prod-board__toolbar-switch">
+            <label className="th-prod-board__switch th-prod-board__switch--scope">
+              <span
+                className={
+                  taskScope === 'personal'
+                    ? 'th-prod-board__switch-side th-prod-board__switch-side--active'
+                    : 'th-prod-board__switch-side'
+                }
+              >
+                Cá nhân
+              </span>
+              <input
+                type="checkbox"
+                className="th-prod-board__switch-input"
+                checked={taskScope === 'all'}
+                onChange={(e) => setTaskScope(e.target.checked ? 'all' : 'personal')}
+                aria-controls={`${orderFilterId}-hint`}
+              />
+              <span className="th-prod-board__switch-track" aria-hidden />
+              <span
+                className={
+                  taskScope === 'all'
+                    ? 'th-prod-board__switch-side th-prod-board__switch-side--active'
+                    : 'th-prod-board__switch-side'
+                }
+              >
+                Tất cả
+              </span>
+            </label>
+          </div>
         </AppFilterBar>
-        {/*
-          Tạm ẩn switch «Chỉ lệnh của tôi» — mặc định: lệnh chưa nhận + lệnh của user (ẩn lệnh thợ khác).
-        */}
         <p id={`${orderFilterId}-hint`} className="th-prod-board__toolbar-hint">
-          Hiển thị lệnh chưa nhận và lệnh đã giao cho bạn (ẩn lệnh của thợ khác). Đổi trang để xem thêm lệnh.
+          {taskScope === 'personal'
+            ? 'Lệnh chưa nhận + lệnh của bạn.'
+            : 'Mọi lệnh trang này; thao tác chỉ trên lệnh của bạn.'}
         </p>
       </div>
 
@@ -336,9 +387,13 @@ export function ProductionBoardPage() {
             <div className="th-prod-column__drop" role="presentation">
               {columnCards[col.key].length === 0 ? (
                 <p className="th-prod-column__empty">
-                  {orderFilter === 'all'
-                    ? 'Không có lệnh chưa nhận / của bạn ở cột này (sau lọc).'
-                    : 'Không có lệnh phù hợp ở cột này cho đơn đã chọn.'}
+                  {taskScope === 'personal'
+                    ? orderFilter === 'all'
+                      ? 'Không có lệnh chưa nhận / của bạn ở cột này (sau lọc).'
+                      : 'Không có lệnh phù hợp ở cột này cho đơn đã chọn.'
+                    : orderFilter === 'all'
+                      ? 'Không có lệnh ở cột này trên trang hiện tại.'
+                      : 'Không có lệnh ở cột này cho đơn đã chọn.'}
                 </p>
               ) : (
                 columnCards[col.key].map((card) => (
@@ -368,11 +423,11 @@ export function ProductionBoardPage() {
                       <div className="th-prod-card__id-row">
                         <dt className="th-prod-card__id-label">Mã lệnh</dt>
                         <dd className="th-prod-card__id-dd">
-                          <code className="th-prod-card__id-value">{card.id}</code>
+                          <code className="th-prod-card__id-value">{productionTaskRef(card)}</code>
                         </dd>
                       </div>
                       <div className="th-prod-card__id-row">
-                        <dt className="th-prod-card__id-label">Đơn ID</dt>
+                        <dt className="th-prod-card__id-label">Mã đơn</dt>
                         <dd className="th-prod-card__id-dd">
                           {card.orderId ? (
                             <Link
@@ -381,7 +436,9 @@ export function ProductionBoardPage() {
                               title="Chi tiết đơn NVBH"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <code className="th-prod-card__id-value">{card.orderId}</code>
+                              <code className="th-prod-card__id-value">
+                                {productionOrderRef(card.orderId, card.orderDisplayCode)}
+                              </code>
                             </Link>
                           ) : (
                             <span className="th-prod-card__id-none">— (dự trữ / nội bộ)</span>
@@ -393,11 +450,16 @@ export function ProductionBoardPage() {
                     <div className="th-prod-card__meta">
                       <span className="th-prod-card__agency">SL {card.quantity}</span>
                     </div>
-                    <p className="th-prod-card__assign">
-                      {card.assignedToName?.trim()
-                        ? `Thợ: ${card.assignedToName}`
-                        : 'Chưa phân công'}
-                    </p>
+                    {!card.assignedToId ? (
+                      <span className="th-prod-card__claim-badge">Chưa nhận việc</span>
+                    ) : (
+                      <p className="th-prod-card__assign">Thợ phụ trách: {card.assignedToName?.trim() || '—'}</p>
+                    )}
+                    {card.deliverable ? (
+                      <p className="th-prod-card__assign" style={{ color: '#b45309' }}>
+                        Chờ Seller giao lô
+                      </p>
+                    ) : null}
                     {!card.assignedToId ? (
                       <div
                         className="th-prod-card__actions"
@@ -463,14 +525,14 @@ export function ProductionBoardPage() {
                       </div>
                     ) : null}
                     <div className="th-prod-card__foot">
-                      <span className="th-prod-card__due">
-                        {card.status === 'Done' && card.completedAt
-                          ? `Xong ${card.completedAt.replace('T', ' ').slice(0, 16)}`
-                          : card.expectedEndDate
-                            ? `Hạn ${card.expectedEndDate}`
-                            : card.startDate
-                              ? `Bắt đầu ${card.startDate}`
-                              : '—'}
+                      <span
+                        className={
+                          isTaskDueOverdue(card)
+                            ? 'th-prod-card__due th-prod-card__due--overdue'
+                            : 'th-prod-card__due'
+                        }
+                      >
+                        {formatTaskDueFootLabel(card)}
                       </span>
                     </div>
                   </article>

@@ -1,13 +1,12 @@
 import { useEffect, useId, useRef } from 'react'
 import type { ProductionTaskDto } from '../productionTasksApi'
+import { productionTaskRef } from '../utils/productionTaskRef'
+import '../../admin/pages/AdminUsersPage.css'
 
 export type ProductionAssignTaskDialogProps = {
   open: boolean
   task: ProductionTaskDto | null
-  /** Họ tên từ GET /api/me */
   workerFullName: string
-  /** UUID người dùng — gửi trong body assignedTo */
-  workerId: string
   isSubmitting: boolean
   submitError: string | null
   onClose: () => void
@@ -27,7 +26,6 @@ export function ProductionAssignTaskDialog({
   open,
   task,
   workerFullName,
-  workerId,
   isSubmitting,
   submitError,
   onClose,
@@ -73,7 +71,7 @@ export function ProductionAssignTaskDialog({
               </span>
             </div>
             <h2 id={titleId} className="th-dlg__title">
-              Xác nhận nhận việc
+              Nhận việc
             </h2>
             <button
               type="button"
@@ -89,15 +87,15 @@ export function ProductionAssignTaskDialog({
           </header>
           <div className="th-dlg__body th-prod-dlg-body">
             <p className="th-prod-dlg-lead">
-              <strong>Mã lệnh:</strong> <code>{task.id}</code>
+              <strong>Mã lệnh:</strong> <code>{productionTaskRef(task)}</code>
             </p>
             <p className="th-prod-dlg-text">
               <strong>Nội dung:</strong> {taskSummary(task)}
             </p>
             <p className="th-prod-dlg-text">
-              Bạn sẽ nhận lệnh này với tài khoản <strong>{workerFullName || '—'}</strong>.
+              Nhận lệnh về cho <strong>{workerFullName || '—'}</strong>. Sau khi xác nhận, lệnh được phân công
+              cho bạn và bạn có thể bấm <strong>Bắt đầu làm</strong> trên bảng công việc.
             </p>
-            <p className="th-prod-dlg-meta">ID: {workerId || '—'}</p>
             {submitError ? (
               <p className="th-admin-users__api-error" role="alert" style={{ margin: 0 }}>
                 {submitError}
@@ -108,12 +106,7 @@ export function ProductionAssignTaskDialog({
             <button type="button" className="th-admin-users__btn-ghost" onClick={handleClose} disabled={isSubmitting}>
               Hủy
             </button>
-            <button
-              type="button"
-              className="th-admin-users__btn-primary"
-              onClick={onConfirm}
-              disabled={isSubmitting || !workerId.trim()}
-            >
+            <button type="button" className="th-admin-users__btn-primary" onClick={onConfirm} disabled={isSubmitting}>
               <span className="material-symbols-outlined th-admin-users__btn-icon" aria-hidden>
                 check_circle
               </span>

@@ -9,6 +9,8 @@ import {
   productionTaskStatusToColumn,
   type ProductionTaskDto,
 } from '../productionTasksApi'
+import { formatTaskDueCell, isTaskDueOverdue } from '../utils/productionTaskDue'
+import { productionTaskRef } from '../utils/productionTaskRef'
 import './ProductionTasksInternalPage.css'
 
 type FilterTab = 'all' | ProductionFloorColumn
@@ -25,12 +27,6 @@ function taskTitleLine(t: ProductionTaskDto): string {
     return c.length > 120 ? `${c.slice(0, 117)}…` : c
   }
   return 'Lệnh sản xuất'
-}
-
-function formatDue(iso: string | null): string {
-  if (!iso?.trim()) return '—'
-  const d = iso.trim()
-  return d.length >= 10 ? d.slice(0, 10) : d
 }
 
 function isMtsTask(t: ProductionTaskDto): boolean {
@@ -92,6 +88,7 @@ export function ProductionTasksInternalPage() {
       const pid = t.productId ?? ''
       return (
         t.id.toLowerCase().includes(q) ||
+        (t.displayCode ?? '').toLowerCase().includes(q) ||
         pid.toLowerCase().includes(q) ||
         (t.productName ?? '').toLowerCase().includes(q) ||
         (t.customRequirements ?? '').toLowerCase().includes(q) ||
@@ -170,7 +167,7 @@ export function ProductionTasksInternalPage() {
                 SL
               </th>
               <th scope="col">Loại / ghi chú</th>
-              <th scope="col">PIC</th>
+              <th scope="col">Thợ phụ trách</th>
               <th scope="col">Trạng thái</th>
               <th scope="col" className="th-prod-data-table__col-date">
                 Hạn xong
@@ -207,7 +204,7 @@ export function ProductionTasksInternalPage() {
                       }}
                     >
                       <td>
-                        <code className="th-prod-internal__code th-prod-internal__code--full">{t.id}</code>
+                        <code className="th-prod-internal__code th-prod-internal__code--full">{productionTaskRef(t)}</code>
                       </td>
                       <td>
                         <code className="th-prod-internal__sku th-prod-internal__sku--full">
@@ -222,14 +219,22 @@ export function ProductionTasksInternalPage() {
                         </span>
                       </td>
                       <td>
-                        <span className="th-prod-data-table__pic">
+                        <span className="th-prod-data-table__worker">
                           {t.assignedToName?.trim() ? t.assignedToName : '—'}
                         </span>
                       </td>
                       <td>
                         <span className={statusClassFromTask(t)}>{internalStatusLabel(st)}</span>
                       </td>
-                      <td className="th-prod-data-table__date">{formatDue(t.expectedEndDate)}</td>
+                      <td
+                        className={
+                          isTaskDueOverdue(t)
+                            ? 'th-prod-data-table__date th-prod-due--overdue'
+                            : 'th-prod-data-table__date'
+                        }
+                      >
+                        {formatTaskDueCell(t)}
+                      </td>
                     </tr>
                   )
                 })

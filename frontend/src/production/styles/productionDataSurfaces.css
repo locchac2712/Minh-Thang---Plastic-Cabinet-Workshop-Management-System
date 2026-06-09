@@ -3,7 +3,7 @@
  */
 
 .th-production-panel {
-  --th-pr-head-gradient: linear-gradient(165deg, #292524 0%, #1c1917 48%, #0c0a09 100%);
+  --th-pr-head-gradient: linear-gradient(165deg, #57534e 0%, #44403c 52%, #292524 100%);
   --th-pr-head-fg: #fafaf9;
   --th-pr-head-edge: rgba(251, 146, 60, 0.42);
   --th-pr-dialog-accent: #fb923c;
@@ -86,6 +86,11 @@
   color: #57534e;
 }
 
+.th-production-panel .th-prod-due--overdue {
+  color: #dc2626;
+  font-weight: 600;
+}
+
 .th-production-panel .th-prod-data-table__summary {
   margin-top: 0.2rem;
   font-size: 0.72rem;
@@ -116,7 +121,7 @@
   white-space: nowrap;
 }
 
-.th-production-panel .th-prod-data-table__pic {
+.th-production-panel .th-prod-data-table__worker {
   display: block;
   font-weight: var(--th-weight-semibold);
   color: #292524;
@@ -175,6 +180,10 @@
 }
 
 /* Dialog */
+.th-production-panel dialog.th-dlg[open] {
+  background: rgba(28, 25, 23, 0.45);
+}
+
 .th-production-panel dialog.th-dlg .th-dlg__head {
   background: var(--th-pr-head-gradient);
   border-bottom: 1px solid var(--th-pr-head-edge);
@@ -232,7 +241,7 @@
 .th-production-panel dialog.th-dlg .th-prod-dlg-lead {
   margin: 0;
   font-size: 0.8125rem;
-  color: #78716c;
+  color: #44403c;
   line-height: 1.45;
 }
 
@@ -254,6 +263,47 @@
 .th-production-panel dialog.th-dlg .th-prod-dlg-meta {
   margin: 0;
   font-size: 0.75rem;
-  color: #78716c;
+  color: #57534e;
   word-break: break-all;
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-select,
+.th-production-panel dialog.th-dlg .th-prod-dlg-input {
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.5rem 0.65rem;
+  font-size: var(--th-text-md);
+  font-family: inherit;
+  color: #1c1917;
+  background: #fff;
+  border: 1px solid #d6d3d1;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06);
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-select:focus,
+.th-production-panel dialog.th-dlg .th-prod-dlg-input:focus {
+  outline: 2px solid rgba(251, 146, 60, 0.55);
+  outline-offset: 1px;
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-date {
+  width: 100%;
+  display: block;
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-date.ant-picker {
+  border-radius: 10px;
+  border-color: #cbd5e1;
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-date.ant-picker .ant-picker-input > input {
+  color: #0f172a;
+  font: inherit;
+}
+
+.th-production-panel dialog.th-dlg .th-prod-dlg-text + .th-prod-dlg-select,
+.th-production-panel dialog.th-dlg .th-prod-dlg-text + .th-prod-dlg-input,
+.th-production-panel dialog.th-dlg .th-prod-dlg-text + .th-prod-dlg-date {
+  margin-bottom: 0.5rem;
 }

@@ -1,9 +1,22 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { CategorySearchSelect, type CategoryOption } from '../../admin/components/CategorySearchSelect/CategorySearchSelect'
 import { formatVND } from '../../admin/partners/agencyModel'
-import { createProductionCustomProduct } from '../productionCustomProductsApi'
-import { fetchProductionMaterials, type ProductionMaterialDto } from '../productionTasksApi'
+import {
+  formatVndInputAmount,
+  normalizeVndInputTyping,
+  parseVndInput,
+} from '../../shared/money/vndInput'
+import { ProductionAgencyPickSelect } from '../components/ProductionAgencyPickSelect'
+import {
+  createProductionCustomProduct,
+  isPdfUploadFile,
+  uploadProductionDocumentFile,
+} from '../productionCustomProductsApi'
+import { productionPaths } from '../config/productionPaths'
+import { fetchProductionMaterials, fetchProductionMaterialById, uploadProductionImageFile, type ProductionMaterialDto } from '../productionTasksApi'
 import './ProductionCustomProductCreatePage.css'
+import './ProductionCustomProductDetailPage.css'
 
 function newBomKey(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -19,9 +32,10 @@ type BomFormRow = {
   note: string
 }
 
-function parseImageUrls(raw: string): string[] {
-  const lines = raw.split(/\r?\n/).flatMap((line) => line.split(','))
-  return lines.map((s) => s.trim()).filter(Boolean)
+type PendingUploadImage = {
+  id: string
+  file: File
+  previewUrl: string
 }
 
 const emptyBomRow = (): BomFormRow => ({
@@ -48,6 +62,13 @@ function trySumBomCostVnd(
   return { ok: true, total: Math.round(t) }
 }
 
+function materialOptionLabel(m: Pick<ProductionMaterialDto, 'name' | 'code'>): string {
+  const name = m.name.trim()
+  const code = m.code.trim()
+  if (name && code) return `${name} · ${code}`
+  return name || code || '—'
+}
+
 function mergeMaterialSelectOptions(
   base: CategoryOption[],
   selectedId: string,
@@ -56,10 +77,19 @@ function mergeMaterialSelectOptions(
   if (!selectedId || base.some((o) => o.id === selectedId)) return base
   const m = cache[selectedId]
   if (!m) return base
-  return [{ id: m.id, label: `${m.code} · ${m.name} (${m.unit})` }, ...base]
+  return [{ id: m.id, label: materialOptionLabel(m) }, ...base]
+}
+
+function materialUnitLabel(
+  materialId: string,
+  cache: Record<string, ProductionMaterialDto>,
+): string {
+  const u = cache[materialId.trim()]?.unit?.trim()
+  return u || '—'
 }
 
 export function ProductionCustomProductCreatePage() {
+  const navigate = useNavigate()
   const fid = useId()
   const materialSearchSeq = useRef(0)
   const [agencyId, setAgencyId] = useState('')
@@ -70,8 +100,9 @@ export function ProductionCustomProductCreatePage() {
 
   const [sku, setSku] = useState('')
   const [name, setName] = useState('')
-  const [imageUrlsText, setImageUrlsText] = useState('')
-  const [resourceUrl, setResourceUrl] = useState('')
+  const [imageItems, setImageItems] = useState<PendingUploadImage[]>([])
+  const [resourceFile, setResourceFile] = useState<File | null>(null)
+  const [resourcePreview, setResourcePreview] = useState<string | null>(null)
   const [costPrice, setCostPrice] = useState('')
   const [suggestedPrice, setSuggestedPrice] = useState('')
   const [bomRows, setBomRows] = useState<BomFormRow[]>(() => [emptyBomRow()])
@@ -94,7 +125,7 @@ export function ProductionCustomProductCreatePage() {
       setMaterialOptions(
         data.content.map((m) => ({
           id: m.id,
-          label: `${m.code} · ${m.name} (${m.unit})`,
+          label: materialOptionLabel(m),
         })),
       )
       setMaterialCache((prev) => {
@@ -114,8 +145,46 @@ export function ProductionCustomProductCreatePage() {
     void loadMaterialOptionsForPicker('')
   }, [loadMaterialOptionsForPicker])
 
-  const costNum = Number(costPrice)
-  const suggestedNum = Number(suggestedPrice)
+  useEffect(() => {
+    if (!resourceFile) {
+      setResourcePreview(null)
+      return
+    }
+    if (isPdfUploadFile(resourceFile)) {
+      setResourcePreview(null)
+      return
+    }
+    const url = URL.createObjectURL(resourceFile)
+    setResourcePreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [resourceFile])
+
+  useEffect(() => {
+    return () => {
+      imageItems.forEach((item) => URL.revokeObjectURL(item.previewUrl))
+    }
+  }, [imageItems])
+
+  const appendImageFiles = useCallback((files: FileList | null) => {
+    if (!files || files.length === 0) return
+    const nextItems: PendingUploadImage[] = Array.from(files).map((file) => ({
+      id: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2)}`,
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }))
+    setImageItems((prev) => [...prev, ...nextItems])
+  }, [])
+
+  const removeImageFile = useCallback((id: string) => {
+    setImageItems((prev) => {
+      const target = prev.find((item) => item.id === id)
+      if (target) URL.revokeObjectURL(target.previewUrl)
+      return prev.filter((item) => item.id !== id)
+    })
+  }, [])
+
+  const costNum = parseVndInput(costPrice) ?? NaN
+  const suggestedNum = parseVndInput(suggestedPrice) ?? NaN
   const pricePreview = useMemo(() => {
     if (!Number.isFinite(costNum) || !Number.isFinite(suggestedNum)) return null
     if (costNum < 0 || suggestedNum < 0) return null
@@ -170,11 +239,27 @@ export function ProductionCustomProductCreatePage() {
     setBomRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)))
   }, [])
 
+  const pickBomMaterial = useCallback(
+    (rowKey: string, materialId: string) => {
+      patchBomRow(rowKey, { materialId })
+      const id = materialId.trim()
+      if (!id) return
+      void fetchProductionMaterialById(id).then((m) => {
+        if (!m) return
+        setMaterialCache((prev) => (prev[m.id] ? prev : { ...prev, [m.id]: m }))
+      })
+    },
+    [patchBomRow],
+  )
+
   const resetProductFields = useCallback(() => {
     setSku('')
     setName('')
-    setImageUrlsText('')
-    setResourceUrl('')
+    setImageItems((prev) => {
+      prev.forEach((item) => URL.revokeObjectURL(item.previewUrl))
+      return []
+    })
+    setResourceFile(null)
     setCostPrice('')
     setSuggestedPrice('')
     setBomRows([emptyBomRow()])
@@ -183,7 +268,7 @@ export function ProductionCustomProductCreatePage() {
 
   const applyBomCostToCostPrice = useCallback(() => {
     if (bomCostStatus.kind !== 'suggest') return
-    setCostPrice(String(Math.round(bomCostStatus.total)))
+    setCostPrice(formatVndInputAmount(Math.round(bomCostStatus.total)))
   }, [bomCostStatus])
 
   const handleSubmit = useCallback(
@@ -194,7 +279,7 @@ export function ProductionCustomProductCreatePage() {
 
       const aid = agencyId.trim()
       if (!aid) {
-        setSubmitError('Vui lòng chọn đại lý hoặc nhập UUID đại lý.')
+        setSubmitError('Vui lòng chọn đại lý.')
         return
       }
       const skuT = sku.trim()
@@ -231,35 +316,52 @@ export function ProductionCustomProductCreatePage() {
         return
       }
 
-      const imageUrls = parseImageUrls(imageUrlsText)
       setSubmitting(true)
       try {
+        const imageUrls: string[] = []
+        for (const item of imageItems) {
+          imageUrls.push(await uploadProductionImageFile(item.file))
+        }
+        let uploadedResourceUrl: string | null = null
+        if (resourceFile) {
+          uploadedResourceUrl = isPdfUploadFile(resourceFile)
+            ? await uploadProductionDocumentFile(resourceFile)
+            : await uploadProductionImageFile(resourceFile)
+        }
+
         const created = await createProductionCustomProduct({
           agencyId: aid,
           sku: skuT,
           name: nameT,
           imageUrls,
-          resourceUrl: resourceUrl.trim() || null,
+          resourceUrl: uploadedResourceUrl,
           costPrice: costNum,
           suggestedPrice: suggestedNum,
           bomItems,
         })
         setSuccessMsg(
-          `Đã tạo sản phẩm custom: ${created.name} (mã hàng ${created.sku}) · mã ${created.id}. Có thể tạo tiếp bên dưới.`,
+          `Đã tạo sản phẩm custom: ${created.name} (mã hàng ${created.sku}).`,
         )
         resetProductFields()
+        navigate(productionPaths.customProducts.detail(created.id))
       } catch (err) {
         setSubmitError(err instanceof Error ? err.message : 'Không gửi được yêu cầu')
       } finally {
         setSubmitting(false)
       }
     },
-    [agencyId, sku, name, costNum, suggestedNum, bomRows, imageUrlsText, resourceUrl, resetProductFields],
+    [agencyId, sku, name, costNum, suggestedNum, bomRows, imageItems, resourceFile, resetProductFields, navigate],
   )
 
   return (
     <div className="th-prod-cpc">
       <header className="th-prod-cpc__header">
+        <Link to={productionPaths.customProducts.list} className="th-prod-cp-detail__back">
+          <span className="material-symbols-outlined" aria-hidden>
+            arrow_back
+          </span>
+          Danh sách sản phẩm custom
+        </Link>
         <h1 className="th-prod-cpc__title">
           <span className="material-symbols-outlined" aria-hidden>
             design_services
@@ -281,6 +383,14 @@ export function ProductionCustomProductCreatePage() {
 
       <form className="th-prod-cpc__form" onSubmit={(ev) => void handleSubmit(ev)} noValidate>
         <div className="th-prod-cpc__layout">
+          <div className="th-prod-cpc__section-actions th-prod-cpc__section-actions--span">
+            <button type="submit" className="th-prod-cpc__submit" disabled={submitting}>
+              <span className="material-symbols-outlined" aria-hidden>
+                save
+              </span>
+              {submitting ? 'Đang gửi…' : 'Tạo sản phẩm'}
+            </button>
+          </div>
           <div className="th-prod-cpc__main">
             <section className="th-prod-cpc__card" aria-labelledby={`${fid}-agency`}>
               <h2 id={`${fid}-agency`} className="th-prod-cpc__card-title">
@@ -292,17 +402,15 @@ export function ProductionCustomProductCreatePage() {
               <div className="th-prod-cpc__grid2">
                 <div className="th-prod-cpc__field th-prod-cpc__field--full">
                   <label className="th-prod-cpc__label" htmlFor={`${fid}-agency-id`}>
-                    Mã đại lý (UUID) <abbr title="bắt buộc">*</abbr>
+                    Đại lý <abbr title="bắt buộc">*</abbr>
                   </label>
-                  <input
+                  <ProductionAgencyPickSelect
                     id={`${fid}-agency-id`}
-                    className="th-prod-cpc__input th-prod-cpc__mono"
-                    type="text"
-                    autoComplete="off"
-                    placeholder="11000000-0000-0000-0000-000000000001"
+                    className="th-prod-cpc__agency-select"
                     value={agencyId}
-                    onChange={(e) => setAgencyId(e.target.value)}
+                    onChangeValue={(id) => setAgencyId(id)}
                   />
+                  <p className="th-prod-cpc__field-hint">Gõ trong dropdown để tìm tên hoặc MST.</p>
                 </div>
               </div>
             </section>
@@ -346,13 +454,13 @@ export function ProductionCustomProductCreatePage() {
                   </label>
                   <input
                     id={`${fid}-cost`}
-                    className="th-prod-cpc__input"
-                    type="number"
-                    min={0}
-                    step={1000}
+                    className="th-prod-cpc__input th-prod-cpc__input--money"
+                    type="text"
                     inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="0"
                     value={costPrice}
-                    onChange={(e) => setCostPrice(e.target.value)}
+                    onChange={(e) => setCostPrice(normalizeVndInputTyping(e.target.value))}
                   />
                 </div>
                 <div className="th-prod-cpc__field">
@@ -361,13 +469,13 @@ export function ProductionCustomProductCreatePage() {
                   </label>
                   <input
                     id={`${fid}-sug`}
-                    className="th-prod-cpc__input"
-                    type="number"
-                    min={0}
-                    step={10000}
+                    className="th-prod-cpc__input th-prod-cpc__input--money"
+                    type="text"
                     inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="0"
                     value={suggestedPrice}
-                    onChange={(e) => setSuggestedPrice(e.target.value)}
+                    onChange={(e) => setSuggestedPrice(normalizeVndInputTyping(e.target.value))}
                   />
                 </div>
                 {pricePreview ? (
@@ -390,35 +498,118 @@ export function ProductionCustomProductCreatePage() {
             <section className="th-prod-cpc__card" aria-labelledby={`${fid}-media`}>
               <h2 id={`${fid}-media`} className="th-prod-cpc__card-title">
                 <span className="material-symbols-outlined" aria-hidden>
-                  link
+                  upload_file
                 </span>
                 Ảnh &amp; tài liệu
               </h2>
-              <div className="th-prod-cpc__grid2">
+              <div className="th-prod-cpc__media-stack">
                 <div className="th-prod-cpc__field th-prod-cpc__field--full">
-                  <label className="th-prod-cpc__label" htmlFor={`${fid}-imgs`}>
-                    URL ảnh (mỗi dòng một link, hoặc cách nhau bởi dấu phẩy)
-                  </label>
-                  <textarea
-                    id={`${fid}-imgs`}
-                    className="th-prod-cpc__textarea th-prod-cpc__textarea--sm"
-                    placeholder="https://…"
-                    value={imageUrlsText}
-                    onChange={(e) => setImageUrlsText(e.target.value)}
-                  />
+                  <span className="th-prod-cpc__label" id={`${fid}-imgs-label`}>
+                    Ảnh sản phẩm
+                  </span>
+                  <div className="th-prod-cpc__upload">
+                    <input
+                      id={`${fid}-imgs`}
+                      className="th-prod-cpc__upload-input"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      disabled={submitting}
+                      aria-labelledby={`${fid}-imgs-label`}
+                      onChange={(e) => {
+                        appendImageFiles(e.target.files)
+                        e.currentTarget.value = ''
+                      }}
+                    />
+                    <label htmlFor={`${fid}-imgs`} className="th-prod-cpc__upload-btn">
+                      <span className="material-symbols-outlined" aria-hidden>
+                        add_photo_alternate
+                      </span>
+                      Chọn ảnh từ máy
+                    </label>
+                  </div>
+                  <p className="th-prod-cpc__hint">
+                    {imageItems.length > 0
+                      ? `Đã chọn ${imageItems.length} ảnh — JPG, PNG, WebP (tối đa 5MB/ảnh).`
+                      : 'Tuỳ chọn — có thể chọn nhiều ảnh.'}
+                  </p>
+                  {imageItems.length > 0 ? (
+                    <div className="th-prod-cpc__images-grid" aria-live="polite">
+                      {imageItems.map((item, index) => (
+                        <figure key={item.id} className="th-prod-cpc__image-card">
+                          <img
+                            src={item.previewUrl}
+                            alt={`Ảnh sản phẩm ${index + 1}`}
+                            className="th-prod-cpc__image-preview"
+                          />
+                          <figcaption className="th-prod-cpc__image-name" title={item.file.name}>
+                            {item.file.name}
+                          </figcaption>
+                          <button
+                            type="button"
+                            className="th-prod-cpc__image-remove"
+                            disabled={submitting}
+                            onClick={() => removeImageFile(item.id)}
+                            aria-label={`Gỡ ảnh ${item.file.name}`}
+                          >
+                            <span className="material-symbols-outlined" aria-hidden>
+                              close
+                            </span>
+                          </button>
+                        </figure>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
+
                 <div className="th-prod-cpc__field th-prod-cpc__field--full">
-                  <label className="th-prod-cpc__label" htmlFor={`${fid}-res`}>
-                    Resource / bản vẽ (URL)
-                  </label>
-                  <input
-                    id={`${fid}-res`}
-                    className="th-prod-cpc__input"
-                    type="url"
-                    placeholder="https://…"
-                    value={resourceUrl}
-                    onChange={(e) => setResourceUrl(e.target.value)}
-                  />
+                  <span className="th-prod-cpc__label" id={`${fid}-res-label`}>
+                    Bản vẽ / tài liệu tham chiếu
+                  </span>
+                  <div className="th-prod-cpc__upload">
+                    <input
+                      id={`${fid}-res`}
+                      className="th-prod-cpc__upload-input"
+                      type="file"
+                      accept="image/*,application/pdf,.pdf"
+                      disabled={submitting}
+                      aria-labelledby={`${fid}-res-label`}
+                      onChange={(e) => setResourceFile(e.target.files?.[0] ?? null)}
+                    />
+                    <label htmlFor={`${fid}-res`} className="th-prod-cpc__upload-btn">
+                      <span className="material-symbols-outlined" aria-hidden>
+                        description
+                      </span>
+                      {resourceFile ? 'Đổi tệp' : 'Chọn tệp từ máy'}
+                    </label>
+                    {resourceFile ? (
+                      <button
+                        type="button"
+                        className="th-prod-cpc__upload-clear"
+                        disabled={submitting}
+                        onClick={() => setResourceFile(null)}
+                      >
+                        Gỡ tệp
+                      </button>
+                    ) : null}
+                  </div>
+                  {resourceFile ? (
+                    <p className="th-prod-cpc__hint">{resourceFile.name}</p>
+                  ) : (
+                    <p className="th-prod-cpc__hint">Tuỳ chọn — ảnh bản vẽ hoặc file PDF (tối đa 10MB).</p>
+                  )}
+                  {resourceFile && isPdfUploadFile(resourceFile) ? (
+                    <div className="th-prod-cpc__resource-pdf">
+                      <span className="material-symbols-outlined" aria-hidden>
+                        picture_as_pdf
+                      </span>
+                      <span>{resourceFile.name}</span>
+                    </div>
+                  ) : resourcePreview ? (
+                    <div className="th-prod-cpc__resource-preview">
+                      <img src={resourcePreview} alt="Xem trước tài liệu" />
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </section>
@@ -474,69 +665,87 @@ export function ProductionCustomProductCreatePage() {
                 </p>
               ) : null}
 
-              <div className="th-prod-cpc__bom">
-                {bomRows.map((row, idx) => (
-                  <div key={row.key} className="th-prod-cpc__bom-row">
-                    <div className="th-prod-cpc__field th-prod-cpc__field--material-select">
-                      <label className="th-prod-cpc__label" id={`${fid}-ml-${row.key}`}>
-                        Vật tư #{idx + 1}
-                      </label>
-                      <CategorySearchSelect
-                        variant="field"
-                        aria-labelledby={`${fid}-ml-${row.key}`}
-                        options={mergeMaterialSelectOptions(materialOptions, row.materialId, materialCache)}
-                        value={row.materialId}
-                        onChange={(id) => patchBomRow(row.key, { materialId: id })}
-                        placeholder={
-                          materialLoading ? 'Đang tải danh mục…' : 'Chọn vật tư…'
-                        }
-                        searchPlaceholder="Tìm mã / tên vật tư…"
-                        remoteSearch
-                        onRemoteSearch={loadMaterialOptionsForPicker}
-                      />
-                    </div>
-                    <div className="th-prod-cpc__field">
-                      <label className="th-prod-cpc__label" htmlFor={`${fid}-q-${row.key}`}>
-                        SL
-                      </label>
-                      <input
-                        id={`${fid}-q-${row.key}`}
-                        className="th-prod-cpc__input"
-                        type="number"
-                        min={0.0001}
-                        step="any"
-                        inputMode="decimal"
-                        value={row.quantity}
-                        onChange={(e) => patchBomRow(row.key, { quantity: e.target.value })}
-                      />
-                    </div>
-                    <div className="th-prod-cpc__field">
-                      <label className="th-prod-cpc__label" htmlFor={`${fid}-n-${row.key}`}>
-                        Ghi chú
-                      </label>
-                      <input
-                        id={`${fid}-n-${row.key}`}
-                        className="th-prod-cpc__input"
-                        placeholder="Tùy chọn"
-                        value={row.note}
-                        onChange={(e) => patchBomRow(row.key, { note: e.target.value })}
-                      />
-                    </div>
-                    <div className="th-prod-cpc__bom-actions">
-                      <button
-                        type="button"
-                        className="th-prod-cpc__icon-btn"
-                        disabled={bomRows.length <= 1}
-                        onClick={() => removeBomRow(row.key)}
-                        aria-label={`Xóa dòng BOM ${idx + 1}`}
-                      >
-                        <span className="material-symbols-outlined" aria-hidden>
-                          delete
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
+              <div className="th-prod-cpc__bom-table-wrap">
+                <table className="th-prod-cpc__bom-table">
+                  <thead>
+                    <tr>
+                      <th className="th-prod-cpc__bom-col-idx">#</th>
+                      <th className="th-prod-cpc__bom-col-material">Vật tư</th>
+                      <th className="th-prod-cpc__bom-col-unit">ĐVT</th>
+                      <th className="th-prod-cpc__bom-col-qty">SL</th>
+                      <th>Ghi chú</th>
+                      <th className="th-prod-cpc__bom-col-act">
+                        <span className="th-prod-cpc__sr-only">Thao tác</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bomRows.map((row, idx) => (
+                      <tr key={row.key}>
+                        <td className="th-prod-cpc__bom-muted">{idx + 1}</td>
+                        <td className="th-prod-cpc__bom-cell-material">
+                          <label className="th-prod-cpc__sr-only" id={`${fid}-ml-${row.key}`}>
+                            Vật tư #{idx + 1}
+                          </label>
+                          <CategorySearchSelect
+                            variant="field"
+                            aria-labelledby={`${fid}-ml-${row.key}`}
+                            options={mergeMaterialSelectOptions(materialOptions, row.materialId, materialCache)}
+                            value={row.materialId}
+                            onChange={(id) => pickBomMaterial(row.key, id)}
+                            placeholder={materialLoading ? 'Đang tải…' : 'Chọn vật tư…'}
+                            searchPlaceholder="Tìm mã / tên vật tư…"
+                            remoteSearch
+                            onRemoteSearch={loadMaterialOptionsForPicker}
+                          />
+                        </td>
+                        <td className="th-prod-cpc__bom-unit">
+                          {materialUnitLabel(row.materialId, materialCache)}
+                        </td>
+                        <td className="th-prod-cpc__bom-cell-qty">
+                          <label className="th-prod-cpc__sr-only" htmlFor={`${fid}-q-${row.key}`}>
+                            Số lượng dòng {idx + 1}
+                          </label>
+                          <input
+                            id={`${fid}-q-${row.key}`}
+                            className="th-prod-cpc__input th-prod-cpc__input--qty"
+                            type="number"
+                            min={0.0001}
+                            step="any"
+                            inputMode="decimal"
+                            value={row.quantity}
+                            onChange={(e) => patchBomRow(row.key, { quantity: e.target.value })}
+                          />
+                        </td>
+                        <td className="th-prod-cpc__bom-cell-note">
+                          <label className="th-prod-cpc__sr-only" htmlFor={`${fid}-n-${row.key}`}>
+                            Ghi chú dòng {idx + 1}
+                          </label>
+                          <input
+                            id={`${fid}-n-${row.key}`}
+                            className="th-prod-cpc__input"
+                            placeholder="Tùy chọn"
+                            value={row.note}
+                            onChange={(e) => patchBomRow(row.key, { note: e.target.value })}
+                          />
+                        </td>
+                        <td className="th-prod-cpc__bom-cell-act">
+                          <button
+                            type="button"
+                            className="th-prod-cpc__icon-btn"
+                            disabled={bomRows.length <= 1}
+                            onClick={() => removeBomRow(row.key)}
+                            aria-label={`Xóa dòng BOM ${idx + 1}`}
+                          >
+                            <span className="material-symbols-outlined" aria-hidden>
+                              delete
+                            </span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
               <button type="button" className="th-prod-cpc__add-bom" onClick={addBomRow}>
                 <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '1.1rem' }}>
@@ -546,18 +755,6 @@ export function ProductionCustomProductCreatePage() {
               </button>
             </section>
           </aside>
-        </div>
-
-        <div className="th-prod-cpc__foot">
-          <button type="button" className="th-prod-cpc__reset" onClick={resetProductFields}>
-            Xóa nội dung form (giữ đại lý)
-          </button>
-          <button type="submit" className="th-prod-cpc__submit" disabled={submitting}>
-            <span className="material-symbols-outlined" aria-hidden>
-              save
-            </span>
-            {submitting ? 'Đang gửi…' : 'Tạo sản phẩm'}
-          </button>
         </div>
       </form>
     </div>

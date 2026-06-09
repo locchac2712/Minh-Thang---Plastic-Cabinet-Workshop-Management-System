@@ -26,7 +26,12 @@ export type CreateProductionCustomProductPayload = {
   bomItems: ProductionCustomProductBomItemPayload[]
 }
 
-export type ProductionCustomProductCreatedDto = {
+export type UpdateProductionCustomProductPayload = Omit<
+  CreateProductionCustomProductPayload,
+  'sku'
+>
+
+export type ProductionCustomProductDto = {
   id: string
   categoryId: string | null
   categoryName: string | null
@@ -39,33 +44,122 @@ export type ProductionCustomProductCreatedDto = {
   isActive: boolean
   isCustom: boolean
   agencyId: string
+  agencyName: string | null
   createdById: string
   resourceUrl: string | null
   createdAt: string
 }
 
-/** POST /api/production/custom-products */
-export async function createProductionCustomProduct(
-  body: CreateProductionCustomProductPayload,
-): Promise<ProductionCustomProductCreatedDto> {
+export type ProductionCustomProductBomLineDto = {
+  id: string
+  productId: string
+  materialId: string
+  materialCode: string
+  materialName: string
+  materialUnit: string
+  materialUnitCost: number | null
+  quantity: number
+  note: string | null
+  createdAt: string
+}
+
+export type ProductionCustomProductPage = {
+  content: ProductionCustomProductDto[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  last: boolean
+}
+
+function authHeaders(json = false): HeadersInit {
   const accessToken = getAccessToken()
   if (!accessToken) {
     throw new Error('Thiếu access token')
   }
-  const res = await fetch(`${API_BASE_URL}/api/production/custom-products`, {
-    method: 'POST',
-    headers: {
-      accept: '*/*',
-      'Content-Type': 'application/json',
-      Authorization: `${getTokenType()} ${accessToken}`,
-    },
-    body: JSON.stringify(body),
-  })
-  const envelope = (await res.json()) as ApiEnvelope<ProductionCustomProductCreatedDto>
-  if (!res.ok || !envelope.success || !envelope.data) {
-    throw new Error(envelope.message || 'Không tạo được sản phẩm custom')
+  const h: HeadersInit = {
+    accept: '*/*',
+    Authorization: `${getTokenType()} ${accessToken}`,
+  }
+  if (json) h['Content-Type'] = 'application/json'
+  return h
+}
+
+async function unwrap<T>(res: Response, failMessage: string): Promise<T> {
+  const envelope = (await res.json()) as ApiEnvelope<T>
+  if (!res.ok || !envelope.success || envelope.data === undefined) {
+    throw new Error(envelope.message || failMessage)
   }
   return envelope.data
+}
+
+/** GET /api/production/custom-products */
+export async function fetchProductionCustomProducts(params: {
+  page?: number
+  size?: number
+  search?: string
+  agencyId?: string
+}): Promise<ProductionCustomProductPage> {
+  const q = new URLSearchParams()
+  q.set('page', String(params.page ?? 0))
+  q.set('size', String(params.size ?? 20))
+  if (params.search?.trim()) q.set('search', params.search.trim())
+  if (params.agencyId?.trim()) q.set('agency_id', params.agencyId.trim())
+
+  const res = await fetch(`${API_BASE_URL}/api/production/custom-products?${q.toString()}`, {
+    headers: authHeaders(),
+  })
+  return unwrap<ProductionCustomProductPage>(res, 'Không tải được danh sách sản phẩm custom')
+}
+
+/** GET /api/production/custom-products/:id */
+export async function fetchProductionCustomProductById(
+  productId: string,
+): Promise<ProductionCustomProductDto> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/production/custom-products/${encodeURIComponent(productId)}`,
+    { headers: authHeaders() },
+  )
+  return unwrap<ProductionCustomProductDto>(res, 'Không tải được chi tiết sản phẩm custom')
+}
+
+/** GET /api/production/custom-products/:id/bom */
+export async function fetchProductionCustomProductBom(
+  productId: string,
+): Promise<ProductionCustomProductBomLineDto[]> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/production/custom-products/${encodeURIComponent(productId)}/bom`,
+    { headers: authHeaders() },
+  )
+  return unwrap<ProductionCustomProductBomLineDto[]>(res, 'Không tải được BOM')
+}
+
+/** POST /api/production/custom-products */
+export async function createProductionCustomProduct(
+  body: CreateProductionCustomProductPayload,
+): Promise<ProductionCustomProductDto> {
+  const res = await fetch(`${API_BASE_URL}/api/production/custom-products`, {
+    method: 'POST',
+    headers: authHeaders(true),
+    body: JSON.stringify(body),
+  })
+  return unwrap<ProductionCustomProductDto>(res, 'Không tạo được sản phẩm custom')
+}
+
+/** PUT /api/production/custom-products/:id */
+export async function updateProductionCustomProduct(
+  productId: string,
+  body: UpdateProductionCustomProductPayload,
+): Promise<ProductionCustomProductDto> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/production/custom-products/${encodeURIComponent(productId)}`,
+    {
+      method: 'PUT',
+      headers: authHeaders(true),
+      body: JSON.stringify(body),
+    },
+  )
+  return unwrap<ProductionCustomProductDto>(res, 'Không cập nhật được sản phẩm custom')
 }
 
 type AgencyListPage = {
@@ -84,20 +178,13 @@ export type ProductionAgencyPickRow = {
   taxCode: string
 }
 
-/**
- * Danh sách đại lý cho form (GET /api/production/agencies).
- * Nếu backend chưa mở endpoint, gọi sẽ lỗi — UI cho phép nhập UUID thủ công.
- */
+/** GET /api/production/agencies */
 export async function fetchProductionAgenciesPage(params: {
   page?: number
   size?: number
   search?: string
   isActive?: boolean
 }): Promise<AgencyListPage> {
-  const accessToken = getAccessToken()
-  if (!accessToken) {
-    throw new Error('Thiếu access token')
-  }
   const q = new URLSearchParams()
   q.set('page', String(params.page ?? 0))
   q.set('size', String(params.size ?? 50))
@@ -106,16 +193,9 @@ export async function fetchProductionAgenciesPage(params: {
   if (params.isActive === false) q.set('is_active', 'false')
 
   const res = await fetch(`${API_BASE_URL}/api/production/agencies?${q.toString()}`, {
-    headers: {
-      accept: '*/*',
-      Authorization: `${getTokenType()} ${accessToken}`,
-    },
+    headers: authHeaders(),
   })
-  const envelope = (await res.json()) as ApiEnvelope<AgencyListPage>
-  if (!res.ok || !envelope.success || !envelope.data) {
-    throw new Error(envelope.message || 'Không tải được danh sách đại lý')
-  }
-  return envelope.data
+  return unwrap<AgencyListPage>(res, 'Không tải được danh sách đại lý')
 }
 
 export function mapAgencyRow(r: AgencyListPage['content'][number]): ProductionAgencyPickRow {
@@ -126,3 +206,38 @@ export function mapAgencyRow(r: AgencyListPage['content'][number]): ProductionAg
     taxCode: r.taxCode,
   }
 }
+
+async function uploadMultipart(urlPath: string, file: File, failMessage: string): Promise<string> {
+  const accessToken = getAccessToken()
+  if (!accessToken) {
+    throw new Error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.')
+  }
+  const uploadBody = new FormData()
+  uploadBody.append('file', file)
+  const res = await fetch(`${API_BASE_URL}${urlPath}`, {
+    method: 'POST',
+    headers: {
+      accept: '*/*',
+      Authorization: `${getTokenType()} ${accessToken}`,
+    },
+    body: uploadBody,
+  })
+  const envelope = (await res.json()) as ApiEnvelope<{ url?: string }>
+  if (!res.ok || !envelope.success || !envelope.data?.url) {
+    throw new Error(envelope.message || failMessage)
+  }
+  return envelope.data.url
+}
+
+/** POST /api/uploadable/document — PDF tài liệu / bản vẽ. */
+export async function uploadProductionDocumentFile(file: File): Promise<string> {
+  return uploadMultipart('/api/uploadable/document', file, 'Upload tài liệu thất bại')
+}
+
+export function isPdfUploadFile(file: File): boolean {
+  if (file.type === 'application/pdf') return true
+  return file.name.trim().toLowerCase().endsWith('.pdf')
+}
+
+/** @deprecated alias — dùng fetchProductionCustomProductById */
+export type ProductionCustomProductCreatedDto = ProductionCustomProductDto

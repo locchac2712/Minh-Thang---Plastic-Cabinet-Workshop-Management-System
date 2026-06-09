@@ -15,6 +15,10 @@ type Props = {
   dayGranularityHeavy: boolean
   invalidRange: boolean
   effectiveGranularity: ChartGranularity
+  /** Ẩn dropdown chu kỳ (ngày/tuần/tháng). */
+  showGranularity?: boolean
+  /** Ẩn nhãn "Kỳ: X ngày" và nút "30 ngày gần nhất". */
+  showPeriodActions?: boolean
 }
 
 export function DashboardDateFilter({
@@ -28,6 +32,8 @@ export function DashboardDateFilter({
   dayGranularityHeavy,
   invalidRange,
   effectiveGranularity,
+  showGranularity = true,
+  showPeriodActions = true,
 }: Props) {
   const d = fromDate > toDate ? 0 : daysInclusive(fromDate, toDate)
   return (
@@ -51,25 +57,29 @@ export function DashboardDateFilter({
             onChange={(e: ChangeEvent<HTMLInputElement>) => onToChange(e.target.value)}
           />
         </label>
-        <label className="th-dash-date__field">
-          <span className="th-dash-date__lbl">Chu kỳ</span>
-          <select
-            className="th-dash-date__input"
-            value={granularityMode}
-            onChange={(e) => onGranularityModeChange(e.target.value as GranularityMode)}
-          >
-            <option value="auto">Tự động ({mapGranularityVi(effectiveGranularity)})</option>
-            <option value="day">Theo ngày</option>
-            <option value="week">Theo tuần</option>
-            <option value="month">Theo tháng</option>
-          </select>
-        </label>
-        <div className="th-dash-date__actions">
-          <span className="th-dash-date__span">{d > 0 ? `Kỳ: ${d} ngày` : ''}</span>
-          <button type="button" className="th-dash-date__reset" onClick={onReset}>
-            30 ngày gần nhất
-          </button>
-        </div>
+        {showGranularity ? (
+          <label className="th-dash-date__field">
+            <span className="th-dash-date__lbl">Chu kỳ</span>
+            <select
+              className="th-dash-date__input"
+              value={granularityMode}
+              onChange={(e) => onGranularityModeChange(e.target.value as GranularityMode)}
+            >
+              <option value="auto">Tự động ({mapGranularityVi(effectiveGranularity)})</option>
+              <option value="day">Theo ngày</option>
+              <option value="week">Theo tuần</option>
+              <option value="month">Theo tháng</option>
+            </select>
+          </label>
+        ) : null}
+        {showPeriodActions ? (
+          <div className="th-dash-date__actions">
+            <span className="th-dash-date__span">{d > 0 ? `Kỳ: ${d} ngày` : ''}</span>
+            <button type="button" className="th-dash-date__reset" onClick={onReset}>
+              30 ngày gần nhất
+            </button>
+          </div>
+        ) : null}
       </div>
       {invalidRange ? <p className="th-dash-date__warn">Ngày bắt đầu không được sau ngày kết thúc.</p> : null}
       {dayGranularityHeavy && !invalidRange ? (

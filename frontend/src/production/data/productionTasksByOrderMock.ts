@@ -40,7 +40,7 @@ function buildRows(): ProductionTaskByOrderRow[] {
     const dueDate = due.toISOString().slice(0, 10)
     return {
       id: `pt-order-${r.id}`,
-      taskCode: `SX-${r.orderCode.replace(/-/g, '')}`,
+      taskCode: `LSX-${r.orderCode.replace(/^DH-|^BG-/, '')}`,
       orderCode: r.orderCode,
       agencyCode: r.agencyCode,
       agencyShortName: r.agencyShortName,

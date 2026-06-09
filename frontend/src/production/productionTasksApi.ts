@@ -1,4 +1,7 @@
 import { getAccessToken, getTokenType } from '../auth/storage'
+import { isProductionBoardTask } from './utils/productionOrderRef'
+import { productionOrderRefLabel } from './utils/productionOrderRef'
+import { productionTaskRef } from './utils/productionTaskRef'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://be.minhthangerp.space'
 
@@ -14,18 +17,28 @@ export type ProductionTaskApiStatus = 'Waiting' | 'Doing' | 'Done'
 
 export type ProductionTaskDto = {
   id: string
+  displayCode?: string | null
+  orderItemId: string | null
   orderId: string | null
+  orderDisplayCode?: string | null
+  orderAgencyName: string | null
   orderType: string | null
   customRequirements: string | null
   productId: string | null
   productName: string | null
+  productIsCustom: boolean | null
+  productResourceUrl: string | null
   quantity: number
   assignedToId: string | null
   assignedToName: string | null
   status: ProductionTaskApiStatus
   startDate: string | null
   expectedEndDate: string | null
+  overdue: boolean | null
+  overdueDays: number | null
   completedAt: string | null
+  deliveredAt: string | null
+  deliverable: boolean | null
   createdAt: string
   orderItems: unknown
   bomItems: unknown
@@ -39,6 +52,8 @@ export type ProductionTaskOrderLineDto = {
   productSku: string
   customName: string | null
   quantity: number
+  deliveredQuantity?: number
+  remainingToDeliver?: number
   unitPrice: number
   unitCostAtTime: number
   subtotal: number
@@ -99,7 +114,11 @@ export async function fetchProductionTasks(
   if (!res.ok || !envelope.success || !envelope.data) {
     throw new Error(envelope.message || 'Không tải được danh sách công việc')
   }
-  return envelope.data
+  const data = envelope.data
+  return {
+    ...data,
+    content: data.content.filter(isProductionBoardTask),
+  }
 }
 
 /** GET /api/production/tasks/:id/details — chi tiết lệnh (orderItems, bomItems). */
@@ -133,6 +152,7 @@ export async function fetchProductionTaskDetails(taskId: string): Promise<Produc
 export type ProductionTaskLogEntryDto = {
   id: string
   taskId: string
+  taskDisplayCode?: string | null
   userId: string
   userName: string
   imageUrl: string | null
@@ -199,6 +219,29 @@ export async function createProductionTaskLog(
   return envelope.data
 }
 
+/** POST /api/uploadable/image — trả URL Cloudinary. */
+export async function uploadProductionImageFile(file: File): Promise<string> {
+  const accessToken = getAccessToken()
+  if (!accessToken) {
+    throw new Error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.')
+  }
+  const uploadBody = new FormData()
+  uploadBody.append('file', file)
+  const res = await fetch(`${API_BASE_URL}/api/uploadable/image`, {
+    method: 'POST',
+    headers: {
+      accept: '*/*',
+      Authorization: `${getTokenType()} ${accessToken}`,
+    },
+    body: uploadBody,
+  })
+  const envelope = (await res.json()) as ApiEnvelope<{ url?: string }>
+  if (!res.ok || !envelope.success || !envelope.data?.url) {
+    throw new Error(envelope.message || 'Upload ảnh thất bại')
+  }
+  return envelope.data.url
+}
+
 export type ProductionInventoryTransactionType = 'IMPORT' | 'EXPORT' | 'WASTE'
 
 export type ProductionInventoryLogDto = {
@@ -206,6 +249,7 @@ export type ProductionInventoryLogDto = {
   materialId: string
   materialName: string
   taskId: string | null
+  taskDisplayCode?: string | null
   purchaseId: string | null
   createdByName: string
   transactionType: ProductionInventoryTransactionType
@@ -306,6 +350,8 @@ export type ProductionMaterialDto = {
   minStockLevel: number
   isActive: boolean
   createdAt: string
+  linkedSupplierCount?: number
+  linkedSuppliers?: Array<{ id: string; name: string }> | null
 }
 
 type ProductionMaterialListPage = {
@@ -386,6 +432,72 @@ export function productionTaskStatusToColumn(
     default:
       return 'waiting'
   }
+}
+
+export function productionTaskStatusLabel(s: ProductionTaskApiStatus): string {
+  switch (s) {
+    case 'Waiting':
+      return 'Chờ làm'
+    case 'Doing':
+      return 'Đang làm'
+    case 'Done':
+      return 'Xong xưởng'
+    default:
+      return 'Chờ làm'
+  }
+}
+
+/** 8 ký tự đầu UUID (bỏ dấu gạch) — dùng trong dropdown / badge. */
+export function shortEntityRef(id: string): string {
+  const x = id.replace(/-/g, '')
+  return x.length >= 8 ? x.slice(0, 8) : id.slice(0, 8)
+}
+
+/** Nhãn dropdown phân biệt nhiều lô cùng sản phẩm (SL, trạng thái, mã lệnh). */
+export function formatProductionTaskOptionLabel(t: ProductionTaskDto): string {
+  const name = (
+    t.productName?.trim() ||
+    t.customRequirements?.trim()?.slice(0, 48) ||
+    'Lệnh SX'
+  ).slice(0, 52)
+  const status = productionTaskStatusLabel(t.status)
+  const taskRef = productionTaskRef(t)
+  const qty = `SL ${t.quantity}`
+
+  if (t.orderId) {
+    const dh = productionOrderRefLabel(t.orderDisplayCode)
+    if (dh) {
+      return `${name} · ${qty} · ${status} · ${taskRef} · đơn ${dh}`
+    }
+    return `${name} · ${qty} · ${status} · ${taskRef}`
+  }
+  return `${name} · ${qty} · ${status} · ${taskRef}`
+}
+
+/** GET /api/production/assignable-users */
+export type ProductionAssignableUserDto = {
+  id: string
+  username: string
+  fullName: string
+  email: string
+}
+
+export async function fetchProductionAssignableUsers(): Promise<ProductionAssignableUserDto[]> {
+  const accessToken = getAccessToken()
+  if (!accessToken) {
+    throw new Error('Thiếu access token')
+  }
+  const res = await fetch(`${API_BASE_URL}/api/production/assignable-users`, {
+    headers: {
+      accept: '*/*',
+      Authorization: `${getTokenType()} ${accessToken}`,
+    },
+  })
+  const envelope = (await res.json()) as ApiEnvelope<ProductionAssignableUserDto[]>
+  if (!res.ok || !envelope.success || !envelope.data) {
+    throw new Error(envelope.message || 'Không tải được danh sách thợ')
+  }
+  return Array.isArray(envelope.data) ? envelope.data : []
 }
 
 /** PATCH /api/production/tasks/:id/assign — gán lệnh cho thợ (body { assignedTo: userId }). */

@@ -10,6 +10,7 @@ import {
   type ProductionMaterialDto,
   type ProductionInventoryTransactionType,
 } from '../productionTasksApi'
+import { productionTaskRefFromId } from '../utils/productionTaskRef'
 import './ProductionInventoryLogsPage.css'
 
 function txLabel(t: ProductionInventoryTransactionType): string {
@@ -199,7 +200,7 @@ export function ProductionInventoryLogsPage() {
         <AppFilterField className="th-prod-ilog__field" label="Mã lệnh" search>
           <AppFilterInput
             id={`${fid}-task`}
-            placeholder="16000000-..."
+            placeholder="LSX-2026-00001"
             value={taskId}
             onChangeValue={(value) => {
               setTaskId(value)
@@ -216,9 +217,9 @@ export function ProductionInventoryLogsPage() {
             }}
             options={[
               { value: '', label: 'Tất cả' },
-              { value: 'IMPORT', label: 'IMPORT' },
-              { value: 'EXPORT', label: 'EXPORT' },
-              { value: 'WASTE', label: 'WASTE' },
+              { value: 'IMPORT', label: txLabel('IMPORT') },
+              { value: 'EXPORT', label: txLabel('EXPORT') },
+              { value: 'WASTE', label: txLabel('WASTE') },
             ]}
           />
         </AppFilterField>
@@ -262,8 +263,10 @@ export function ProductionInventoryLogsPage() {
                     </td>
                     <td>
                       {r.taskId ? (
-                        <Link className="th-prod-ilog__task-link" to={productionPaths.tasks.byOrderTask(r.taskId)}>
-                          <code className="th-prod-ilog__mono">{r.taskId}</code>
+                        <Link className="th-prod-ilog__task-link" to={productionPaths.tasks.byOrderTask(productionTaskRefFromId(r.taskId, r.taskDisplayCode))}>
+                          <code className="th-prod-ilog__mono">
+                            {productionTaskRefFromId(r.taskId, r.taskDisplayCode)}
+                          </code>
                         </Link>
                       ) : (
                         <span className="th-prod-ilog__muted">—</span>

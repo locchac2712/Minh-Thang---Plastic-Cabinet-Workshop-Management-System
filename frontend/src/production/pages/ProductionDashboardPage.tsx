@@ -234,7 +234,7 @@ export function ProductionDashboardPage() {
                     return (
                       <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: 8, fontSize: 12 }}>
                         <p style={{ margin: 0, color: '#64748b' }}>{String(label)}</p>
-                        <p style={{ margin: 0 }}>Tồn: {p} sản phẩm (ước)</p>
+                        <p style={{ margin: 0 }}>Tồn: {p} sản phẩm</p>
                       </div>
                     )
                   }}

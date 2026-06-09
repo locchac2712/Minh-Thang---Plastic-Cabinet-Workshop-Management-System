@@ -14,6 +14,15 @@ type Props = {
   onToggle: () => void
 }
 
+/** Trang danh sách / chi tiết SP custom — không gồm `/new`. */
+function isCustomProductsListNavActive(pathname: string): boolean {
+  const root = productionPaths.customProducts.root
+  const create = productionPaths.customProducts.create
+  if (pathname === create) return false
+  if (pathname === root || pathname === productionPaths.customProducts.list) return true
+  return pathname.startsWith(`${root}/`)
+}
+
 export function ProductionSidebar({ narrow: isNarrow, onToggle: toggle }: Props) {
   return (
     <aside
@@ -65,38 +74,48 @@ export function ProductionSidebar({ narrow: isNarrow, onToggle: toggle }: Props)
             label="Bảng ráp tủ"
             narrow={isNarrow}
           />
-          <div className="th-production-nav-sub" role="group">
+          <ProductionNavItemLink
+            to={productionPaths.tasks.byOrder}
+            icon="assignment"
+            label="Lệnh theo đơn bán"
+            narrow={isNarrow}
+          />
+          {SHOW_PRODUCTION_MTS_SIDEBAR_LINK ? (
             <ProductionNavItemLink
-              to={productionPaths.tasks.byOrder}
-              end={false}
-              icon="assignment"
-              label="Lệnh theo đơn bán"
+              to={productionPaths.tasks.internal}
+              icon="warehouse"
+              label="Lệnh tồn kho (MTS)"
               narrow={isNarrow}
-              className="th-production-nav-sublink"
             />
-            {SHOW_PRODUCTION_MTS_SIDEBAR_LINK ? (
-              <ProductionNavItemLink
-                to={productionPaths.tasks.internal}
-                end={false}
-                icon="warehouse"
-                label="Lệnh tồn kho (MTS)"
-                narrow={isNarrow}
-                className="th-production-nav-sublink"
-              />
-            ) : null}
-          </div>
+          ) : null}
           <ProductionNavItemLink
             to={productionPaths.activity}
             icon="edit_note"
             label="Nhật ký tiến độ"
             narrow={isNarrow}
           />
-          <ProductionNavItemLink
-            to={productionPaths.customProductCreate}
-            icon="design_services"
-            label="Tạo SP custom"
-            narrow={isNarrow}
-          />
+        </ProductionNavGroup>
+
+        <ProductionNavGroup label="Sản phẩm custom">
+          <div className="th-production-nav-sub" role="group">
+            <ProductionNavItemLink
+              to={productionPaths.customProducts.create}
+              end
+              icon="add_circle"
+              label="Tạo sản phẩm custom"
+              narrow={isNarrow}
+              className="th-production-nav-sublink"
+            />
+            <ProductionNavItemLink
+              to={productionPaths.customProducts.list}
+              end
+              icon="design_services"
+              label="Đã tạo"
+              narrow={isNarrow}
+              className="th-production-nav-sublink"
+              matchActive={isCustomProductsListNavActive}
+            />
+          </div>
         </ProductionNavGroup>
 
         <ProductionNavGroup label="Kho nhựa">

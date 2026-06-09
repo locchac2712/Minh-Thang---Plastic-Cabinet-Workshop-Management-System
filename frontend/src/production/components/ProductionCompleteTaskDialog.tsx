@@ -1,5 +1,8 @@
-import { useEffect, useId, useRef } from 'react'
-import type { ProductionTaskDto } from '../productionTasksApi'
+import { useEffect, useId, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { productionPaths } from '../config/productionPaths'
+import { fetchProductionTaskLogs, type ProductionTaskDto } from '../productionTasksApi'
+import { productionTaskRef } from '../utils/productionTaskRef'
 
 export type ProductionCompleteTaskDialogProps = {
   open: boolean
@@ -31,6 +34,9 @@ export function ProductionCompleteTaskDialog({
 }: ProductionCompleteTaskDialogProps) {
   const dlgRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
+  const [logsChecking, setLogsChecking] = useState(false)
+  const [logCount, setLogCount] = useState<number | null>(null)
+  const [logsCheckError, setLogsCheckError] = useState<string | null>(null)
 
   useEffect(() => {
     const el = dlgRef.current
@@ -42,10 +48,42 @@ export function ProductionCompleteTaskDialog({
     }
   }, [open, task])
 
+  useEffect(() => {
+    if (!open || !task?.id) {
+      setLogsChecking(false)
+      setLogCount(null)
+      setLogsCheckError(null)
+      return
+    }
+    let cancelled = false
+    setLogsChecking(true)
+    setLogCount(null)
+    setLogsCheckError(null)
+    void fetchProductionTaskLogs(task.id)
+      .then((logs) => {
+        if (!cancelled) {
+          setLogCount(logs.length)
+          setLogsChecking(false)
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setLogsCheckError(e instanceof Error ? e.message : 'Không kiểm tra được nhật ký')
+          setLogsChecking(false)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, task?.id])
+
   const handleClose = () => {
     if (isSubmitting) return
     onClose()
   }
+
+  const hasRequiredLog = logCount != null && logCount >= 1
+  const canConfirm = hasRequiredLog && !logsChecking && !logsCheckError && !isSubmitting
 
   const show = open && task
 
@@ -85,7 +123,7 @@ export function ProductionCompleteTaskDialog({
           </header>
           <div className="th-dlg__body th-prod-dlg-body">
             <p className="th-prod-dlg-lead">
-              <strong>Mã lệnh:</strong> <code>{task.id}</code>
+              <strong>Mã lệnh:</strong> <code>{productionTaskRef(task)}</code>
             </p>
             <p className="th-prod-dlg-text">
               <strong>Nội dung:</strong> {taskSummary(task)}
@@ -94,6 +132,33 @@ export function ProductionCompleteTaskDialog({
               Xác nhận hoàn tất lệnh với tư cách <strong>{workerFullName || '—'}</strong>. Hệ thống sẽ chuyển trạng thái sang{' '}
               <strong>đã hoàn tất</strong> và ghi nhận thời điểm hoàn tất.
             </p>
+            {logsChecking ? (
+              <p className="th-prod-dlg-text" role="status">
+                Đang kiểm tra nhật ký làm việc…
+              </p>
+            ) : null}
+            {logsCheckError ? (
+              <p className="th-admin-users__api-error" role="alert" style={{ margin: 0 }}>
+                {logsCheckError}
+              </p>
+            ) : null}
+            {!logsChecking && !logsCheckError && logCount != null && logCount < 1 ? (
+              <p className="th-admin-users__api-error" role="alert" style={{ margin: 0 }}>
+                Cần ít nhất một nhật ký làm việc của lệnh này trước khi hoàn tất.{' '}
+                <Link
+                  to={productionPaths.activity}
+                  state={{ preselectTaskId: task.id }}
+                  onClick={handleClose}
+                >
+                  Ghi nhật ký tại Nhật ký làm việc
+                </Link>
+              </p>
+            ) : null}
+            {!logsChecking && !logsCheckError && hasRequiredLog ? (
+              <p className="th-prod-dlg-text" role="status">
+                Đã có {logCount} nhật ký làm việc — có thể hoàn tất lệnh.
+              </p>
+            ) : null}
             {submitError ? (
               <p className="th-admin-users__api-error" role="alert" style={{ margin: 0 }}>
                 {submitError}
@@ -104,7 +169,17 @@ export function ProductionCompleteTaskDialog({
             <button type="button" className="th-admin-users__btn-ghost" onClick={handleClose} disabled={isSubmitting}>
               Hủy
             </button>
-            <button type="button" className="th-admin-users__btn-primary" onClick={onConfirm} disabled={isSubmitting}>
+            <button
+              type="button"
+              className="th-admin-users__btn-primary"
+              onClick={onConfirm}
+              disabled={!canConfirm}
+              title={
+                !hasRequiredLog && logCount != null
+                  ? 'Cần ít nhất một nhật ký làm việc'
+                  : undefined
+              }
+            >
               <span className="material-symbols-outlined th-admin-users__btn-icon" aria-hidden>
                 check_circle
               </span>

@@ -231,6 +231,17 @@
   color: #292524;
 }
 
+.th-prod-tdetail__overdue {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.th-prod-tdetail__overdue-sub {
+  font-weight: 500;
+  color: #78716c;
+  font-size: 0.75rem;
+}
+
 .th-prod-tdetail__link {
   font-weight: 700;
   color: var(--td-accent);
