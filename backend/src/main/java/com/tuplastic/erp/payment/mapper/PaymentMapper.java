@@ -10,6 +10,7 @@ import org.mapstruct.MappingConstants;
 public interface PaymentMapper {
 
     @Mapping(source = "order.id", target = "orderId")
+    @Mapping(source = "order.displayCode", target = "orderDisplayCode")
     @Mapping(source = "agency.id", target = "agencyId")
     @Mapping(source = "agency.name", target = "agencyName")
     PaymentResponse toResponse(Payment payment);

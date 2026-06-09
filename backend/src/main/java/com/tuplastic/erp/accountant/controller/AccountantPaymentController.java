@@ -33,8 +33,9 @@ public class AccountantPaymentController {
     }
 
     @PatchMapping("/{id}/approve")
-    public PaymentResponse approve(@PathVariable UUID id) {
-        return accountantPaymentService.approvePayment(id);
+    public PaymentResponse approve(@PathVariable UUID id,
+                                   @RequestBody(required = false) RejectPaymentRequest request) {
+        return accountantPaymentService.approvePayment(id, request);
     }
 
     @PatchMapping("/{id}/reject")

@@ -21,6 +21,8 @@ public class BomItemResponse {
     private String materialCode;
     private String materialName;
     private String materialUnit;
+    /** Giá vốn NVL hiện tại (đọc từ master materials, không snapshot trên bom_items). */
+    private BigDecimal materialUnitCost;
     private BigDecimal quantity;
     private String note;
     private LocalDateTime createdAt;

@@ -38,6 +38,15 @@ public class Order {
     @JoinColumn(name = "approver_id")
     private User approver;
 
+    /** Đơn tạo từ copy báo giá / đơn gốc (nullable). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_order_id")
+    private Order sourceOrder;
+
+    /** Mã hiển thị: BG-YYYY-NNNNN (báo giá) hoặc DH-YYYY-NNNNN (đơn fulfillment). */
+    @Column(name = "display_code", nullable = false, length = 32, unique = true)
+    private String displayCode;
+
     @Column(name = "total_amount", precision = 19, scale = 4)
     @Builder.Default
     private BigDecimal totalAmount = BigDecimal.ZERO;
@@ -60,6 +69,9 @@ public class Order {
 
     @Column(name = "expected_delivery_date")
     private LocalDate expectedDeliveryDate;
+
+    @Column(name = "quotation_valid_until")
+    private LocalDate quotationValidUntil;
 
     @Column(name = "shipping_address", columnDefinition = "TEXT")
     private String shippingAddress;

@@ -29,6 +29,12 @@ public class ReceivableWarningsSummaryDto {
     /** Tổng công nợ ghi sổ cohort: SUM(agencies.total_debt). */
     private BigDecimal totalReceivableRecorded;
 
+    /** Tổng dư nợ tính từ đơn Done trong cohort. */
+    private BigDecimal totalComputedFromOrders;
+
+    /** Số đại lý trong cohort có |totalDebt - computed| > 1 VND. */
+    private long reconciliationMismatchCount;
+
     /** Ước tính phần quá hạn từ các đơn Done còn dư thu (có thể nhỏ hơn totalDebt nếu nợ không gắn đơn). */
     private BigDecimal estimatedOverdueFromOrders;
 

@@ -12,8 +12,13 @@ import com.tuplastic.erp.order.entity.Order;
 import com.tuplastic.erp.order.entity.OrderItem;
 import com.tuplastic.erp.order.enums.OrderStatus;
 import com.tuplastic.erp.order.mapper.OrderMapper;
+import com.tuplastic.erp.order.util.OrderCopyPricingUtils;
+import com.tuplastic.erp.order.util.OrderDisplayCodeUtils;
+import com.tuplastic.erp.order.util.OrderPhaseUtils;
 import com.tuplastic.erp.invoice.repository.InvoiceRepository;
+import com.tuplastic.erp.notification.service.NotificationService;
 import com.tuplastic.erp.order.repository.OrderRepository;
+import com.tuplastic.erp.reconcile.AgencyDebtComputationService;
 import com.tuplastic.erp.product.entity.Product;
 import com.tuplastic.erp.product.repository.ProductRepository;
 import com.tuplastic.erp.production.entity.ProductionTask;
@@ -21,13 +26,18 @@ import com.tuplastic.erp.production.repository.ProductionTaskRepository;
 import com.tuplastic.erp.productinventory.entity.ProductInventoryLog;
 import com.tuplastic.erp.productinventory.repository.ProductInventoryLogRepository;
 import com.tuplastic.erp.user.entity.User;
+import com.tuplastic.erp.user.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.persistence.criteria.Predicate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -36,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -50,10 +61,18 @@ public class OrderService {
     private final InvoiceRepository invoiceRepository;
     private final ActivityLogRepository activityLogRepository;
     private final OrderMapper orderMapper;
+    private final NotificationService notificationService;
+    private final OrderDeliveryService orderDeliveryService;
+    private final AgencyDebtComputationService agencyDebtComputationService;
 
     @Transactional(readOnly = true)
-    public OrderResponse getSellerOrderDetail(UUID orderId, User seller) {
-        Order order = findSellerOrderOrThrow(orderId, seller);
+    public UUID resolveSellerFulfillmentOrderId(String idOrCode, User seller) {
+        return findSellerFulfillmentOrderOrThrow(idOrCode, seller).getId();
+    }
+
+    @Transactional(readOnly = true)
+    public OrderResponse getSellerOrderDetail(String idOrCode, User seller) {
+        Order order = findSellerFulfillmentOrderOrThrow(idOrCode, seller);
         return orderMapper.toResponse(order);
     }
 
@@ -61,35 +80,138 @@ public class OrderService {
     public PageResponse<OrderResponse> getSellerOrders(User seller, List<OrderStatus> statuses,
                                                         int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Order> orderPage = orderRepository.findBySellerWithFilters(seller.getId(), statuses, pageable);
+        Page<Order> orderPage = orderRepository.findFulfillmentOrdersBySellerWithFilters(
+                seller.getId(), statuses, pageable);
         return toPageResponse(orderPage);
     }
 
+    /** Đơn fulfillment của đại lý ({@code sourceOrder IS NOT NULL}) — cùng lens {@link #getSellerOrders}. */
     @Transactional(readOnly = true)
     public PageResponse<OrderResponse> getAgencyOrders(UUID agencyId, User seller,
                                                         List<OrderStatus> statuses,
                                                         int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Order> orderPage = orderRepository.findByAgencyAndSeller(agencyId, seller.getId(), statuses, pageable);
+        agencyRepository.findByIdAndAssignedSellerId(agencyId, seller.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Đại lý", "id", agencyId));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Order> orderPage = orderRepository.findAll(
+                agencyOrdersFilterSpec(agencyId, seller.getId(), statuses),
+                pageable);
+        return toPageResponse(orderPage);
+    }
+
+    /** Đơn fulfillment của đại lý — admin / giám đốc (mọi NVBH). */
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> getAgencyOrdersForAdmin(UUID agencyId,
+                                                                List<OrderStatus> statuses,
+                                                                int page, int size) {
+        if (!agencyRepository.existsById(agencyId)) {
+            throw new ResourceNotFoundException("Đại lý", "id", agencyId);
+        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Order> orderPage = orderRepository.findAll(
+                agencyOrdersFilterSpec(agencyId, null, statuses),
+                pageable);
+        return toPageResponse(orderPage);
+    }
+
+    /** Báo giá (BG) của đại lý — admin / giám đốc (mọi NVBH). */
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> getAgencyQuotationsForAdmin(UUID agencyId,
+                                                                  List<OrderStatus> statuses,
+                                                                  int page, int size) {
+        if (!agencyRepository.existsById(agencyId)) {
+            throw new ResourceNotFoundException("Đại lý", "id", agencyId);
+        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Order> orderPage = orderRepository.findAll(
+                agencyQuotationsFilterSpec(agencyId, statuses),
+                pageable);
         return toPageResponse(orderPage);
     }
 
     /**
      * Danh sách đơn dưới góc nhìn “báo giá”: cùng phân trang/lọc như {@link #getSellerOrders},
-     * nhưng query param {@code status} dùng ô gộp {@code Draft|Pending|Approved|Rejected}
-     * (Approved = đơn đã chốt và sau đó: Approved, Producing, Done, Canceled).
+     * nhưng query param {@code status} dùng ô gộp {@code Draft|Pending|Approved|Rejected|Canceled}
+     * (Approved = đơn đã chốt: Approved, Producing, Done).
      */
     @Transactional(readOnly = true)
     public PageResponse<QuotationOrderResponse> getSellerQuotations(User seller, List<OrderStatus> statusesFilter,
-                                                                   int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Order> orderPage = orderRepository.findBySellerWithFilters(seller.getId(), statusesFilter, pageable);
+                                                                   String search, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Order> orderPage = orderRepository.findAll(
+                sellerQuotationsFilterSpec(seller.getId(), statusesFilter, normalizeQuotationSearch(search)),
+                pageable);
         return toQuotationPageResponse(orderPage);
     }
 
+    /**
+     * Lọc báo giá seller — Specification tránh bind {@code :search IS NULL} gây lỗi PostgreSQL {@code bytea}.
+     */
+    static Specification<Order> sellerQuotationsFilterSpec(UUID sellerId,
+                                                           List<OrderStatus> statuses,
+                                                           String search) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("createdBy").get("id"), sellerId));
+            predicates.add(cb.isNull(root.get("sourceOrder")));
+            if (statuses != null && !statuses.isEmpty()) {
+                predicates.add(root.get("status").in(statuses));
+            }
+            if (search != null) {
+                predicates.add(cb.like(root.get("displayCode"), "%" + search + "%"));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+    }
+
+    /** Trim; blank → null. Uppercase để khớp format mã BG-YYYY-NNNNN. */
+    static String normalizeQuotationSearch(String search) {
+        if (search == null) {
+            return null;
+        }
+        String trimmed = search.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        return trimmed.toUpperCase();
+    }
+
     @Transactional(readOnly = true)
-    public QuotationOrderResponse getSellerQuotationDetail(UUID orderId, User seller) {
-        return toQuotationResponse(findSellerOrderOrThrow(orderId, seller));
+    public QuotationOrderResponse getSellerQuotationDetail(String idOrCode, User seller) {
+        return toQuotationResponse(findSellerQuotationOrThrow(idOrCode, seller));
+    }
+
+    /**
+     * Đơn fulfillment đã tạo từ một báo giá — {@code sourceOrder.id = quotation.id}.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> getSellerQuotationFulfillmentOrders(String idOrCode, User seller,
+                                                                            List<OrderStatus> statuses,
+                                                                            int page, int size) {
+        Order quotation = findSellerQuotationOrThrow(idOrCode, seller);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Order> orderPage = orderRepository.findAll(
+                quotationChildOrdersFilterSpec(quotation.getId(), seller.getId(), statuses),
+                pageable);
+        return toPageResponse(orderPage);
+    }
+
+    /**
+     * Lọc đơn con của báo giá seller — lens fulfillment ({@code sourceOrder IS NOT NULL}).
+     */
+    static Specification<Order> quotationChildOrdersFilterSpec(UUID sourceQuotationId,
+                                                               UUID sellerId,
+                                                               List<OrderStatus> statuses) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.isNotNull(root.get("sourceOrder")));
+            predicates.add(cb.equal(root.get("sourceOrder").get("id"), sourceQuotationId));
+            predicates.add(cb.equal(root.get("createdBy").get("id"), sellerId));
+            if (statuses != null && !statuses.isEmpty()) {
+                predicates.add(root.get("status").in(statuses));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
     }
 
     /**
@@ -117,10 +239,11 @@ public class OrderService {
             case "Pending" -> EnumSet.of(OrderStatus.Pending);
             case "Rejected" -> EnumSet.of(OrderStatus.Rejected);
             case "Approved" -> EnumSet.of(
-                    OrderStatus.Approved, OrderStatus.Producing, OrderStatus.Done, OrderStatus.Canceled);
+                    OrderStatus.Approved, OrderStatus.Producing, OrderStatus.Done);
+            case "Canceled" -> EnumSet.of(OrderStatus.Canceled);
             default -> throw new BadRequestException(
                     "Trạng thái báo giá không hợp lệ: " + view
-                            + ". Chấp nhận: Draft, Pending, Approved, Rejected");
+                            + ". Chấp nhận: Draft, Pending, Approved, Rejected, Canceled");
         };
     }
 
@@ -129,7 +252,8 @@ public class OrderService {
             case Draft -> "Draft";
             case Pending -> "Pending";
             case Rejected -> "Rejected";
-            case Approved, Producing, Done, Canceled -> "Approved";
+            case Canceled -> "Canceled";
+            case Approved, Producing, Done -> "Approved";
         };
     }
 
@@ -157,6 +281,14 @@ public class OrderService {
         Agency agency = agencyRepository.findByIdAndAssignedSellerId(request.getAgencyId(), seller.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Đại lý", "id", request.getAgencyId()));
 
+        assertQuotationValidUntil(request.getQuotationValidUntil());
+
+        Order sourceOrder = request.getSourceOrderId() != null
+                ? resolveSourceOrderForCopy(request.getSourceOrderId(), seller, agency)
+                : null;
+        boolean autoApprove = sourceOrder != null
+                && OrderCopyPricingUtils.isPricingAlignedWithSource(sourceOrder, request);
+
         Order order = Order.builder()
                 .agency(agency)
                 .createdBy(seller)
@@ -164,11 +296,21 @@ public class OrderService {
                 .shippingFee(request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO)
                 .shippingAddress(request.getShippingAddress())
                 .note(request.getNote())
-                .status(OrderStatus.Draft)
+                .quotationValidUntil(request.getQuotationValidUntil())
+                .sourceOrder(sourceOrder)
+                .status(autoApprove ? OrderStatus.Approved : OrderStatus.Draft)
                 .build();
 
         BigDecimal totalAmount = populateOrderLineItems(order, request.getItems());
         applyOrderMoneyFields(order, totalAmount);
+
+        if (autoApprove) {
+            applyFulfillmentApprovedCosts(order, sourceOrder);
+            order.setApprover(sourceOrder.getApprover());
+            assertAgencyDebtLimitForOrder(order);
+        }
+
+        order.setDisplayCode(OrderDisplayCodeUtils.allocateDisplayCode(sourceOrder == null, orderRepository));
 
         Order saved = orderRepository.save(order);
         return orderMapper.toResponse(saved);
@@ -178,9 +320,11 @@ public class OrderService {
      * Chỉ đơn nháp (Draft). Ghi đè header + toàn bộ dòng hàng.
      */
     @Transactional
-    public OrderResponse updateDraftOrder(UUID orderId, CreateOrderRequest request, User seller) {
-        Order order = findSellerOrderOrThrow(orderId, seller);
+    public OrderResponse updateDraftOrder(String idOrCode, CreateOrderRequest request, User seller) {
+        Order order = findSellerOrderOrThrow(idOrCode, seller);
         assertStatus(order, OrderStatus.Draft, "cập nhật đơn");
+
+        assertQuotationValidUntil(request.getQuotationValidUntil());
 
         Agency agency = agencyRepository.findByIdAndAssignedSellerId(request.getAgencyId(), seller.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Đại lý", "id", request.getAgencyId()));
@@ -190,6 +334,7 @@ public class OrderService {
         order.setShippingFee(request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO);
         order.setShippingAddress(request.getShippingAddress());
         order.setNote(request.getNote());
+        order.setQuotationValidUntil(request.getQuotationValidUntil());
 
         order.getItems().clear();
         BigDecimal totalAmount = populateOrderLineItems(order, request.getItems());
@@ -238,44 +383,57 @@ public class OrderService {
     }
 
     /**
-     * Draft → Pending: Gửi đơn chờ duyệt. Kiểm tra hạn mức công nợ.
+     * Draft → Pending: Gửi đơn chờ duyệt.
+     * Báo giá ({@code sourceOrder == null}): không kiểm hạn mức — enforcement ở tạo đơn fulfillment.
+     * Đơn fulfillment nháp ({@code sourceOrder != null}): kiểm hạn mức trước khi gửi duyệt lại.
      */
     @Transactional
-    public OrderResponse submitOrder(UUID orderId, User seller) {
-        Order order = findSellerOrderOrThrow(orderId, seller);
+    public OrderResponse submitOrder(String idOrCode, User seller) {
+        Order order = findSellerOrderOrThrow(idOrCode, seller);
         assertStatus(order, OrderStatus.Draft, "gửi duyệt");
 
-        Agency agency = order.getAgency();
-        BigDecimal thisOrderUnpaid = orderUnpaidBalance(order);
-        BigDecimal projectedDebt = agency.getTotalDebt().add(thisOrderUnpaid);
-        if (projectedDebt.compareTo(agency.getMaxDebtLimit()) > 0) {
-            throw new BusinessLogicException(
-                    String.format("Vượt hạn mức công nợ! Nợ hiện tại: %s + Phần chưa thu của đơn này: %s = %s > Trần nợ: %s. Liên hệ Giám đốc nâng hạn mức.",
-                            agency.getTotalDebt().toPlainString(),
-                            thisOrderUnpaid.toPlainString(),
-                            projectedDebt.toPlainString(),
-                            agency.getMaxDebtLimit().toPlainString()));
+        if (order.getSourceOrder() != null) {
+            assertAgencyDebtLimitForOrder(order);
         }
 
         order.setStatus(OrderStatus.Pending);
-        return orderMapper.toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        notificationService.notifyRoles(
+                Set.of(UserRole.DIRECTOR),
+                "QUOTATION_SUBMITTED",
+                "Yeu cau duyet bao gia",
+                String.format("Don %s cua dai ly %s dang cho duyet.", shortOrderId(saved), saved.getAgency().getName()),
+                "/director/approvals?status=Pending",
+                null,
+                seller,
+                null
+        );
+        return orderMapper.toResponse(saved);
     }
 
     /**
-     * Approved → Producing: Ép lệnh xuống xưởng. Tại đây mới tạo {@link ProductionTask} (1 task / dòng đơn),
-     * tránh xưởng thấy lệnh khi đơn chỉ mới được duyệt tài chính.
+     * Approved → Producing: Ép lệnh xuống xưởng. Lô SX tạo riêng qua {@link com.tuplastic.erp.production.service.ProductionBatchService#createBatch}.
      */
     @Transactional
-    public OrderResponse pushProduction(UUID orderId, User seller) {
-        Order order = findSellerOrderOrThrow(orderId, seller);
+    public OrderResponse pushProduction(String idOrCode, User seller) {
+        Order order = findSellerFulfillmentOrderOrThrow(idOrCode, seller);
         assertStatus(order, OrderStatus.Approved, "ép lệnh sản xuất");
 
-        if (productionTaskRepository.findByOrder_IdOrderByCreatedAtAsc(order.getId()).isEmpty()) {
-            createProductionTasks(order);
-        }
-
         order.setStatus(OrderStatus.Producing);
-        return orderMapper.toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        notificationService.notifyRoles(
+                Set.of(UserRole.PRODUCTION),
+                "ORDER_PUSHED_TO_PRODUCTION",
+                "Đơn mới cho xưởng",
+                String.format(
+                        "Seller đã đẩy đơn %s (%s) xuống sản xuất. Tạo lô tại Lệnh theo đơn.",
+                        shortOrderId(saved),
+                        saved.getAgency().getName()),
+                "/production/tasks/by-order",
+                "order-push-production:" + saved.getId(),
+                seller,
+                null);
+        return orderMapper.toResponse(saved);
     }
 
     /**
@@ -283,8 +441,8 @@ public class OrderService {
      * Yêu cầu: tồn kho đủ cho từng dòng.
      */
     @Transactional
-    public OrderResponse deliverInStock(UUID orderId, User seller) {
-        Order order = findSellerOrderOrThrow(orderId, seller);
+    public OrderResponse deliverInStock(String idOrCode, User seller) {
+        Order order = findSellerFulfillmentOrderOrThrow(idOrCode, seller);
         assertStatus(order, OrderStatus.Draft, "xuất bán hàng có sẵn");
 
         for (OrderItem item : order.getItems()) {
@@ -322,59 +480,13 @@ public class OrderService {
     }
 
     /**
-     * Producing → Done: Xác nhận giao hàng thành công. Yêu cầu mọi lệnh SX của đơn đã Done; xuất kho TP
-     * (đối ứng lần nhập kho tại {@link com.tuplastic.erp.production.service.ProductionTaskService#completeTask}).
+     * Producing → Done: Chốt đơn sau khi giao đủ từng lô ({@link OrderDeliveryService#deliverBatch}).
+     * Ghi nợ một lần; không xuất kho bulk.
      */
     @Transactional
-    public OrderResponse markDone(UUID orderId, User seller) {
-        Order order = findSellerOrderOrThrow(orderId, seller);
-        assertStatus(order, OrderStatus.Producing, "xác nhận giao hàng");
-
-        List<ProductionTask> tasks = productionTaskRepository.findByOrder_IdOrderByCreatedAtAsc(order.getId());
-        if (tasks.isEmpty()) {
-            throw new BadRequestException(
-                    "Đơn không có lệnh sản xuất. Dùng PATCH deliver-instock nếu giao từ kho, hoặc push-production trước.");
-        }
-        for (ProductionTask t : tasks) {
-            if (!"Done".equals(t.getStatus())) {
-                throw new BusinessLogicException(
-                        String.format("Còn lệnh SX chưa hoàn thành (trạng thái hiện tại: %s). Hoàn tất mọi lệnh trước khi giao hàng.",
-                                t.getStatus()));
-            }
-        }
-
-        for (OrderItem item : order.getItems()) {
-            Product product = item.getProduct();
-            if (product.getStockQuantity() < item.getQuantity()) {
-                throw new BusinessLogicException(
-                        String.format("Tồn kho không đủ để xuất giao hàng cho '%s' (SKU: %s). Cần: %d, Có: %d",
-                                product.getName(), product.getSku(),
-                                item.getQuantity(), product.getStockQuantity()));
-            }
-        }
-
-        for (OrderItem item : order.getItems()) {
-            Product product = item.getProduct();
-            product.setStockQuantity(product.getStockQuantity() - item.getQuantity());
-            productRepository.save(product);
-
-            ProductInventoryLog log = ProductInventoryLog.builder()
-                    .product(product)
-                    .order(order)
-                    .createdBy(seller)
-                    .transactionType("EXPORT")
-                    .quantityChange(-item.getQuantity())
-                    .note("Xuất giao hàng MTO - Đơn #" + order.getId().toString().substring(0, 8))
-                    .build();
-            productInventoryLogRepository.save(log);
-        }
-
-        Agency agency = order.getAgency();
-        agency.setTotalDebt(agency.getTotalDebt().add(orderUnpaidBalance(order)));
-        agencyRepository.save(agency);
-
-        order.setStatus(OrderStatus.Done);
-        return orderMapper.toResponse(orderRepository.save(order));
+    public OrderResponse markDone(String idOrCode, User seller) {
+        Order order = findSellerFulfillmentOrderOrThrow(idOrCode, seller);
+        return orderDeliveryService.markDone(order.getId(), seller);
     }
 
     /**
@@ -382,8 +494,8 @@ public class OrderService {
      * Producing: chỉ khi mọi lệnh SX còn Waiting. Done: nhập lại TP, trừ công nợ — không cho nếu đã thu tiền hoặc có hóa đơn Draft/Issued.
      */
     @Transactional
-    public OrderResponse cancelOrder(UUID orderId, User seller) {
-        Order order = findSellerOrderOrThrow(orderId, seller);
+    public OrderResponse cancelOrder(String idOrCode, User seller) {
+        Order order = findSellerOrderOrThrow(idOrCode, seller);
         if (order.getStatus() == OrderStatus.Canceled) {
             throw new BadRequestException("Đơn đã ở trạng thái Canceled.");
         }
@@ -401,9 +513,13 @@ public class OrderService {
             case Producing -> {
                 List<ProductionTask> tasks = productionTaskRepository.findByOrder_IdOrderByCreatedAtAsc(order.getId());
                 for (ProductionTask t : tasks) {
+                    if (t.getDeliveredAt() != null) {
+                        throw new BusinessLogicException(
+                                "Không hủy đơn khi đã giao ít nhất một lô sản xuất.");
+                    }
                     if (!"Waiting".equals(t.getStatus())) {
                         throw new BusinessLogicException(
-                                "Chỉ hủy được khi mọi lệnh SX còn Waiting (chưa bắt đầu thi công).");
+                                "Chỉ hủy được khi mọi lô SX còn Waiting (chưa bắt đầu thi công).");
                     }
                 }
                 deleteProductionTasksForOrder(order.getId());
@@ -470,9 +586,14 @@ public class OrderService {
     // ========== Director methods ==========
 
     @Transactional(readOnly = true)
-    public OrderResponse getDirectorOrderDetail(UUID orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng", "id", orderId));
+    public OrderResponse getDirectorOrderDetail(String idOrCode) {
+        Order order = findDirectorQuotationOrThrow(idOrCode);
+        return toDirectorResponse(order);
+    }
+
+    @Transactional(readOnly = true)
+    public OrderResponse getDirectorFulfillmentOrderDetail(String idOrCode) {
+        Order order = findDirectorFulfillmentOrderOrThrow(idOrCode);
         return orderMapper.toResponse(order);
     }
 
@@ -505,25 +626,84 @@ public class OrderService {
         LocalDateTime fromTs = hasFrom ? fromDate.atStartOfDay() : null;
         LocalDateTime toTs = hasTo ? toDate.plusDays(1).atStartOfDay() : null;
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Order> orderPage = orderRepository.findForDirector(statusesForQuery, agencyId, fromTs, toTs, pageable);
-        return toPageResponse(orderPage);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Order> orderPage = orderRepository.findAll(
+                directorOrderFilterSpec(statusesForQuery, agencyId, fromTs, toTs),
+                pageable);
+        return toDirectorPageResponse(orderPage);
+    }
+
+    /**
+     * Lọc đơn cho giám đốc — dùng Specification thay JPQL {@code :param IS NULL} để tránh lỗi
+     * PostgreSQL {@code could not determine data type of parameter}.
+     */
+    private static Specification<Order> directorOrderFilterSpec(List<OrderStatus> statuses,
+                                                                 UUID agencyId,
+                                                                 LocalDateTime fromTs,
+                                                                 LocalDateTime toTs) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (statuses != null && !statuses.isEmpty()) {
+                predicates.add(root.get("status").in(statuses));
+            }
+            if (agencyId != null) {
+                predicates.add(cb.equal(root.get("agency").get("id"), agencyId));
+            }
+            if (fromTs != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), fromTs));
+            }
+            if (toTs != null) {
+                predicates.add(cb.lessThan(root.get("createdAt"), toTs));
+            }
+            predicates.add(cb.isNull(root.get("sourceOrder")));
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+    }
+
+    private static Specification<Order> agencyOrdersFilterSpec(UUID agencyId,
+                                                                 UUID sellerId,
+                                                                 List<OrderStatus> statuses) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("agency").get("id"), agencyId));
+            predicates.add(cb.isNotNull(root.get("sourceOrder")));
+            if (sellerId != null) {
+                predicates.add(cb.equal(root.get("createdBy").get("id"), sellerId));
+            }
+            if (statuses != null && !statuses.isEmpty()) {
+                predicates.add(root.get("status").in(statuses));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+    }
+
+    private static Specification<Order> agencyQuotationsFilterSpec(UUID agencyId,
+                                                                    List<OrderStatus> statuses) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("agency").get("id"), agencyId));
+            predicates.add(cb.isNull(root.get("sourceOrder")));
+            if (statuses != null && !statuses.isEmpty()) {
+                predicates.add(root.get("status").in(statuses));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
     }
 
     @Transactional(readOnly = true)
     public PageResponse<OrderResponse> getPendingOrders(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Order> orderPage = orderRepository.findByStatusOrderByCreatedAtAsc(OrderStatus.Pending, pageable);
-        return toPageResponse(orderPage);
+        Page<Order> orderPage = orderRepository.findByStatusAndSourceOrderIsNullOrderByCreatedAtAsc(
+                OrderStatus.Pending, pageable);
+        return toDirectorPageResponse(orderPage);
     }
 
     /**
-     * Pending → Approved: ghi nhận giá vốn, gán người duyệt. Lệnh xưởng chỉ tạo khi seller {@link #pushProduction}.
+     * Pending → Approved: ghi nhận giá vốn, gán người duyệt. Lô SX tạo sau khi seller push-production + xưởng create-batch.
      */
     @Transactional
-    public OrderResponse approveOrder(UUID orderId, User director) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng", "id", orderId));
+    public OrderResponse approveOrder(String idOrCode, User director) {
+        Order order = findDirectorQuotationOrThrow(idOrCode);
         assertStatus(order, OrderStatus.Pending, "phê duyệt");
 
         for (OrderItem item : order.getItems()) {
@@ -533,26 +713,23 @@ public class OrderService {
         order.setStatus(OrderStatus.Approved);
         order.setApprover(director);
         Order saved = orderRepository.save(order);
+        notificationService.notifyUser(
+                saved.getCreatedBy(),
+                "QUOTATION_APPROVED",
+                "Bao gia da duoc duyet",
+                String.format("Don %s da duoc phe duyet.", shortOrderId(saved)),
+                "/seller/quotations?status=Approved",
+                null,
+                director,
+                null
+        );
 
-        return orderMapper.toResponse(saved);
-    }
-
-    private void createProductionTasks(Order order) {
-        for (OrderItem item : order.getItems()) {
-            ProductionTask task = ProductionTask.builder()
-                    .order(order)
-                    .product(item.getProduct())
-                    .quantity(item.getQuantity())
-                    .status("Waiting")
-                    .build();
-            productionTaskRepository.save(task);
-        }
+        return toDirectorResponse(saved);
     }
 
     @Transactional
-    public OrderResponse rejectOrder(UUID orderId, User director, RejectOrderRequest request) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng", "id", orderId));
+    public OrderResponse rejectOrder(String idOrCode, User director, RejectOrderRequest request) {
+        Order order = findDirectorQuotationOrThrow(idOrCode);
         assertStatus(order, OrderStatus.Pending, "từ chối");
 
         order.setStatus(OrderStatus.Rejected);
@@ -560,7 +737,18 @@ public class OrderService {
         if (request != null && request.getNote() != null) {
             order.setNote(request.getNote());
         }
-        return orderMapper.toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        notificationService.notifyUser(
+                saved.getCreatedBy(),
+                "QUOTATION_REJECTED",
+                "Bao gia bi tu choi",
+                String.format("Don %s bi tu choi. Vui long xem ghi chu.", shortOrderId(saved)),
+                "/seller/quotations?status=Rejected",
+                null,
+                director,
+                null
+        );
+        return toDirectorResponse(saved);
     }
 
     /**
@@ -568,9 +756,8 @@ public class OrderService {
      * Không tạo task xưởng; xóa {@code approver} vì chưa phê duyệt.
      */
     @Transactional
-    public OrderResponse requestOrderRevision(UUID orderId, RequestOrderRevisionRequest request) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng", "id", orderId));
+    public OrderResponse requestOrderRevision(String idOrCode, RequestOrderRevisionRequest request) {
+        Order order = findDirectorQuotationOrThrow(idOrCode);
         assertStatus(order, OrderStatus.Pending, "yêu cầu chỉnh sửa");
 
         order.setStatus(OrderStatus.Draft);
@@ -578,7 +765,18 @@ public class OrderService {
         if (request != null && request.getNote() != null) {
             order.setNote(request.getNote());
         }
-        return orderMapper.toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        notificationService.notifyUser(
+                saved.getCreatedBy(),
+                "QUOTATION_REVISION_REQUESTED",
+                "Yeu cau chinh sua bao gia",
+                String.format("Don %s can chinh sua va gui duyet lai.", shortOrderId(saved)),
+                "/seller/quotations?status=Draft",
+                null,
+                null,
+                null
+        );
+        return toDirectorResponse(saved);
     }
 
     // ========== Helpers ==========
@@ -591,9 +789,133 @@ public class OrderService {
         return unpaid.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : unpaid;
     }
 
+    private static String shortOrderId(Order order) {
+        return OrderDisplayCodeUtils.displayRef(order.getDisplayCode(), order.getId());
+    }
+
+    private Order findSellerOrderOrThrow(String idOrCode, User seller) {
+        UUID uuid = OrderDisplayCodeUtils.parseUuid(idOrCode);
+        if (uuid != null) {
+            return findSellerOrderOrThrow(uuid, seller);
+        }
+        return orderRepository.findByDisplayCodeAndCreatedById(idOrCode.trim(), seller.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng", "mã", idOrCode));
+    }
+
+    private Order findSellerQuotationOrThrow(String idOrCode, User seller) {
+        Order order = findSellerOrderOrThrow(idOrCode, seller);
+        assertQuotationRecord(order);
+        return order;
+    }
+
+    private Order findSellerFulfillmentOrderOrThrow(String idOrCode, User seller) {
+        Order order = findSellerOrderOrThrow(idOrCode, seller);
+        assertFulfillmentRecord(order);
+        return order;
+    }
+
+    private Order findDirectorQuotationOrThrow(String idOrCode) {
+        Order order = resolveDirectorOrder(idOrCode);
+        assertQuotationRecord(order);
+        return order;
+    }
+
+    private Order findDirectorFulfillmentOrderOrThrow(String idOrCode) {
+        Order order = resolveDirectorOrder(idOrCode);
+        assertFulfillmentRecord(order);
+        return order;
+    }
+
+    public Order resolveDirectorOrder(String idOrCode) {
+        UUID uuid = OrderDisplayCodeUtils.parseUuid(idOrCode);
+        if (uuid != null) {
+            return orderRepository.findById(uuid)
+                    .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng", "id", uuid));
+        }
+        return orderRepository.findByDisplayCode(idOrCode.trim())
+                .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng", "mã", idOrCode));
+    }
+
+    private static void assertQuotationRecord(Order order) {
+        if (order.getSourceOrder() != null) {
+            throw new ResourceNotFoundException(
+                    "Báo giá", "mã", order.getDisplayCode() != null ? order.getDisplayCode() : order.getId());
+        }
+    }
+
+    private static void assertFulfillmentRecord(Order order) {
+        if (order.getSourceOrder() == null) {
+            throw new ResourceNotFoundException(
+                    "Đơn hàng", "mã", order.getDisplayCode() != null ? order.getDisplayCode() : order.getId());
+        }
+    }
+
     private Order findSellerOrderOrThrow(UUID orderId, User seller) {
         return orderRepository.findByIdAndCreatedById(orderId, seller.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng", "id", orderId));
+    }
+
+    /**
+     * Khi tạo đơn từ copy báo giá: xác thực bản ghi nguồn thuộc NVBH, cùng đại lý, Approved+ và chưa hết hạn.
+     */
+    private Order resolveSourceOrderForCopy(UUID sourceOrderId, User seller, Agency agency) {
+        if (sourceOrderId == null) {
+            return null;
+        }
+        Order source = findSellerOrderOrThrow(sourceOrderId, seller);
+        if (!source.getAgency().getId().equals(agency.getId())) {
+            throw new BadRequestException("Đơn nguồn không thuộc đại lý của đơn mới.");
+        }
+        if (!OrderPhaseUtils.canCopyFromOrderStatus(source.getStatus())) {
+            throw new BadRequestException(
+                    String.format("Không thể tạo đơn từ báo giá ở trạng thái '%s'.", source.getStatus()));
+        }
+        LocalDate validUntil = source.getQuotationValidUntil();
+        if (validUntil != null && validUntil.isBefore(LocalDate.now())) {
+            throw new BadRequestException("Báo giá nguồn đã hết hạn hiệu lực.");
+        }
+        return source;
+    }
+
+    private void assertQuotationValidUntil(LocalDate validUntil) {
+        if (validUntil != null && validUntil.isBefore(LocalDate.now())) {
+            throw new BadRequestException("Hạn báo giá không được là ngày trong quá khứ.");
+        }
+    }
+
+    private void assertAgencyDebtLimitForOrder(Order order) {
+        Agency agency = order.getAgency();
+        BigDecimal thisOrderUnpaid = orderUnpaidBalance(order);
+        BigDecimal currentDebt = agencyDebtComputationService.computeForAgency(agency.getId());
+        BigDecimal projectedDebt = currentDebt.add(thisOrderUnpaid);
+        if (projectedDebt.compareTo(agency.getMaxDebtLimit()) > 0) {
+            throw new BusinessLogicException(
+                    String.format("Vượt hạn mức công nợ! Dư nợ theo đơn Done: %s + Phần chưa thu của đơn này: %s = %s > Trần nợ: %s. Liên hệ Giám đốc nâng hạn mức.",
+                            currentDebt.toPlainString(),
+                            thisOrderUnpaid.toPlainString(),
+                            projectedDebt.toPlainString(),
+                            agency.getMaxDebtLimit().toPlainString()));
+        }
+    }
+
+    /** Ghi nhận giá vốn khi auto-approve đơn fulfillment — ưu tiên cost tại thời điểm duyệt báo giá gốc. */
+    private static void applyFulfillmentApprovedCosts(Order order, Order sourceOrder) {
+        java.util.Map<UUID, BigDecimal> costByProduct = new java.util.HashMap<>();
+        if (sourceOrder.getItems() != null) {
+            for (OrderItem sourceItem : sourceOrder.getItems()) {
+                if (sourceItem.getProduct() != null && sourceItem.getProduct().getId() != null) {
+                    costByProduct.put(sourceItem.getProduct().getId(), sourceItem.getUnitCostAtTime());
+                }
+            }
+        }
+        for (OrderItem item : order.getItems()) {
+            UUID productId = item.getProduct().getId();
+            BigDecimal cost = costByProduct.get(productId);
+            if (cost == null) {
+                cost = item.getProduct().getCostPrice();
+            }
+            item.setUnitCostAtTime(cost);
+        }
     }
 
     private void assertStatus(Order order, OrderStatus expected, String action) {
@@ -613,6 +935,41 @@ public class OrderService {
                 .totalPages(orderPage.getTotalPages())
                 .last(orderPage.isLast())
                 .build();
+    }
+
+    private PageResponse<OrderResponse> toDirectorPageResponse(Page<Order> orderPage) {
+        return PageResponse.<OrderResponse>builder()
+                .content(orderPage.getContent().stream().map(this::toDirectorResponse).toList())
+                .page(orderPage.getNumber())
+                .size(orderPage.getSize())
+                .totalElements(orderPage.getTotalElements())
+                .totalPages(orderPage.getTotalPages())
+                .last(orderPage.isLast())
+                .build();
+    }
+
+    private OrderResponse toDirectorResponse(Order order) {
+        OrderResponse response = orderMapper.toResponse(order);
+        enrichDirectorApprovalMetrics(order, response);
+        return response;
+    }
+
+    private void enrichDirectorApprovalMetrics(Order order, OrderResponse response) {
+        if (response.getItems() != null) {
+            for (int i = 0; i < order.getItems().size() && i < response.getItems().size(); i++) {
+                OrderItem entity = order.getItems().get(i);
+                OrderItemResponse itemResponse = response.getItems().get(i);
+                if (itemResponse.getUnitCostAtTime() == null) {
+                    BigDecimal estimated = DirectorApprovalMetricsCalculator.resolveUnitCost(entity);
+                    if (estimated != null) {
+                        itemResponse.setUnitCostAtTime(estimated);
+                    }
+                }
+            }
+        }
+        response.setMarginPercent(DirectorApprovalMetricsCalculator.computeMarginPercent(order));
+        response.setFloorMarginPercent(DirectorApprovalMetricsCalculator.floorMarginPercent(order));
+        response.setApprovalSlaDueAt(DirectorApprovalMetricsCalculator.approvalSlaDueAt(order));
     }
 
     public List<OrderStatus> parseStatuses(String statusParam) {

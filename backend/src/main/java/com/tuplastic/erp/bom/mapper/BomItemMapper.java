@@ -14,5 +14,6 @@ public interface BomItemMapper {
     @Mapping(source = "material.code", target = "materialCode")
     @Mapping(source = "material.name", target = "materialName")
     @Mapping(source = "material.unit", target = "materialUnit")
+    @Mapping(source = "material.unitCost", target = "materialUnitCost")
     BomItemResponse toResponse(BomItem bomItem);
 }

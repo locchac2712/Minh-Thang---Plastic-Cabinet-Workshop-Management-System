@@ -1,6 +1,7 @@
 package com.tuplastic.erp.director.service;
 
 import com.tuplastic.erp.director.dto.*;
+import com.tuplastic.erp.reconcile.AgencyDebtComputationService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -19,6 +21,7 @@ import java.util.UUID;
 public class ReportService {
 
     private final EntityManager em;
+    private final AgencyDebtComputationService agencyDebtComputationService;
 
     public List<RevenueReportItem> getRevenueReport(LocalDate fromDate, LocalDate toDate) {
         String sql = """
@@ -89,13 +92,21 @@ public class ReportService {
 
         @SuppressWarnings("unchecked")
         List<Object[]> rows = em.createNativeQuery(sql).getResultList();
-        return rows.stream().map(r -> new DebtReportItem(
-                (UUID) r[0],
-                (String) r[1],
-                toBigDecimal(r[2]),
-                toBigDecimal(r[3]),
-                (Boolean) r[4]
-        )).toList();
+        Map<UUID, BigDecimal> computedByAgency = agencyDebtComputationService.computeAllAgencies();
+        return rows.stream().map(r -> {
+            UUID id = (UUID) r[0];
+            BigDecimal recorded = toBigDecimal(r[2]);
+            BigDecimal computed = computedByAgency.getOrDefault(id, BigDecimal.ZERO);
+            DebtReportItem item = new DebtReportItem();
+            item.setId(id);
+            item.setName((String) r[1]);
+            item.setTotalDebt(recorded);
+            item.setComputedDebtFromOrders(computed);
+            item.setDebtReconciliationDelta(agencyDebtComputationService.reconciliationDelta(recorded, computed));
+            item.setMaxDebtLimit(toBigDecimal(r[3]));
+            item.setIsActive((Boolean) r[4]);
+            return item;
+        }).toList();
     }
 
     public List<SupplierDebtReportItem> getSupplierDebtsReport() {

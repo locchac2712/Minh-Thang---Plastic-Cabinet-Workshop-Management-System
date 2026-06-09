@@ -5,13 +5,14 @@ import com.tuplastic.erp.common.exception.BadRequestException;
 import com.tuplastic.erp.common.exception.ResourceNotFoundException;
 import com.tuplastic.erp.inventory.entity.InventoryLog;
 import com.tuplastic.erp.inventory.repository.InventoryLogRepository;
+import com.tuplastic.erp.material.dto.MaterialSupplierItem;
 import com.tuplastic.erp.material.entity.Material;
 import com.tuplastic.erp.material.repository.MaterialRepository;
+import com.tuplastic.erp.supplier.entity.Supplier;
 import com.tuplastic.erp.purchase.dto.*;
 import com.tuplastic.erp.purchase.entity.PurchaseOrder;
 import com.tuplastic.erp.purchase.entity.PurchaseOrderItem;
 import com.tuplastic.erp.purchase.repository.PurchaseOrderRepository;
-import com.tuplastic.erp.supplier.entity.Supplier;
 import com.tuplastic.erp.supplier.repository.SupplierRepository;
 import com.tuplastic.erp.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -73,7 +75,8 @@ public class AccountantPurchaseService {
 
     @Transactional(readOnly = true)
     public List<LowStockMaterialAlertResponse> getLowStockAlerts() {
-        return materialRepository.findLowStock().stream()
+        return materialRepository.findLowStockWithSuppliers().stream()
+                .sorted(Comparator.comparing(Material::getStockQuantity))
                 .map(m -> LowStockMaterialAlertResponse.builder()
                         .id(m.getId())
                         .code(m.getCode())
@@ -81,7 +84,18 @@ public class AccountantPurchaseService {
                         .unit(m.getUnit())
                         .stockQuantity(m.getStockQuantity())
                         .minStockLevel(m.getMinStockLevel())
+                        .suppliers(toSupplierItems(m.getSuppliers()))
                         .build())
+                .toList();
+    }
+
+    private static List<MaterialSupplierItem> toSupplierItems(Set<Supplier> suppliers) {
+        if (suppliers == null || suppliers.isEmpty()) {
+            return List.of();
+        }
+        return suppliers.stream()
+                .map(s -> MaterialSupplierItem.builder().id(s.getId()).name(s.getName()).build())
+                .sorted(Comparator.comparing(MaterialSupplierItem::getName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 
@@ -89,6 +103,9 @@ public class AccountantPurchaseService {
     public PurchaseOrderResponse createPurchaseOrder(CreatePurchaseOrderRequest request) {
         Supplier supplier = supplierRepository.findById(request.getSupplierId())
                 .orElseThrow(() -> new ResourceNotFoundException("Nhà cung cấp", "id", request.getSupplierId()));
+        if (Boolean.FALSE.equals(supplier.getIsActive())) {
+            throw new BadRequestException("Nhà cung cấp '" + supplier.getName() + "' đang bị khóa (inactive).");
+        }
 
         BigDecimal computedTotal = BigDecimal.ZERO;
         List<PurchaseOrderItem> lines = new ArrayList<>();
@@ -105,6 +122,12 @@ public class AccountantPurchaseService {
                     .orElseThrow(() -> new ResourceNotFoundException("Vật tư", "id", line.getMaterialId()));
             if (Boolean.FALSE.equals(material.getIsActive())) {
                 throw new BadRequestException("Vật tư '" + material.getName() + "' đang bị khóa (inactive).");
+            }
+            if (!materialRepository.existsSupplierMaterialLink(supplier.getId(), material.getId())) {
+                throw new BadRequestException(
+                        "Vật tư '" + material.getName() + "' chưa được gán cho NCC '"
+                                + supplier.getName()
+                                + "'. Vui lòng cập nhật danh mục NCC–NVL trước khi lập PO.");
             }
 
             BigDecimal lineTotal = line.getQuantity().multiply(line.getUnitPrice())

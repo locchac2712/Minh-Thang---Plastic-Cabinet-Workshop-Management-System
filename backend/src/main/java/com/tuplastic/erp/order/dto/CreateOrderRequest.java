@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,6 +23,12 @@ public class CreateOrderRequest {
     private String shippingAddress;
 
     private String note;
+
+    /** Hạn hiệu lực báo giá; null = không giới hạn. */
+    private LocalDate quotationValidUntil;
+
+    /** Đơn/báo giá gốc khi tạo từ copy (optional). */
+    private UUID sourceOrderId;
 
     @NotEmpty(message = "Đơn hàng phải có ít nhất 1 sản phẩm")
     @Valid

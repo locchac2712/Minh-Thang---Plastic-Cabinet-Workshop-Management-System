@@ -21,6 +21,8 @@ import java.util.UUID;
 public class SellerOrderTaskTimelineResponse {
 
     private UUID taskId;
+    private String displayCode;
+    private UUID orderItemId;
     private UUID orderId;
     private UUID productId;
     private String productName;
@@ -31,6 +33,12 @@ public class SellerOrderTaskTimelineResponse {
     private LocalDate startDate;
     private LocalDate expectedEndDate;
     private LocalDateTime completedAt;
+    private LocalDateTime deliveredAt;
+    private Boolean deliverable;
+    /** Địa chỉ giao thực tế của lô (sau deliver-batch). */
+    private String deliveryAddress;
+    /** URL ảnh bằng chứng giao hàng. */
+    private String deliveryProofImageUrl;
     private LocalDateTime taskCreatedAt;
     private List<ActivityLogResponse> activityLogs;
 }

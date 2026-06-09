@@ -28,6 +28,7 @@ public class AgencyService {
     private final AgencyRepository agencyRepository;
     private final UserRepository userRepository;
     private final AgencyMapper agencyMapper;
+    private final AgencyDebtEnricher agencyDebtEnricher;
 
     @Transactional(readOnly = true)
     public PageResponse<AgencyResponse> getAllAgencies(String level, Boolean isActive, String search,
@@ -36,7 +37,8 @@ public class AgencyService {
         Page<Agency> agencyPage = agencyRepository.findAllWithFilters(level, isActive, search, pageable);
 
         return PageResponse.<AgencyResponse>builder()
-                .content(agencyPage.getContent().stream().map(agencyMapper::toResponse).toList())
+                .content(agencyDebtEnricher.enrichAll(
+                        agencyPage.getContent().stream().map(agencyMapper::toResponse).toList()))
                 .page(agencyPage.getNumber())
                 .size(agencyPage.getSize())
                 .totalElements(agencyPage.getTotalElements())
@@ -48,7 +50,7 @@ public class AgencyService {
     @Transactional(readOnly = true)
     public AgencyResponse getAgencyByIdForAdmin(UUID id) {
         Agency agency = findAgencyOrThrow(id);
-        return agencyMapper.toResponse(agency);
+        return agencyDebtEnricher.enrich(agencyMapper.toResponse(agency));
     }
 
     @Transactional
@@ -60,6 +62,9 @@ public class AgencyService {
         }
         if (request.getPhone() != null) {
             agency.setPhone(request.getPhone());
+        }
+        if (request.getEmail() != null) {
+            agency.setEmail(request.getEmail());
         }
         if (request.getAddress() != null) {
             agency.setAddress(request.getAddress());
@@ -74,7 +79,7 @@ public class AgencyService {
             agency.setLevel(request.getLevel());
         }
 
-        return agencyMapper.toResponse(agencyRepository.save(agency));
+        return agencyDebtEnricher.enrich(agencyMapper.toResponse(agencyRepository.save(agency)));
     }
 
     /**
@@ -101,12 +106,13 @@ public class AgencyService {
                 .name(request.getName())
                 .level(request.getLevel())
                 .phone(request.getPhone())
+                .email(request.getEmail())
                 .address(request.getAddress())
                 .taxCode(request.getTaxCode())
                 .assignedSeller(seller)
                 .build();
 
-        return agencyMapper.toResponse(agencyRepository.save(agency));
+        return agencyDebtEnricher.enrich(agencyMapper.toResponse(agencyRepository.save(agency)));
     }
 
     @Transactional
@@ -124,14 +130,14 @@ public class AgencyService {
         }
 
         agency.setAssignedSeller(newSeller);
-        return agencyMapper.toResponse(agencyRepository.save(agency));
+        return agencyDebtEnricher.enrich(agencyMapper.toResponse(agencyRepository.save(agency)));
     }
 
     @Transactional
     public AgencyResponse toggleActive(UUID id) {
         Agency agency = findAgencyOrThrow(id);
         agency.setIsActive(!agency.getIsActive());
-        return agencyMapper.toResponse(agencyRepository.save(agency));
+        return agencyDebtEnricher.enrich(agencyMapper.toResponse(agencyRepository.save(agency)));
     }
 
     // ========== Seller-scoped methods ==========
@@ -145,7 +151,8 @@ public class AgencyService {
                 seller.getId(), search, totalDebtGt, pageable);
 
         return PageResponse.<AgencyResponse>builder()
-                .content(agencyPage.getContent().stream().map(agencyMapper::toResponse).toList())
+                .content(agencyDebtEnricher.enrichAll(
+                        agencyPage.getContent().stream().map(agencyMapper::toResponse).toList()))
                 .page(agencyPage.getNumber())
                 .size(agencyPage.getSize())
                 .totalElements(agencyPage.getTotalElements())
@@ -157,7 +164,7 @@ public class AgencyService {
     @Transactional(readOnly = true)
     public AgencyResponse getSellerAgencyDetail(UUID agencyId, User seller) {
         Agency agency = findAgencyBySellerOrThrow(agencyId, seller.getId());
-        return agencyMapper.toResponse(agency);
+        return agencyDebtEnricher.enrich(agencyMapper.toResponse(agency));
     }
 
     @Transactional
@@ -170,13 +177,14 @@ public class AgencyService {
                 .name(request.getName())
                 .level(request.getLevel())
                 .phone(request.getPhone())
+                .email(request.getEmail())
                 .address(request.getAddress())
                 .taxCode(request.getTaxCode())
                 .legalCompanyName(request.getLegalCompanyName())
                 .assignedSeller(seller)
                 .build();
 
-        return agencyMapper.toResponse(agencyRepository.save(agency));
+        return agencyDebtEnricher.enrich(agencyMapper.toResponse(agencyRepository.save(agency)));
     }
 
     @Transactional
@@ -189,6 +197,9 @@ public class AgencyService {
         if (request.getPhone() != null) {
             agency.setPhone(request.getPhone());
         }
+        if (request.getEmail() != null) {
+            agency.setEmail(request.getEmail());
+        }
         if (request.getAddress() != null) {
             agency.setAddress(request.getAddress());
         }
@@ -199,7 +210,7 @@ public class AgencyService {
             agency.setLegalCompanyName(request.getLegalCompanyName());
         }
 
-        return agencyMapper.toResponse(agencyRepository.save(agency));
+        return agencyDebtEnricher.enrich(agencyMapper.toResponse(agencyRepository.save(agency)));
     }
 
     // ========== Director methods ==========
@@ -208,7 +219,7 @@ public class AgencyService {
     public AgencyResponse overrideDebtLimit(UUID agencyId, OverrideDebtRequest request) {
         Agency agency = findAgencyOrThrow(agencyId);
         agency.setMaxDebtLimit(request.getMaxDebtLimit());
-        return agencyMapper.toResponse(agencyRepository.save(agency));
+        return agencyDebtEnricher.enrich(agencyMapper.toResponse(agencyRepository.save(agency)));
     }
 
     // ========== Private helpers ==========

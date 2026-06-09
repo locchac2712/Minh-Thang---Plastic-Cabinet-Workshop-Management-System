@@ -24,6 +24,8 @@ public class ReceivableWarningsAgencyRowDto {
     private String assignedSellerName;
 
     private BigDecimal totalDebt;
+    private BigDecimal computedDebtFromOrders;
+    private BigDecimal debtReconciliationDelta;
     private BigDecimal maxDebtLimit;
     private BigDecimal utilizationPercent;
 

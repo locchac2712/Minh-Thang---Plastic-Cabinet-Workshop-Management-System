@@ -5,8 +5,10 @@ import com.tuplastic.erp.agency.repository.AgencyRepository;
 import com.tuplastic.erp.common.dto.PageResponse;
 import com.tuplastic.erp.common.exception.BadRequestException;
 import com.tuplastic.erp.common.exception.ResourceNotFoundException;
+import com.tuplastic.erp.notification.service.NotificationService;
 import com.tuplastic.erp.order.entity.Order;
 import com.tuplastic.erp.order.repository.OrderRepository;
+import com.tuplastic.erp.order.service.OrderService;
 import com.tuplastic.erp.payment.dto.CreatePaymentRequest;
 import com.tuplastic.erp.payment.dto.PatchSellerPaymentRequest;
 import com.tuplastic.erp.payment.dto.PaymentResponse;
@@ -14,6 +16,7 @@ import com.tuplastic.erp.payment.entity.Payment;
 import com.tuplastic.erp.payment.mapper.PaymentMapper;
 import com.tuplastic.erp.payment.repository.PaymentRepository;
 import com.tuplastic.erp.user.entity.User;
+import com.tuplastic.erp.user.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,6 +27,7 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -32,8 +36,10 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
+    private final OrderService orderService;
     private final AgencyRepository agencyRepository;
     private final PaymentMapper paymentMapper;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<PaymentResponse> getPaymentsByOrder(UUID orderId, User seller) {
@@ -60,9 +66,10 @@ public class PaymentService {
                 .status("Pending")
                 .build();
 
-        if (request.getOrderId() != null) {
-            Order order = orderRepository.findByIdAndCreatedById(request.getOrderId(), seller.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng", "id", request.getOrderId()));
+        if (StringUtils.hasText(request.getOrderId())) {
+            UUID orderUuid = orderService.resolveSellerFulfillmentOrderId(request.getOrderId().trim(), seller);
+            Order order = orderRepository.findById(orderUuid)
+                    .orElseThrow(() -> new ResourceNotFoundException("Đơn hàng", "id", orderUuid));
             if (!order.getAgency().getId().equals(agency.getId())) {
                 throw new BadRequestException("Đơn hàng không thuộc đại lý đã chọn.");
             }
@@ -80,7 +87,18 @@ public class PaymentService {
                             agency.getTotalDebt().toPlainString()));
         }
 
-        return paymentMapper.toResponse(paymentRepository.save(payment));
+        Payment saved = paymentRepository.save(payment);
+        notificationService.notifyRoles(
+                Set.of(UserRole.ACCOUNTANT),
+                "PAYMENT_CONFIRM_REQUESTED",
+                "Seller xac nhan thanh toan",
+                String.format("Phieu thu %s can ke toan xac nhan.", shortPaymentId(saved)),
+                "/accountant/payments?status=Pending",
+                null,
+                seller,
+                null
+        );
+        return paymentMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -132,5 +150,10 @@ public class PaymentService {
         }
 
         return paymentMapper.toResponse(paymentRepository.save(payment));
+    }
+
+    private static String shortPaymentId(Payment payment) {
+        String id = payment.getId().toString();
+        return id.substring(0, 8);
     }
 }

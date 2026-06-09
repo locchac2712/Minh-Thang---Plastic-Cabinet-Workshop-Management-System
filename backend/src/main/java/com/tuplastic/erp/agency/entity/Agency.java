@@ -29,6 +29,9 @@ public class Agency extends BaseEntity {
     @Column(length = 20)
     private String phone;
 
+    @Column(length = 255)
+    private String email;
+
     @Column(columnDefinition = "TEXT")
     private String address;
 

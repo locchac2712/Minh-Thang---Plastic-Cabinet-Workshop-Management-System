@@ -5,9 +5,14 @@ import com.tuplastic.erp.activitylog.service.ActivityLogService;
 import com.tuplastic.erp.common.dto.PageResponse;
 import com.tuplastic.erp.common.security.SecurityUtils;
 import com.tuplastic.erp.order.dto.CreateOrderRequest;
+import com.tuplastic.erp.order.dto.DeliverBatchRequest;
+import com.tuplastic.erp.order.dto.OrderFulfillmentSummaryDto;
 import com.tuplastic.erp.order.dto.OrderResponse;
 import com.tuplastic.erp.order.dto.SellerOrderTaskTimelineResponse;
+import com.tuplastic.erp.order.service.OrderDeliveryService;
 import com.tuplastic.erp.order.service.OrderService;
+import com.tuplastic.erp.production.dto.TaskShareLinkResponse;
+import com.tuplastic.erp.production.service.TaskTrackingService;
 import com.tuplastic.erp.user.entity.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +30,9 @@ import java.util.UUID;
 public class SellerOrderController {
 
     private final OrderService orderService;
+    private final OrderDeliveryService orderDeliveryService;
     private final ActivityLogService activityLogService;
+    private final TaskTrackingService taskTrackingService;
     private final SecurityUtils securityUtils;
 
     @GetMapping
@@ -37,10 +44,10 @@ public class SellerOrderController {
         return orderService.getSellerOrders(seller, orderService.parseStatuses(status), page, size);
     }
 
-    @GetMapping("/{id}")
-    public OrderResponse getOrder(@PathVariable UUID id) {
+    @GetMapping("/{idOrCode}")
+    public OrderResponse getOrder(@PathVariable String idOrCode) {
         User seller = securityUtils.getCurrentUser();
-        return orderService.getSellerOrderDetail(id, seller);
+        return orderService.getSellerOrderDetail(idOrCode, seller);
     }
 
     @PostMapping
@@ -50,58 +57,82 @@ public class SellerOrderController {
         return orderService.createDraftOrder(request, seller);
     }
 
-    /**
-     * Cập nhật toàn bộ nội dung đơn nháp (cùng body với tạo đơn). Chỉ khi trạng thái Draft.
-     */
-    @PutMapping("/{id}")
-    public OrderResponse updateOrder(@PathVariable UUID id, @Valid @RequestBody CreateOrderRequest request) {
+    @PutMapping("/{idOrCode}")
+    public OrderResponse updateOrder(@PathVariable String idOrCode, @Valid @RequestBody CreateOrderRequest request) {
         User seller = securityUtils.getCurrentUser();
-        return orderService.updateDraftOrder(id, request, seller);
+        return orderService.updateDraftOrder(idOrCode, request, seller);
     }
 
-    @PatchMapping("/{id}/submit")
-    public OrderResponse submitOrder(@PathVariable UUID id) {
+    @PatchMapping("/{idOrCode}/submit")
+    public OrderResponse submitOrder(@PathVariable String idOrCode) {
         User seller = securityUtils.getCurrentUser();
-        return orderService.submitOrder(id, seller);
+        return orderService.submitOrder(idOrCode, seller);
     }
 
-    @PatchMapping("/{id}/push-production")
-    public OrderResponse pushProduction(@PathVariable UUID id) {
+    @PatchMapping("/{idOrCode}/push-production")
+    public OrderResponse pushProduction(@PathVariable String idOrCode) {
         User seller = securityUtils.getCurrentUser();
-        return orderService.pushProduction(id, seller);
+        return orderService.pushProduction(idOrCode, seller);
     }
 
-    @PatchMapping("/{id}/deliver-instock")
-    public OrderResponse deliverInStock(@PathVariable UUID id) {
+    @PatchMapping("/{idOrCode}/deliver-instock")
+    public OrderResponse deliverInStock(@PathVariable String idOrCode) {
         User seller = securityUtils.getCurrentUser();
-        return orderService.deliverInStock(id, seller);
+        return orderService.deliverInStock(idOrCode, seller);
     }
 
-    @PatchMapping("/{id}/mark-done")
-    public OrderResponse markDone(@PathVariable UUID id) {
+    @PatchMapping("/{idOrCode}/mark-done")
+    public OrderResponse markDone(@PathVariable String idOrCode) {
         User seller = securityUtils.getCurrentUser();
-        return orderService.markDone(id, seller);
+        return orderService.markDone(idOrCode, seller);
     }
 
-    /** Hủy đơn theo quy tắc nghiệp vụ (Draft → Done, trừ trường hợp bị chặn). */
-    @PatchMapping("/{id}/cancel")
-    public OrderResponse cancelOrder(@PathVariable UUID id) {
+    @PatchMapping("/{idOrCode}/deliver-batch")
+    public OrderResponse deliverBatch(@PathVariable String idOrCode, @Valid @RequestBody DeliverBatchRequest request) {
         User seller = securityUtils.getCurrentUser();
-        return orderService.cancelOrder(id, seller);
+        UUID orderId = orderService.resolveSellerFulfillmentOrderId(idOrCode, seller);
+        return orderDeliveryService.deliverBatch(orderId, request, seller);
     }
 
-    @GetMapping("/{id}/activity-logs")
-    public List<ActivityLogResponse> getActivityLogs(@PathVariable UUID id) {
+    @GetMapping("/{idOrCode}/fulfillment")
+    public OrderFulfillmentSummaryDto getFulfillment(@PathVariable String idOrCode) {
         User seller = securityUtils.getCurrentUser();
-        return activityLogService.getLogsByOrder(id, seller);
+        UUID orderId = orderService.resolveSellerFulfillmentOrderId(idOrCode, seller);
+        return orderDeliveryService.getFulfillmentSummary(orderId, seller);
     }
 
-    /**
-     * Lệnh SX theo đơn + log từng lệnh (khác {@code /activity-logs} — API cũ trả list log phẳng gộp chung).
-     */
-    @GetMapping("/{id}/production-tasks")
-    public List<SellerOrderTaskTimelineResponse> getProductionTasksWithLogs(@PathVariable UUID id) {
+    @PatchMapping("/{idOrCode}/cancel")
+    public OrderResponse cancelOrder(@PathVariable String idOrCode) {
         User seller = securityUtils.getCurrentUser();
-        return activityLogService.getProductionTasksWithLogsByOrder(id, seller);
+        return orderService.cancelOrder(idOrCode, seller);
+    }
+
+    @GetMapping("/{idOrCode}/activity-logs")
+    public List<ActivityLogResponse> getActivityLogs(@PathVariable String idOrCode) {
+        User seller = securityUtils.getCurrentUser();
+        UUID orderId = orderService.resolveSellerFulfillmentOrderId(idOrCode, seller);
+        return activityLogService.getLogsByOrder(orderId, seller);
+    }
+
+    @GetMapping("/{idOrCode}/production-tasks")
+    public List<SellerOrderTaskTimelineResponse> getProductionTasksWithLogs(@PathVariable String idOrCode) {
+        User seller = securityUtils.getCurrentUser();
+        UUID orderId = orderService.resolveSellerFulfillmentOrderId(idOrCode, seller);
+        return activityLogService.getProductionTasksWithLogsByOrder(orderId, seller);
+    }
+
+    @PostMapping("/{idOrCode}/tasks/{taskId}/share-link")
+    public TaskShareLinkResponse createTaskShareLink(@PathVariable String idOrCode, @PathVariable UUID taskId) {
+        User seller = securityUtils.getCurrentUser();
+        UUID orderId = orderService.resolveSellerFulfillmentOrderId(idOrCode, seller);
+        return taskTrackingService.createOrGetShareLink(orderId, taskId, seller);
+    }
+
+    @DeleteMapping("/{idOrCode}/tasks/{taskId}/share-link")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void revokeTaskShareLink(@PathVariable String idOrCode, @PathVariable UUID taskId) {
+        User seller = securityUtils.getCurrentUser();
+        UUID orderId = orderService.resolveSellerFulfillmentOrderId(idOrCode, seller);
+        taskTrackingService.revokeShareLink(orderId, taskId, seller);
     }
 }

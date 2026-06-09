@@ -21,6 +21,8 @@ public class OrderItemResponse {
     private Boolean isCustom;
     private String resourceUrl;
     private Integer quantity;
+    private Integer deliveredQuantity;
+    private Integer remainingToDeliver;
     private BigDecimal unitPrice;
     private BigDecimal unitCostAtTime;
     private BigDecimal subtotal;

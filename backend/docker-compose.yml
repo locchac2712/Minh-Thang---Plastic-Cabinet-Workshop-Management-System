@@ -1,5 +1,7 @@
-# Local: Postgres trong compose + app (mặc định).
-# Chỉ app trỏ DB prod: dùng docker-compose.prod-db.yml + file .env.prod-db (xem env.prod-db.example).
+# Local: Postgres + app trong Compose.
+# Init DB: chỉ database/init_schema.sql (DDL đầy đủ + user admin — không seed demo).
+# Dữ liệu mẫu: database/seed_data.sql — chạy tay hoặc tự mount vào postgres nếu cần.
+# Chỉ API trỏ DB ngoài: docker-compose.prod-db.yml + env (env.prod-db.example).
 
 services:
 
@@ -16,8 +18,6 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./database/init_schema.sql:/docker-entrypoint-initdb.d/01_init_schema.sql:ro
-      - ./database/seed_data.sql:/docker-entrypoint-initdb.d/02_seed_data.sql:ro
-      - ./src/main/resources/db/migration/V6__director_waste_team_remarks.sql:/docker-entrypoint-initdb.d/03_v6_director_waste.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
@@ -50,6 +50,9 @@ services:
       APP_MAIL_FROM: ${APP_MAIL_FROM:-hanzoalizer@gmail.com}
       APP_PASSWORD_RESET_FRONTEND_URL: ${APP_PASSWORD_RESET_FRONTEND_URL:-https://minhthangerp.space/reset-password}
       APP_PASSWORD_RESET_TOKEN_VALIDITY_MS: ${APP_PASSWORD_RESET_TOKEN_VALIDITY_MS:-3600000}
+      # Link public chia sẻ tiến độ lô SX (FE /track/:token)
+      APP_TASK_TRACKING_FRONTEND_URL: ${APP_TASK_TRACKING_FRONTEND_URL:-https://minhthangerp.space}
+      APP_TASK_TRACKING_TOKEN_VALIDITY_MS: ${APP_TASK_TRACKING_TOKEN_VALIDITY_MS:-7776000000}
     # Host: mặc định 8081 nếu 8080 đã dùng trên VPS (container vẫn listen 8080)
     ports:
       - "${TUPLASTIC_APP_PORT:-8081}:8080"

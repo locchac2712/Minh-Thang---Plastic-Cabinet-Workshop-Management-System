@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 
 /**
- * Một bucket aging (vd 0-30, 31-60, 61-90, &gt;90 ngày).
+ * Một bucket aging cho chart Kế toán. {@link #range} là nhãn tiếng Việt (vd. {@code 0–30 ngày}).
  */
 @Data
 @Builder

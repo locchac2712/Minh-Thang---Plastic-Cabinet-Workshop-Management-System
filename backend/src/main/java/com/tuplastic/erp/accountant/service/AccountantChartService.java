@@ -3,6 +3,7 @@ package com.tuplastic.erp.accountant.service;
 import com.tuplastic.erp.accountant.dto.chart.CashFlowTrendPoint;
 import com.tuplastic.erp.accountant.dto.chart.InvoiceStatusTrendPoint;
 import com.tuplastic.erp.common.dto.chart.AgingBucket;
+import com.tuplastic.erp.common.dto.chart.AgingBucketLabels;
 import com.tuplastic.erp.common.dto.chart.ChartGranularity;
 import com.tuplastic.erp.common.dto.chart.ChartUtils;
 import com.tuplastic.erp.common.dto.chart.NamedValuePoint;
@@ -226,8 +227,9 @@ public class AccountantChartService {
         List<Object[]> rows = q.getResultList();
         List<AgingBucket> out = new ArrayList<>();
         for (Object[] r : rows) {
+            String bucketKey = r[0] != null ? r[0].toString() : null;
             out.add(AgingBucket.builder()
-                    .range(r[0] != null ? r[0].toString() : null)
+                    .range(AgingBucketLabels.toVietnamese(bucketKey))
                     .amount(ChartUtils.toBigDecimal(r[1]))
                     .count(ChartUtils.toLong(r[2]))
                     .build());

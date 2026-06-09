@@ -15,6 +15,8 @@ public class DebtReportItem {
     private UUID id;
     private String name;
     private BigDecimal totalDebt;
+    private BigDecimal computedDebtFromOrders;
+    private BigDecimal debtReconciliationDelta;
     private BigDecimal maxDebtLimit;
     private Boolean isActive;
 }

@@ -37,7 +37,7 @@ public class BomService {
         if (!productRepository.existsById(productId)) {
             throw new ResourceNotFoundException("Sản phẩm", "id", productId);
         }
-        return bomItemRepository.findByProductIdOrderByCreatedAtAsc(productId)
+        return bomItemRepository.findByProductIdWithMaterialOrderByCreatedAtAsc(productId)
                 .stream().map(bomItemMapper::toResponse).toList();
     }
 
@@ -49,7 +49,7 @@ public class BomService {
         if (!Boolean.TRUE.equals(product.getIsActive())) {
             throw new ResourceNotFoundException("Sản phẩm", "id", productId);
         }
-        return bomItemRepository.findByProductIdOrderByCreatedAtAsc(productId).stream()
+        return bomItemRepository.findByProductIdWithMaterialOrderByCreatedAtAsc(productId).stream()
                 .map(bomItemMapper::toResponse)
                 .toList();
     }
@@ -87,7 +87,7 @@ public class BomService {
         }
         bomItemRepository.saveAll(toSave);
 
-        return bomItemRepository.findByProductIdOrderByCreatedAtAsc(productId).stream()
+        return bomItemRepository.findByProductIdWithMaterialOrderByCreatedAtAsc(productId).stream()
                 .map(bomItemMapper::toResponse)
                 .toList();
     }

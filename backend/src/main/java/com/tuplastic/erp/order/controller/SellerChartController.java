@@ -5,6 +5,7 @@ import com.tuplastic.erp.common.dto.chart.ChartGranularity;
 import com.tuplastic.erp.common.dto.chart.NamedValuePoint;
 import com.tuplastic.erp.common.security.SecurityUtils;
 import com.tuplastic.erp.order.dto.chart.AgencyDebtRiskPoint;
+import com.tuplastic.erp.order.dto.chart.SellerOpenOrdersCountResponse;
 import com.tuplastic.erp.order.service.SellerChartService;
 import com.tuplastic.erp.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +50,12 @@ public class SellerChartController {
     public List<NamedValuePoint> getMyPipelineFunnel() {
         User me = securityUtils.getCurrentUser();
         return sellerChartService.getMyPipelineFunnel(me);
+    }
+
+    @GetMapping("/my-open-orders-count")
+    public SellerOpenOrdersCountResponse getMyOpenOrdersCount() {
+        User me = securityUtils.getCurrentUser();
+        return sellerChartService.getMyOpenOrdersCount(me);
     }
 
     @GetMapping("/my-top-agencies")

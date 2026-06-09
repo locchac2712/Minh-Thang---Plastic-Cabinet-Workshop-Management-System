@@ -17,6 +17,8 @@ public class PaymentResponse {
 
     private UUID id;
     private UUID orderId;
+    /** Mã hiển thị đơn gắn phiếu (DH-… / BG-…); null khi phiếu không gắn đơn. */
+    private String orderDisplayCode;
     private UUID agencyId;
     private String agencyName;
     private BigDecimal amount;

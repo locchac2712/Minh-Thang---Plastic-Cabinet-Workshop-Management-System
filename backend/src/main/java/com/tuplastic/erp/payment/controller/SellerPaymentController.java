@@ -1,6 +1,7 @@
 package com.tuplastic.erp.payment.controller;
 
 import com.tuplastic.erp.common.security.SecurityUtils;
+import com.tuplastic.erp.order.service.OrderService;
 import com.tuplastic.erp.payment.dto.CreatePaymentRequest;
 import com.tuplastic.erp.payment.dto.PatchSellerPaymentRequest;
 import com.tuplastic.erp.payment.dto.PaymentResponse;
@@ -21,11 +22,13 @@ import java.util.UUID;
 public class SellerPaymentController {
 
     private final PaymentService paymentService;
+    private final OrderService orderService;
     private final SecurityUtils securityUtils;
 
-    @GetMapping("/api/seller/orders/{orderId}/payments")
-    public List<PaymentResponse> getOrderPayments(@PathVariable UUID orderId) {
+    @GetMapping("/api/seller/orders/{idOrCode}/payments")
+    public List<PaymentResponse> getOrderPayments(@PathVariable String idOrCode) {
         User seller = securityUtils.getCurrentUser();
+        UUID orderId = orderService.resolveSellerFulfillmentOrderId(idOrCode, seller);
         return paymentService.getPaymentsByOrder(orderId, seller);
     }
 

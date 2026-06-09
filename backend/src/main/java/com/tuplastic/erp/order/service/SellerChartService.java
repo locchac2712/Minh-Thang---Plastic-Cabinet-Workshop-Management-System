@@ -5,6 +5,10 @@ import com.tuplastic.erp.common.dto.chart.ChartGranularity;
 import com.tuplastic.erp.common.dto.chart.ChartUtils;
 import com.tuplastic.erp.common.dto.chart.NamedValuePoint;
 import com.tuplastic.erp.order.dto.chart.AgencyDebtRiskPoint;
+import com.tuplastic.erp.order.dto.chart.SellerOpenOrdersCountResponse;
+import com.tuplastic.erp.order.enums.OrderStatus;
+import com.tuplastic.erp.order.repository.OrderRepository;
+import com.tuplastic.erp.reconcile.AgencyDebtComputationService;
 import com.tuplastic.erp.user.entity.User;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
@@ -16,7 +20,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Mọi chart đều filter theo {@code orders.created_by = currentUser} hoặc {@code agencies.assigned_seller_id} tương ứng.
@@ -26,7 +32,12 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class SellerChartService {
 
+    private static final List<OrderStatus> OPEN_FULFILLMENT_STATUSES =
+            List.copyOf(EnumSet.of(OrderStatus.Approved, OrderStatus.Producing));
+
     private final EntityManager em;
+    private final OrderRepository orderRepository;
+    private final AgencyDebtComputationService agencyDebtComputationService;
 
     public List<BucketPoint> getMyRevenueTrend(User seller, LocalDate fromDate, LocalDate toDate, ChartGranularity gran) {
         ChartUtils.Period p = ChartUtils.normalize(fromDate, toDate, gran);
@@ -82,7 +93,32 @@ public class SellerChartService {
     }
 
     /**
+     * Đơn fulfillment đang mở: {@code Approved} + {@code Producing} (lens {@code /api/seller/orders}).
+     * Không gộp báo giá ({@code sourceOrder IS NULL}) và không tính {@code Done}/{@code Canceled}.
+     */
+    public SellerOpenOrdersCountResponse getMyOpenOrdersCount(User seller) {
+        long approved = 0;
+        long producing = 0;
+        for (Object[] row : orderRepository.countFulfillmentOrdersBySellerAndStatuses(
+                seller.getId(), OPEN_FULFILLMENT_STATUSES)) {
+            OrderStatus status = (OrderStatus) row[0];
+            long cnt = ((Number) row[1]).longValue();
+            if (status == OrderStatus.Approved) {
+                approved = cnt;
+            } else if (status == OrderStatus.Producing) {
+                producing = cnt;
+            }
+        }
+        return SellerOpenOrdersCountResponse.builder()
+                .approvedCount(approved)
+                .producingCount(producing)
+                .count(approved + producing)
+                .build();
+    }
+
+    /**
      * Pipeline funnel theo lifetime của seller (không lọc kỳ); status xuất hiện cố định để FE vẽ funnel.
+     * Chỉ đếm đơn fulfillment ({@code source_order_id IS NOT NULL}).
      */
     public List<NamedValuePoint> getMyPipelineFunnel(User seller) {
         String sql = """
@@ -95,6 +131,7 @@ public class SellerChartService {
                          COUNT(*)::bigint AS cnt
                   FROM orders o
                   WHERE o.created_by = :sellerId
+                    AND o.source_order_id IS NOT NULL
                   GROUP BY o.status
                 )
                 SELECT s.name,
@@ -150,15 +187,20 @@ public class SellerChartService {
         List<Object[]> rows = q.getResultList();
         List<AgencyDebtRiskPoint> out = new ArrayList<>();
         for (Object[] r : rows) {
-            BigDecimal debt = ChartUtils.toBigDecimal(r[2]);
+            UUID agencyId = ChartUtils.toUuid(r[0]);
+            BigDecimal recorded = ChartUtils.toBigDecimal(r[2]);
             BigDecimal limit = ChartUtils.toBigDecimal(r[3]);
+            BigDecimal computed = agencyDebtComputationService.computeForAgency(agencyId);
             BigDecimal ratio = limit.compareTo(BigDecimal.ZERO) == 0
                     ? null
-                    : debt.multiply(BigDecimal.valueOf(100)).divide(limit, 1, RoundingMode.HALF_UP);
+                    : computed.multiply(BigDecimal.valueOf(100)).divide(limit, 1, RoundingMode.HALF_UP);
             out.add(AgencyDebtRiskPoint.builder()
-                    .agencyId(ChartUtils.toUuid(r[0]))
+                    .agencyId(agencyId)
                     .agencyName(r[1] != null ? r[1].toString() : null)
-                    .totalDebt(debt)
+                    .totalDebt(recorded)
+                    .computedDebtFromOrders(computed)
+                    .debtReconciliationDelta(
+                            agencyDebtComputationService.reconciliationDelta(recorded, computed))
                     .maxDebtLimit(limit)
                     .debtRatioPercent(ratio)
                     .build());

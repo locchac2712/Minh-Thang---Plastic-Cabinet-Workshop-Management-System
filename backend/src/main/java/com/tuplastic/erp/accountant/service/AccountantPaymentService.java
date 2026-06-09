@@ -5,6 +5,7 @@ import com.tuplastic.erp.agency.repository.AgencyRepository;
 import com.tuplastic.erp.common.dto.PageResponse;
 import com.tuplastic.erp.common.exception.BadRequestException;
 import com.tuplastic.erp.common.exception.ResourceNotFoundException;
+import com.tuplastic.erp.notification.service.NotificationService;
 import com.tuplastic.erp.order.entity.Order;
 import com.tuplastic.erp.order.repository.OrderRepository;
 import com.tuplastic.erp.payment.dto.PaymentResponse;
@@ -41,6 +42,7 @@ public class AccountantPaymentService {
     private final AgencyRepository agencyRepository;
     private final OrderRepository orderRepository;
     private final PaymentMapper paymentMapper;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public PageResponse<PaymentResponse> listPayments(
@@ -78,7 +80,7 @@ public class AccountantPaymentService {
      * Chốt phiếu thu: Completed — trừ công nợ đại lý, cộng paid_amount đơn (nếu có order).
      */
     @Transactional
-    public PaymentResponse approvePayment(UUID paymentId) {
+    public PaymentResponse approvePayment(UUID paymentId, RejectPaymentRequest request) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Phiếu thu", "id", paymentId));
 
@@ -123,7 +125,27 @@ public class AccountantPaymentService {
         }
 
         payment.setStatus("Completed");
-        return paymentMapper.toResponse(paymentRepository.save(payment));
+        if (request != null && StringUtils.hasText(request.getNote())) {
+            String prefix = "Duyệt kế toán: ";
+            String existing = payment.getNote();
+            payment.setNote(existing == null || existing.isBlank()
+                    ? prefix + request.getNote().trim()
+                    : existing + " | " + prefix + request.getNote().trim());
+        }
+        Payment saved = paymentRepository.save(payment);
+        if (saved.getAgency().getAssignedSeller() != null) {
+            notificationService.notifyUser(
+                    saved.getAgency().getAssignedSeller(),
+                    "PAYMENT_APPROVED",
+                    "Thanh toan duoc xac nhan",
+                    String.format("Phieu thu %s da duoc ke toan xac nhan.", shortPaymentId(saved)),
+                    "/seller/agencies/" + saved.getAgency().getId() + "/payments",
+                    null,
+                    null,
+                    null
+            );
+        }
+        return paymentMapper.toResponse(saved);
     }
 
     @Transactional
@@ -142,7 +164,20 @@ public class AccountantPaymentService {
                     : existing + " | " + prefix + request.getNote().trim());
         }
 
-        return paymentMapper.toResponse(paymentRepository.save(payment));
+        Payment saved = paymentRepository.save(payment);
+        if (saved.getAgency().getAssignedSeller() != null) {
+            notificationService.notifyUser(
+                    saved.getAgency().getAssignedSeller(),
+                    "PAYMENT_REJECTED",
+                    "Thanh toan bi huy",
+                    String.format("Phieu thu %s bi tu choi boi ke toan.", shortPaymentId(saved)),
+                    "/seller/agencies/" + saved.getAgency().getId() + "/payments",
+                    null,
+                    null,
+                    null
+            );
+        }
+        return paymentMapper.toResponse(saved);
     }
 
     private void assertPending(Payment payment, String action) {
@@ -153,9 +188,10 @@ public class AccountantPaymentService {
         }
     }
 
+    /** null = không lọc trạng thái (tất cả). */
     private String resolveStatusFilter(String status) {
         if (!StringUtils.hasText(status)) {
-            return "Pending";
+            return null;
         }
         String normalized = status.trim();
         if (!PAYMENT_STATUSES.contains(normalized)) {
@@ -177,7 +213,9 @@ public class AccountantPaymentService {
             LocalDateTime toExclusive) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-            predicates.add(cb.equal(root.get("status"), status));
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
             if (agencyId != null) {
                 predicates.add(cb.equal(root.get("agency").get("id"), agencyId));
             }
@@ -192,5 +230,10 @@ public class AccountantPaymentService {
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    private static String shortPaymentId(Payment payment) {
+        String id = payment.getId().toString();
+        return id.substring(0, 8);
     }
 }

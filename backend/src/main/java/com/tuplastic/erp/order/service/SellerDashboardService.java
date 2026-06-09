@@ -9,6 +9,7 @@ import com.tuplastic.erp.order.entity.Order;
 import com.tuplastic.erp.order.enums.OrderStatus;
 import com.tuplastic.erp.order.mapper.OrderMapper;
 import com.tuplastic.erp.order.repository.OrderRepository;
+import com.tuplastic.erp.reconcile.AgencyDebtComputationService;
 import com.tuplastic.erp.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -33,6 +35,7 @@ public class SellerDashboardService {
     private final OrderRepository orderRepository;
     private final AgencyRepository agencyRepository;
     private final OrderMapper orderMapper;
+    private final AgencyDebtComputationService agencyDebtComputationService;
 
     public SellerDashboardResponse getDashboard(User seller, LocalDate fromDate, LocalDate toDate) {
         LocalDateTime fromTs = fromDate == null ? null : fromDate.atStartOfDay();
@@ -72,10 +75,14 @@ public class SellerDashboardService {
     }
 
     private AgencyDebtRiskItem toDebtRisk(Agency a) {
+        BigDecimal recorded = a.getTotalDebt();
+        BigDecimal computed = agencyDebtComputationService.computeForAgency(a.getId());
         return AgencyDebtRiskItem.builder()
                 .id(a.getId())
                 .name(a.getName())
-                .totalDebt(a.getTotalDebt())
+                .totalDebt(recorded)
+                .computedDebtFromOrders(computed)
+                .debtReconciliationDelta(agencyDebtComputationService.reconciliationDelta(recorded, computed))
                 .maxDebtLimit(a.getMaxDebtLimit())
                 .build();
     }

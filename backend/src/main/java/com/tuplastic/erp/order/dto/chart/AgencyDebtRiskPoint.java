@@ -16,6 +16,8 @@ public class AgencyDebtRiskPoint {
     private UUID agencyId;
     private String agencyName;
     private BigDecimal totalDebt;
+    private BigDecimal computedDebtFromOrders;
+    private BigDecimal debtReconciliationDelta;
     private BigDecimal maxDebtLimit;
     /** % nợ trên hạn mức, làm tròn 1 chữ số; null nếu hạn mức = 0. */
     private BigDecimal debtRatioPercent;

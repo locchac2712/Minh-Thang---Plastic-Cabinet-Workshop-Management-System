@@ -46,31 +46,28 @@ public class DirectorApprovalController {
         return orderService.getDirectorOrders(status, agencyId, fromDate, toDate, page, size);
     }
 
-    @GetMapping("/orders/{id}")
-    public OrderResponse getOrderDetail(@PathVariable UUID id) {
-        return orderService.getDirectorOrderDetail(id);
+    @GetMapping("/orders/{idOrCode}")
+    public OrderResponse getOrderDetail(@PathVariable String idOrCode) {
+        return orderService.getDirectorOrderDetail(idOrCode);
     }
 
-    @PatchMapping("/orders/{id}/approve")
-    public OrderResponse approveOrder(@PathVariable UUID id) {
+    @PatchMapping("/orders/{idOrCode}/approve")
+    public OrderResponse approveOrder(@PathVariable String idOrCode) {
         User director = securityUtils.getCurrentUser();
-        return orderService.approveOrder(id, director);
+        return orderService.approveOrder(idOrCode, director);
     }
 
-    @PatchMapping("/orders/{id}/reject")
-    public OrderResponse rejectOrder(@PathVariable UUID id,
+    @PatchMapping("/orders/{idOrCode}/reject")
+    public OrderResponse rejectOrder(@PathVariable String idOrCode,
                                      @RequestBody(required = false) RejectOrderRequest request) {
         User director = securityUtils.getCurrentUser();
-        return orderService.rejectOrder(id, director, request);
+        return orderService.rejectOrder(idOrCode, director, request);
     }
 
-    /**
-     * Trả đơn cho seller chỉnh sửa / báo giá lại: Pending → Draft. Body optional {@code note}.
-     */
-    @PatchMapping("/orders/{id}/request-revision")
-    public OrderResponse requestOrderRevision(@PathVariable UUID id,
+    @PatchMapping("/orders/{idOrCode}/request-revision")
+    public OrderResponse requestOrderRevision(@PathVariable String idOrCode,
                                               @RequestBody(required = false) RequestOrderRevisionRequest request) {
-        return orderService.requestOrderRevision(id, request);
+        return orderService.requestOrderRevision(idOrCode, request);
     }
 
     @PatchMapping("/agencies/{id}/override-debt")

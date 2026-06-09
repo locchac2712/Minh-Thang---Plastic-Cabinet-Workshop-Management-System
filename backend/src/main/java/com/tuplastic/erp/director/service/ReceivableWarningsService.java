@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
  * Cảnh báo nợ phải thu (Director) — heuristic không đổi schema:
  * anchor = COALESCE(expected_delivery_date, ngày theo TZ VN của updated_at, created_at).
  * dueDate = anchor + {@code dueGraceDays}.
+ * Cohort đơn: DH mở (Approved / Producing / Done), không gồm báo giá BG.
  */
 @Service
 @RequiredArgsConstructor
@@ -48,6 +49,12 @@ public class ReceivableWarningsService {
     private static final ZoneId VN = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final BigDecimal HUNDRED = new BigDecimal("100");
 
+    /** Đồng bộ {@link com.tuplastic.erp.reconcile.AgencyOpenDebtCriteria#OPEN_FULFILLMENT_WHERE}. */
+    private static final String OPEN_FULFILLMENT_ORDER_FILTER = """
+                  AND o.source_order_id IS NOT NULL
+                  AND o.status IN ('Approved', 'Producing', 'Done')
+                  """;
+
     private final EntityManager em;
 
     @Value("${app.receivables.warning.due-grace-days:30}")
@@ -58,7 +65,7 @@ public class ReceivableWarningsService {
         String riskNorm = normalizeRisk(riskFilter);
 
         List<AgencyScratch> all = buildAgencyScratchList(onlyActive, asOf).stream()
-                .filter(a -> a.totalDebt.compareTo(BigDecimal.ZERO) > 0)
+                .filter(this::hasReceivableExposure)
                 .toList();
         List<AgencyScratch> filtered = riskNorm == null
                 ? all
@@ -66,7 +73,7 @@ public class ReceivableWarningsService {
 
         int n = Math.max(1, Math.min(topLimit, 500));
         List<AgencyScratch> cohort = filtered.stream()
-                .sorted(Comparator.comparing((AgencyScratch a) -> a.totalDebt).reversed())
+                .sorted(Comparator.comparing((AgencyScratch a) -> a.computedDebtFromOrders).reversed())
                 .limit(n)
                 .toList();
 
@@ -77,6 +84,14 @@ public class ReceivableWarningsService {
         BigDecimal estOverdue = cohort.stream()
                 .map(a -> a.estimatedOverdueFromOrders)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalComputed = cohort.stream()
+                .map(a -> a.computedDebtFromOrders)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        long mismatchCount = cohort.stream()
+                .filter(a -> a.totalDebt.subtract(a.computedDebtFromOrders).abs().compareTo(BigDecimal.ONE) > 0)
+                .count();
 
         long urgent = cohort.stream().filter(a -> RISK_SERIOUS.equals(a.riskBand)).count();
 
@@ -101,6 +116,8 @@ public class ReceivableWarningsService {
                 .cohortAgencyCount(cohort.size())
                 .topLimitUsed(n)
                 .totalReceivableRecorded(totalRecorded)
+                .totalComputedFromOrders(totalComputed)
+                .reconciliationMismatchCount(mismatchCount)
                 .estimatedOverdueFromOrders(estOverdue)
                 .urgentAgencyCount(urgent)
                 .riskCounts(riskCounts)
@@ -125,13 +142,13 @@ public class ReceivableWarningsService {
         String bucketNorm = normalizeBucket(bucketFilter);
 
         List<ReceivableWarningsAgencyRowDto> rows = buildAgencyScratchList(onlyActive, asOf).stream()
-                .filter(a -> a.totalDebt.compareTo(BigDecimal.ZERO) > 0)
+                .filter(this::hasReceivableExposure)
                 .map(this::toRowDto)
                 .filter(r -> riskNorm == null || riskNorm.equals(r.getRiskBand()))
                 .filter(r -> bucketNorm == null || bucketNorm.equals(r.getPrimaryAgingBucket()))
                 .filter(r -> minOverdueDays == null || r.getMaxOverdueDays() >= minOverdueDays)
                 .filter(r -> matchesSearch(r, search))
-                .sorted(Comparator.comparing(ReceivableWarningsAgencyRowDto::getTotalDebt).reversed())
+                .sorted(Comparator.comparing(ReceivableWarningsAgencyRowDto::getComputedDebtFromOrders).reversed())
                 .toList();
 
         int p = Math.max(0, page);
@@ -175,10 +192,11 @@ public class ReceivableWarningsService {
         }
 
         BigDecimal ratioVsRecorded = BigDecimal.ZERO;
-        if (base.totalDebt.compareTo(BigDecimal.ZERO) > 0) {
+        BigDecimal ratioBase = base.computedDebtFromOrders;
+        if (ratioBase.compareTo(BigDecimal.ZERO) > 0) {
             ratioVsRecorded = base.estimatedOverdueFromOrders
                     .multiply(HUNDRED)
-                    .divide(base.totalDebt, 1, RoundingMode.HALF_UP);
+                    .divide(ratioBase, 1, RoundingMode.HALF_UP);
         }
 
         LocalDate oldest = orders.stream()
@@ -208,8 +226,10 @@ public class ReceivableWarningsService {
                 .assignedSellerId(base.sellerId)
                 .assignedSellerName(base.sellerName)
                 .totalDebtRecorded(base.totalDebt)
+                .computedDebtFromOrders(base.computedDebtFromOrders)
+                .debtReconciliationDelta(base.totalDebt.subtract(base.computedDebtFromOrders))
                 .maxDebtLimit(base.maxDebtLimit)
-                .utilizationPercent(utilizationPercent(base.totalDebt, base.maxDebtLimit))
+                .utilizationPercent(utilizationPercent(base.computedDebtFromOrders, base.maxDebtLimit))
                 .riskBand(base.riskBand)
                 .oldestAnchorDateAmongOrders(oldest)
                 .overdueRatioVsRecordedDebt(ratioVsRecorded)
@@ -243,8 +263,7 @@ public class ReceivableWarningsService {
                 SELECT o.id, o.total_payable, o.paid_amount, o.expected_delivery_date, o.updated_at, o.created_at
                 FROM orders o
                 WHERE o.agency_id = :agencyId
-                  AND o.status = 'Done'
-                """;
+                """ + OPEN_FULFILLMENT_ORDER_FILTER;
         Query q = em.createNativeQuery(sql);
         q.setParameter("agencyId", agencyId);
         @SuppressWarnings("unchecked")
@@ -279,8 +298,10 @@ public class ReceivableWarningsService {
             }
         }
         ensureAllBucketKeys(a.bucketAmounts);
+        a.computedDebtFromOrders = a.bucketAmounts.values().stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         a.primaryBucket = pickPrimaryWorstBucket(a.bucketAmounts);
-        a.riskBand = classifyRiskBand(a.totalDebt, a.maxDebtLimit, a.maxOverdueDays);
+        a.riskBand = classifyRiskBand(a.computedDebtFromOrders, a.maxDebtLimit, a.maxOverdueDays);
     }
 
     private List<AgencyScratch> buildAgencyScratchList(boolean onlyActive, LocalDate asOf) {
@@ -299,7 +320,7 @@ public class ReceivableWarningsService {
         @SuppressWarnings("unchecked")
         List<Object[]> agencyRows = q.getResultList();
 
-        Map<UUID, List<OrderScratch>> orderMap = loadAllDoneOrdersWithRemainderGrouped(asOf);
+        Map<UUID, List<OrderScratch>> orderMap = loadOpenFulfillmentOrdersGrouped(asOf);
 
         List<AgencyScratch> result = new ArrayList<>();
         for (Object[] row : agencyRows) {
@@ -311,12 +332,12 @@ public class ReceivableWarningsService {
         return result;
     }
 
-    private Map<UUID, List<OrderScratch>> loadAllDoneOrdersWithRemainderGrouped(LocalDate asOf) {
+    private Map<UUID, List<OrderScratch>> loadOpenFulfillmentOrdersGrouped(LocalDate asOf) {
         String sql = """
                 SELECT o.id, o.agency_id, o.total_payable, o.paid_amount, o.expected_delivery_date, o.updated_at, o.created_at
                 FROM orders o
-                WHERE o.status = 'Done'
-                """;
+                WHERE 1 = 1
+                """ + OPEN_FULFILLMENT_ORDER_FILTER;
         Query q = em.createNativeQuery(sql);
         @SuppressWarnings("unchecked")
         List<Object[]> rows = q.getResultList();
@@ -371,8 +392,10 @@ public class ReceivableWarningsService {
                 .assignedSellerId(a.sellerId)
                 .assignedSellerName(a.sellerName)
                 .totalDebt(a.totalDebt)
+                .computedDebtFromOrders(a.computedDebtFromOrders)
+                .debtReconciliationDelta(a.totalDebt.subtract(a.computedDebtFromOrders))
                 .maxDebtLimit(a.maxDebtLimit)
-                .utilizationPercent(utilizationPercent(a.totalDebt, a.maxDebtLimit))
+                .utilizationPercent(utilizationPercent(a.computedDebtFromOrders, a.maxDebtLimit))
                 .estimatedOverdueAmount(a.estimatedOverdueFromOrders)
                 .primaryAgingBucket(a.primaryBucket)
                 .maxOverdueDays(a.maxOverdueDays)
@@ -400,6 +423,10 @@ public class ReceivableWarningsService {
         }
         String idPlain = r.getAgencyId().toString().toLowerCase(Locale.ROOT).replace("-", "");
         return idPlain.contains(q.replace("-", ""));
+    }
+
+    private boolean hasReceivableExposure(AgencyScratch a) {
+        return a.computedDebtFromOrders.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private LocalDate resolveAnchor(Date expectedSqlDate, Timestamp updated, Timestamp created) {
@@ -526,6 +553,7 @@ public class ReceivableWarningsService {
         String address;
         String taxCode;
         BigDecimal totalDebt = BigDecimal.ZERO;
+        BigDecimal computedDebtFromOrders = BigDecimal.ZERO;
         BigDecimal maxDebtLimit = BigDecimal.ZERO;
         boolean isActive = true;
         UUID sellerId;

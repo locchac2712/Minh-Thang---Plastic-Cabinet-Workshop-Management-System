@@ -6,6 +6,8 @@ import com.tuplastic.erp.agency.dto.TransferOwnerRequest;
 import com.tuplastic.erp.agency.dto.UpdateAgencyRequest;
 import com.tuplastic.erp.agency.service.AgencyService;
 import com.tuplastic.erp.common.dto.PageResponse;
+import com.tuplastic.erp.order.dto.OrderResponse;
+import com.tuplastic.erp.order.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,7 @@ import java.util.UUID;
 public class AdminAgencyController {
 
     private final AgencyService agencyService;
+    private final OrderService orderService;
 
     @GetMapping
     public PageResponse<AgencyResponse> getAllAgencies(
@@ -35,6 +38,24 @@ public class AdminAgencyController {
     @GetMapping("/{id}")
     public AgencyResponse getAgency(@PathVariable UUID id) {
         return agencyService.getAgencyByIdForAdmin(id);
+    }
+
+    @GetMapping("/{id}/orders")
+    public PageResponse<OrderResponse> getAgencyOrders(
+            @PathVariable UUID id,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return orderService.getAgencyOrdersForAdmin(id, orderService.parseStatuses(status), page, size);
+    }
+
+    @GetMapping("/{id}/quotations")
+    public PageResponse<OrderResponse> getAgencyQuotations(
+            @PathVariable UUID id,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return orderService.getAgencyQuotationsForAdmin(id, orderService.parseStatuses(status), page, size);
     }
 
     @PostMapping

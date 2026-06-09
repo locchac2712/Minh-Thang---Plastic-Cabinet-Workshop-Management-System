@@ -11,7 +11,7 @@ import java.util.UUID;
 @Data
 public class CreatePaymentRequest {
 
-    private UUID orderId;
+    private String orderId;
 
     @NotNull(message = "Mã đại lý không được để trống")
     private UUID agencyId;
